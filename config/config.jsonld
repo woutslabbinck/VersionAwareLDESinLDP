@@ -1,0 +1,8 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.1/components/context.jsonld"
+  ],
+  "@id": "urn:@treecg/versionawareldesinldp:myInstance",
+  "@type": "MyClass",
+  "name": "John"
+}

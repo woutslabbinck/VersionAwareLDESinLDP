@@ -1,0 +1,39 @@
+{
+  "name": "@treecg/versionawareldesinldp",
+  "version": "0.0.0",
+  "description": "Client package for interacting with an LDES in LDP (version-aware approach)",
+  "main": "./dist/Index.js",
+  "types": "./dist/Index.d.ts",
+  "scripts": {
+    "build": "npm run build:ts && npm run build:components",
+    "build:ts": "rm -rf dist/; tsc",
+    "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts",
+    "prepare": "npm run build"
+    },
+  "lsd:module": "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp",
+  "lsd:components": "dist/components/components.jsonld",
+  "lsd:contexts": {
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/components/context.jsonld": "dist/components/context.jsonld"
+  },
+  "lsd:importPaths": {
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/components/": "dist/components/",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/config/": "config/",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/dist/": "dist/"
+  },
+    "keywords": [
+    "LDES",
+    "LDP",
+    "LD",
+    "Solid"
+  ],
+  "author": "Wout Slabbinck <wout.slabbinck@ugent.be>",
+  "license": "ISC",
+  "dependencies": {
+    "componentjs": "^1.6.2",
+    "typescript": "^4.6.2",
+    "n3": "^1.14.0"
+  },
+  "devDependencies": {
+    "": "^2.6.1"
+  }
+}

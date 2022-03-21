@@ -1,0 +1,14 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/components/context.jsonld"
+  ],
+  "import": [
+    "files-awarelil:config/ldp/default.json"
+  ],
+  "@id": "urn:@treecg/versionawareldesinldp:ldesinldp",
+  "@type": "LDESinLDP",
+  "args_LDESinLDPIdentifier": "http://localhost:3123",
+  "args_communication": {
+    "@id": "urn:@treecg/versionawareldesinldp:communication"
+  }
+}
