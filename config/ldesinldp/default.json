@@ -5,10 +5,15 @@
   "import": [
     "files-awarelil:config/ldp/default.json"
   ],
-  "@id": "urn:@treecg/versionawareldesinldp:ldesinldp",
-  "@type": "LDESinLDP",
-  "args_LDESinLDPIdentifier": "http://localhost:3123",
-  "args_communication": {
-    "@id": "urn:@treecg/versionawareldesinldp:communication"
-  }
+  "@graph": [
+    {
+      "comment": "Some stuff",
+      "@id": "urn:@treecg/versionawareldesinldp:ldesinldp",
+      "@type": "LDESinLDP",
+      "LDESinLDPIdentifier": "http://localhost:3123",
+      "communication": {
+        "@id": "urn:@treecg/versionawareldesinldp:communication"
+      }
+    }
+  ]
 }

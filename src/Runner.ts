@@ -7,6 +7,7 @@
 import {ComponentsManager} from 'componentsjs';
 import * as Path from "path";
 import {Communication} from "./ldp/Communication";
+import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
 
 async function run() {
     console.log(Path.join(__dirname, '../'))
@@ -18,14 +19,13 @@ async function run() {
     );
     await manager.configRegistry.register(Path.join(__dirname, '../', 'config/default.json'));
     // await manager.configRegistry.register('files-awarelil:config/default.json');
-    const myInstance = await manager.instantiate('urn:@treecg/versionawareldesinldp:communication');
+    const myInstance = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp');
     return myInstance
 }
 
 async function other() {
-    const communication: Communication = await run() as Communication
-    const response = await communication.get('https://woutslabbinck.github.io/LDESinLDP/')
-    console.log(response.status)
+    const ldesinldp: ILDESinLDP = await run() as ILDESinLDP
+    const response = await ldesinldp.read('https://woutslabbinck.github.io/LDESinLDP/')
 }
 
 other()

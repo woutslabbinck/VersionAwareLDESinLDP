@@ -14,7 +14,7 @@ export class LDESinLDP implements ILDESinLDP {
     private readonly LDESinLDPIdentifier: string;
     private readonly communication: Communication
 
-    constructor(LDESinLDPIdentifier: string, communication: Communication) {
+    public constructor(LDESinLDPIdentifier: string, communication: Communication) {
         this.LDESinLDPIdentifier = LDESinLDPIdentifier;
         this.communication = communication;
     }
@@ -28,6 +28,10 @@ export class LDESinLDP implements ILDESinLDP {
     }
 
     public async read(resourceIdentifier: string): Promise<Store> {
+        const response = await this.communication.get(resourceIdentifier)
+        //todo convert
+        console.log(this.LDESinLDPIdentifier)
+        console.log('request send to: ' + response.status)
         return Promise.resolve(new Store());
     }
 
