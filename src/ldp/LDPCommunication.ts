@@ -1,6 +1,6 @@
 /***************************************
  * Title: LDPCommunication
- * Description: TODO
+ * Description: Performs the HTTP request to a Linked Data Platform
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 21/03/2022
  *****************************************/
@@ -8,13 +8,14 @@ import {Communication} from "./Communication";
 
 export class LDPCommunication implements Communication {
 
-    // todo: defaults
     public constructor() {
     }
 
     public async get(resourceIdentifier: string, headers?: Headers): Promise<Response> {
+        headers = headers ? headers : new Headers({'Content-type': 'text/turtle'})
         return await fetch(resourceIdentifier, {
-            method: 'GET'
+            method: 'GET',
+            headers
         });
     }
 
@@ -25,6 +26,7 @@ export class LDPCommunication implements Communication {
     }
 
     public async post(resourceIdentifier: string, body?: string, headers?: Headers): Promise<Response> {
+        headers = headers ? headers : new Headers({'Content-type': 'text/turtle'})
         return await fetch(resourceIdentifier, {
             method: 'POST',
             headers: headers,
@@ -33,6 +35,7 @@ export class LDPCommunication implements Communication {
     }
 
     public async put(resourceIdentifier: string, body?: string, headers?: Headers): Promise<Response> {
+        headers = headers ? headers : new Headers({'Content-type': 'text/turtle'})
         return await fetch(resourceIdentifier, {
             method: 'PUT',
             headers: headers,
@@ -41,6 +44,7 @@ export class LDPCommunication implements Communication {
     }
 
     public async patch(resourceIdentifier: string, body?: string, headers?: Headers): Promise<Response> {
+        headers = headers ? headers : new Headers({'Content-type': 'application/sparql-update'})
         return await fetch(resourceIdentifier, {
             method: 'PATCH',
             headers: headers,

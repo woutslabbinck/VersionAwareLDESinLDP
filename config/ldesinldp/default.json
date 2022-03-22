@@ -10,7 +10,9 @@
       "comment": "Some stuff",
       "@id": "urn:@treecg/versionawareldesinldp:ldesinldp",
       "@type": "LDESinLDP",
-      "LDESinLDPIdentifier": "http://localhost:3123",
+      "LDESinLDPIdentifier": {
+       "@id": "urn:ldesinldp:variable:ldesinldpIdentifier"
+      },
       "communication": {
         "@id": "urn:@treecg/versionawareldesinldp:communication"
       }

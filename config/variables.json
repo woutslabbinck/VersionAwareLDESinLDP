@@ -1,0 +1,13 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/components/context.jsonld"
+  ],
+  "comment": "Variables used for configuration",
+  "@graph": [
+    {
+      "comment": "Base of the LDES in LDP.",
+      "@id": "urn:ldesinldp:variable:ldesinldpIdentifier",
+      "@type": "Variable"
+    }
+  ]
+}

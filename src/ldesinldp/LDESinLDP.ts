@@ -29,6 +29,13 @@ export class LDESinLDP implements ILDESinLDP {
 
     public async read(resourceIdentifier: string): Promise<Store> {
         const response = await this.communication.get(resourceIdentifier)
+
+        if (response.status !== 200){
+            throw new Error('Resource not found') //todo: maybe add error classes?
+        }
+        if (response.headers.get('content-type') !== 'text/turtle') {
+            throw new Error('Works only on rdf data')
+        }
         //todo convert
         console.log(this.LDESinLDPIdentifier)
         console.log('request send to: ' + response.status)

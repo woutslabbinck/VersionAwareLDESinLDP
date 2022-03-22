@@ -8,8 +8,9 @@
     "build": "npm run build:ts && npm run build:components",
     "build:ts": "rm -rf dist/; tsc",
     "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts",
-    "prepare": "npm run build"
-    },
+    "prepare": "npm run build",
+    "start": "node bin/client.js"
+  },
   "lsd:module": "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp",
   "lsd:components": "dist/components/components.jsonld",
   "lsd:contexts": {

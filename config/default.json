@@ -3,6 +3,7 @@
     "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/components/context.jsonld"
   ],
   "import": [
-    "files-awarelil:config/ldesinldp/default.json"
+    "files-awarelil:config/ldesinldp/default.json",
+    "files-awarelil:config/variables.json"
   ]
 }

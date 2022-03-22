@@ -14,18 +14,23 @@ async function run() {
     const manager = await ComponentsManager.build(
         {
             mainModulePath: Path.join(__dirname, '../'), // Path to your npm package's root
+            logLevel: 'info'
             // mainModulePath: __dirname, // Path to your npm package's root
         }
     );
     await manager.configRegistry.register(Path.join(__dirname, '../', 'config/default.json'));
-    // await manager.configRegistry.register('files-awarelil:config/default.json');
-    const myInstance = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp');
+
+    // todo: make base LDES in LDP configurable from CLI
+    const baseIdentifier = "http://localhost:3123"
+
+    const variables: Record<string, unknown> = {
+        "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
+    }
+    const myInstance = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables});
     return myInstance
 }
 
-async function other() {
+export async function other() {
     const ldesinldp: ILDESinLDP = await run() as ILDESinLDP
-    const response = await ldesinldp.read('https://woutslabbinck.github.io/LDESinLDP/')
+    const response = await ldesinldp.read('https://tree.linkeddatafragments.org/announcements/')
 }
-
-other()
