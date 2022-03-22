@@ -1,3 +1,3 @@
 #!/usr/bin/env node
-const {other} = require('..')
-other()
+const {run} = require('..')
+run()

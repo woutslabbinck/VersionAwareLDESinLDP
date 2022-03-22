@@ -6,10 +6,10 @@
  *****************************************/
 import {ComponentsManager} from 'componentsjs';
 import * as Path from "path";
-import {Communication} from "./ldp/Communication";
 import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
+import {storeToString} from "./util/Conversion";
 
-async function run() {
+export async function run() {
     console.log(Path.join(__dirname, '../'))
     const manager = await ComponentsManager.build(
         {
@@ -26,11 +26,6 @@ async function run() {
     const variables: Record<string, unknown> = {
         "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
     }
-    const myInstance = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables});
-    return myInstance
-}
-
-export async function other() {
-    const ldesinldp: ILDESinLDP = await run() as ILDESinLDP
-    const response = await ldesinldp.read('https://tree.linkeddatafragments.org/announcements/')
+    const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables}) as ILDESinLDP;
+    console.log(storeToString(await ldesinldp.read('https://tree.linkeddatafragments.org/announcements/root.ttl')))
 }

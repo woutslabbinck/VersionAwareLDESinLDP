@@ -9,6 +9,7 @@ import {Communication} from "../ldp/Communication";
 import {LDESinLDPConfig} from "./LDESinLDPConfig";
 import {Store} from "n3";
 import {Readable} from "stream";
+import {storeToString, stringToStore, turtleStringToStore} from "../util/Conversion";
 
 export class LDESinLDP implements ILDESinLDP {
     private readonly LDESinLDPIdentifier: string;
@@ -30,16 +31,14 @@ export class LDESinLDP implements ILDESinLDP {
     public async read(resourceIdentifier: string): Promise<Store> {
         const response = await this.communication.get(resourceIdentifier)
 
-        if (response.status !== 200){
+        if (response.status !== 200) {
             throw new Error('Resource not found') //todo: maybe add error classes?
         }
         if (response.headers.get('content-type') !== 'text/turtle') {
             throw new Error('Works only on rdf data')
         }
-        //todo convert
-        console.log(this.LDESinLDPIdentifier)
-        console.log('request send to: ' + response.status)
-        return Promise.resolve(new Store());
+        const text = await response.text()
+        return await turtleStringToStore(text)
     }
 
     public async update(materializedResourceIdentifier: string, store: Store): Promise<void> {
