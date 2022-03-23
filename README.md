@@ -10,7 +10,7 @@
   - [x] update
   - [x] delete
   - [x] readMetadata
-  - [ ] readAllMembers
+  - [x] readAllMembers
 - [ ] implement VersionAwareLDESinLDP.ts
 - [ ] add tests
 - [ ] implement CLI

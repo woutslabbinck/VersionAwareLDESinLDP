@@ -6,6 +6,7 @@
  *****************************************/
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
 import {Store} from "n3";
+import {SnapshotTransform} from "@treecg/ldes-snapshot";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -49,6 +50,20 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<Store>} materialized representation of the resource if it exists
      */
     public async read(materializedResourceIdentifier: string): Promise<Store> {
+        const stream = await this.LDESinLDP.readAllMembers()
+        const snapshotOptions = {
+            date: new Date(),
+            ldesIdentifier: "http://example.org/ES1",
+            snapshotIdentifier: "http://example.org/snapshot",
+            versionOfPath: "http://purl.org/dc/terms/isVersionOf",
+            timestampPath: "http://purl.org/dc/terms/created",
+            materialized: true
+        }
+        const snapshotTransformer = new SnapshotTransform(snapshotOptions)
+        const transformedStream = stream.pipe(snapshotTransformer)
+        transformedStream.on('data', ({id, quads}) => {
+            console.log(`member: ${id.value}`)
+        })
         // TODO: maybe add optional parameter of the date?
         return Promise.resolve(new Store())
     }

@@ -9,7 +9,9 @@ import * as Path from "path";
 import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
 import {memberStreamtoStore, storeToString, turtleStringToStore} from "./util/Conversion";
 import {DataFactory, Store} from "n3";
+import {VersionAwareLDESinLDP} from "./versionawarelil/VersionAwareLDESinLDP";
 
+const currentDate = new Date()
 const memberString = `
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -17,9 +19,10 @@ const memberString = `
 @prefix : <> .
 
 <#resource> dct:isVersionOf ex:resource1.
-<#resource> dct:issued "2021-12-15T10:00:00.000Z"^^xsd:dateTime.
-<#resource> dct:title "First version of the title".
+<#resource> dct:issued "${currentDate.toISOString()}"^^xsd:dateTime.
+<#resource> dct:title "Title at ${currentDate.toLocaleString()}".
 `
+
 export async function run() {
     console.log(Path.join(__dirname, '../'))
     const manager = await ComponentsManager.build(
@@ -63,9 +66,25 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
     // create the a resource in the ldes
     // await ldesinldp.create(await turtleStringToStore(memberString))
 
-    //read the metadata
+    // read the metadata
     // await ldesinldp.readMetadata()
     const stream = await ldesinldp.readAllMembers()
     const streamAsStore = await memberStreamtoStore(stream)
     console.log(storeToString(streamAsStore))
+}
+export async function instantiateVersionAwareLDESinLDP(baseIdentifier: string){
+    const manager = await ComponentsManager.build(
+        {
+            mainModulePath: Path.join(__dirname, '../'), // Path to your npm package's root
+            logLevel: 'info'
+        }
+    );
+    await manager.configRegistry.register(Path.join(__dirname, '../', 'config/attemptversionaware.json'));
+
+    const variables: Record<string, unknown> = {
+        "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
+    }
+    const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:versionawareldesinldp', {variables: variables}) as VersionAwareLDESinLDP;
+    const resource = await ldesinldp.read('http://example.org/resource1')
+    console.log(storeToString(resource))
 }

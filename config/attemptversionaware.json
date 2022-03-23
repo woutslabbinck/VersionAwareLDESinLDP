@@ -1,0 +1,9 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/components/context.jsonld"
+  ],
+  "import": [
+    "files-awarelil:config/versionawarelil/default.json",
+    "files-awarelil:config/variables.json"
+  ]
+}

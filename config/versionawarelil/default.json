@@ -1,0 +1,18 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/components/context.jsonld"
+  ],
+  "import": [
+    "files-awarelil:config/ldesinldp/default.json"
+  ],
+  "@graph": [
+    {
+      "comment": "Some stuff",
+      "@id": "urn:@treecg/versionawareldesinldp:versionawareldesinldp",
+      "@type": "VersionAwareLDESinLDP",
+      "LDESinLDP": {
+        "@id": "urn:@treecg/versionawareldesinldp:ldesinldp"
+      }
+    }
+  ]
+}

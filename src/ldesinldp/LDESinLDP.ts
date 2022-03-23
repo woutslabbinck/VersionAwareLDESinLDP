@@ -125,7 +125,7 @@ export class LDESinLDP implements ILDESinLDP {
         metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null, null, null))
         return rootStore
     }
-
+// todo: ask Ruben D if this makes sense or not. Maybe I need make this a sync function?
     public async readAllMembers(until: Date | undefined): Promise<Readable> {
         until = until ? until : new Date()
         const rootStore = await this.readMetadata()
