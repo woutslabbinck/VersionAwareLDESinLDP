@@ -42,6 +42,7 @@ export class LDESinLDP implements ILDESinLDP {
 
         store.addQuad(eventStreamNode, namedNode(RDF.type), namedNode(LDES.EventStream))
         store.addQuad(eventStreamNode, namedNode(LDES.versionOfPath), namedNode(DCT.isVersionOf))
+        store.addQuad(eventStreamNode, namedNode(LDES.timestampPath), namedNode(config.treePath))
         store.addQuad(eventStreamNode, namedNode(TREE.view), rootNode)
 
         if (config.shape) {
@@ -56,7 +57,7 @@ export class LDESinLDP implements ILDESinLDP {
         // add relation
         store.addQuad(relationNode, namedNode(RDF.type), namedNode(TREE.GreaterThanOrEqualToRelation));
         store.addQuad(relationNode, namedNode(TREE.node), namedNode(relationIdentifier));
-        store.addQuad(relationNode, namedNode(TREE.path), namedNode(DCT.issued));
+        store.addQuad(relationNode, namedNode(TREE.path), namedNode(config.treePath));
         store.addQuad(relationNode, namedNode(TREE.value), dateToLiteral(date));
 
         // add inbox
@@ -90,7 +91,7 @@ export class LDESinLDP implements ILDESinLDP {
             throw new Error('Works only on rdf data')
         }
         const text = await response.text()
-        return await turtleStringToStore(text)
+        return await turtleStringToStore(text, resourceIdentifier)
     }
 
     public async update(store: Store): Promise<void> {
@@ -101,8 +102,26 @@ export class LDESinLDP implements ILDESinLDP {
         await this.create(store)
     }
 
+    // Note to self: Should this be a store or just an interface or sth?
     public async readMetadata(): Promise<Store> {
-        return Promise.resolve(new Store());
+        // Metadata includes the tree:relations, tree:path, ldes:timestampPath, ldes:versionOfPath, base of the LDESinLDP and optionally the tree:shape.
+        const rootStore = await this.read(this.LDESinLDPIdentifier)
+
+        const metadataStore = new Store()
+        const eventStream = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
+        // add event stream
+        metadataStore.addQuads(rootStore.getQuads(eventStream, null,null,null))
+        // add root node
+        metadataStore.addQuad(namedNode(this.LDESinLDPIdentifier),namedNode(RDF.type), namedNode(TREE.Node))
+        const relationTriple= rootStore.getQuads(this.LDESinLDPIdentifier, TREE.relation, null, null)[0]
+        metadataStore.addQuad(relationTriple)
+        // add ldp:inbox
+        metadataStore.addQuads(rootStore.getQuads(this.LDESinLDPIdentifier, LDP.inbox,null,null))
+        // add relation
+        metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null,null,null))
+
+        console.log(storeToString(metadataStore))
+        return rootStore
     }
 
     public async readAllMembers(until: Date | undefined): Promise<Readable> {

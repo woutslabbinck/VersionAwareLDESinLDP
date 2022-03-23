@@ -15,7 +15,7 @@ export class VersionAwareLDESinLDP {
     }
 
     /**
-     * Initialises an LDES in LDP at the base using as tree:path dc:issued and optionally the shape URL as tree:shape.
+     * Initialises an LDES in LDP at the base using as tree:path dc:created and optionally the shape URL as tree:shape.
      * @param ldpContainerIdentifier base URL where the LDES in LDP will reside
      * @param shape shape URL
      * @returns {Promise<any>}

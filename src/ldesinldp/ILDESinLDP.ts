@@ -11,7 +11,7 @@ import {Readable} from "stream";
 export interface ILDESinLDP {
     /**
      * Initialises an LDES in LDP using from the config the base, possibly a shape and the treePath.
-     * By default, ldes:versionOfPath is dct:isVersionOf, ldes:timestampPath is dc:issued and tree:relation is tree:GreaterThanOrEqualRelation.
+     * By default, ldes:versionOfPath is dct:isVersionOf, ldes:timestampPath is dc:created and tree:relation is tree:GreaterThanOrEqualToRelation.
      * @param config
      */
     initialise: (config: LDESinLDPConfig) => Promise<void>

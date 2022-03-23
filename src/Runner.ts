@@ -9,8 +9,7 @@ import * as Path from "path";
 import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
 import {storeToString, turtleStringToStore} from "./util/Conversion";
 import {DataFactory, Store} from "n3";
-import quad = DataFactory.quad;
-import namedNode = DataFactory.namedNode;
+
 const memberString = `
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -54,12 +53,16 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
         "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
     }
     const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables}) as ILDESinLDP;
-    const baseContainer = await ldesinldp.read(baseIdentifier)
-    if (!baseContainer) {
+    // const baseContainer = await ldesinldp.read(baseIdentifier)
+    // if (!baseContainer) {
         await ldesinldp.initialise({
             LDESinLDPIdentifier: `${baseIdentifier}`,
-            treePath: "http://purl.org/dc/terms/issued"
+            treePath: "http://purl.org/dc/terms/created"
         })
-    }
-    await ldesinldp.create('random', await turtleStringToStore(memberString))
+    // }
+    // create the a resource in the ldes
+    await ldesinldp.create(await turtleStringToStore(memberString))
+
+    //read the metadata
+    await ldesinldp.readMetadata()
 }

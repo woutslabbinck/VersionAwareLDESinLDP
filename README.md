@@ -6,10 +6,11 @@
 - [ ] implement LDESinLDP.ts
   - [x] read 
   - [x] initialise
-  - [ ] create
-  - [ ] update
-  - [ ] delete
-  - [ ] patch
+  - [x] create
+  - [x] update
+  - [x] delete
+  - [x] readMetadata
+  - [ ] readAllMembers
 - [ ] implement VersionAwareLDESinLDP.ts
 - [ ] add tests
 - [ ] implement CLI
