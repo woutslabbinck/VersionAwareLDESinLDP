@@ -7,7 +7,7 @@
 import {ComponentsManager} from 'componentsjs';
 import * as Path from "path";
 import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
-import {storeToString, turtleStringToStore} from "./util/Conversion";
+import {memberStreamtoStore, storeToString, turtleStringToStore} from "./util/Conversion";
 import {DataFactory, Store} from "n3";
 
 const memberString = `
@@ -53,16 +53,19 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
         "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
     }
     const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables}) as ILDESinLDP;
-    // const baseContainer = await ldesinldp.read(baseIdentifier)
-    // if (!baseContainer) {
+    const baseContainer = await ldesinldp.read(baseIdentifier)
+    if (!baseContainer) {
         await ldesinldp.initialise({
             LDESinLDPIdentifier: `${baseIdentifier}`,
             treePath: "http://purl.org/dc/terms/created"
         })
-    // }
+    }
     // create the a resource in the ldes
-    await ldesinldp.create(await turtleStringToStore(memberString))
+    // await ldesinldp.create(await turtleStringToStore(memberString))
 
     //read the metadata
-    await ldesinldp.readMetadata()
+    // await ldesinldp.readMetadata()
+    const stream = await ldesinldp.readAllMembers()
+    const streamAsStore = await memberStreamtoStore(stream)
+    console.log(storeToString(streamAsStore))
 }

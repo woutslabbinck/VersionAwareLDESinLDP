@@ -7,12 +7,12 @@
 import {ILDESinLDP} from "./ILDESinLDP";
 import {Communication} from "../ldp/Communication";
 import {LDESinLDPConfig} from "./LDESinLDPConfig";
-import {DataFactory, Store} from "n3";
-import {Readable} from "stream";
+import {DataFactory, Literal, Store} from "n3";
+import {Readable,Transform} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import namedNode = DataFactory.namedNode;
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
-import {dateToLiteral} from "../util/TimestampUtil";
+import {dateToLiteral, extractDateFromLiteral} from "../util/TimestampUtil";
 import {retrieveWriteLocation} from "./Util";
 
 export class LDESinLDP implements ILDESinLDP {
@@ -102,30 +102,79 @@ export class LDESinLDP implements ILDESinLDP {
         await this.create(store)
     }
 
-    // Note to self: Should this be a store or just an interface or sth?
     public async readMetadata(): Promise<Store> {
-        // Metadata includes the tree:relations, tree:path, ldes:timestampPath, ldes:versionOfPath, base of the LDESinLDP and optionally the tree:shape.
+        // Note to self: Should this be a store or just an interface or sth?
+        // what if the ldesinldp is not actually an ldes in ldp? Error handling?
         const rootStore = await this.read(this.LDESinLDPIdentifier)
 
         const metadataStore = new Store()
-        const eventStream = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
-        // add event stream
-        metadataStore.addQuads(rootStore.getQuads(eventStream, null,null,null))
-        // add root node
-        metadataStore.addQuad(namedNode(this.LDESinLDPIdentifier),namedNode(RDF.type), namedNode(TREE.Node))
-        const relationTriple= rootStore.getQuads(this.LDESinLDPIdentifier, TREE.relation, null, null)[0]
-        metadataStore.addQuad(relationTriple)
-        // add ldp:inbox
-        metadataStore.addQuads(rootStore.getQuads(this.LDESinLDPIdentifier, LDP.inbox,null,null))
-        // add relation
-        metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null,null,null))
+        const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
+        const relationTriple = rootStore.getQuads(this.LDESinLDPIdentifier, TREE.relation, null, null)[0]
 
-        console.log(storeToString(metadataStore))
+        // add event stream
+        metadataStore.addQuads(rootStore.getQuads(eventStreamNode, null, null, null))
+
+        // add root node
+        metadataStore.addQuad(namedNode(this.LDESinLDPIdentifier), namedNode(RDF.type), namedNode(TREE.Node))
+        metadataStore.addQuad(relationTriple)
+
+        // add ldp:inbox
+        metadataStore.addQuads(rootStore.getQuads(this.LDESinLDPIdentifier, LDP.inbox, null, null))
+
+        // add relation
+        metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null, null, null))
         return rootStore
     }
 
     public async readAllMembers(until: Date | undefined): Promise<Readable> {
-        return Promise.resolve(new Readable());
+        until = until ? until : new Date()
+        const rootStore = await this.readMetadata()
+// note: maybe with a sparql query in comunica?
+        // get all relations of the root node
+        const relationIdentifiers = rootStore.getObjects(this.LDESinLDPIdentifier, TREE.relation, null).map(object => object)
+
+        // get all nodes in the ldes in ldp
+        const nodeIdentifiers: string[] = []
+        for (const relationIdentifier of relationIdentifiers) {
+            const relation = new Store(rootStore.getQuads(relationIdentifier, null, null, null))
+            // todo error checking
+            const relationValue = extractDateFromLiteral(relation.getObjects(null, TREE.value, null)[0] as Literal)
+
+            if (until.getTime() > relationValue.getTime()) {
+                // todo error checking
+                nodeIdentifiers.push(relation.getObjects(null, TREE.node, null)[0].value)
+            }
+        }
+        const comm = this
+        // stream of resources within the ldes in ldp
+        const resourceIdentifierStream = new Readable({
+            objectMode: true,
+            async read() {
+                for (const nodeIdentifier of nodeIdentifiers) {
+                    // todo: defensive, what if this errors?
+                    const nodeStore = await comm.read(nodeIdentifier)
+                    const identifiers: string[] = nodeStore.getObjects(nodeIdentifier, LDP.contains, null).map(object => object.value)
+
+                    for (const identifier of identifiers) {
+                        this.push(identifier)
+                    }
+                }
+                this.push(null)
+            }
+        })
+
+        // stream of all members
+        const transformer = new Transform({
+            objectMode: true,
+            async transform(chunk, encoding, callback){
+                const resourceStore = await comm.read(chunk)
+                this.push({
+                    id: namedNode(chunk),
+                    quads: resourceStore.getQuads(null,null,null,null)
+                })
+            }
+        })
+        return Promise.resolve(resourceIdentifierStream.pipe(transformer));
     }
 
     private async createContainer(resourceIdentifier: string, body?: string): Promise<void> {
