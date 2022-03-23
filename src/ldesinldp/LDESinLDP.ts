@@ -13,6 +13,7 @@ import {storeToString, turtleStringToStore} from "../util/Conversion";
 import namedNode = DataFactory.namedNode;
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {dateToLiteral} from "../util/TimestampUtil";
+import {retrieveWriteLocation} from "./Util";
 
 export class LDESinLDP implements ILDESinLDP {
     private readonly LDESinLDPIdentifier: string;
@@ -68,9 +69,15 @@ export class LDESinLDP implements ILDESinLDP {
         await this.createContainer(relationIdentifier)
     }
 
-    public async create(materializedResourceIdentifier: string, store: Store): Promise<void> {
+    public async create(store: Store): Promise<void> {
+        const location = await retrieveWriteLocation(this.LDESinLDPIdentifier, this.communication);
+        const response = await this.communication.post(location, storeToString(store))
+        if (response.status !== 201) {
+            throw Error(`The resource was not be created at ${location} 
+            | status code: ${response.status}`)
+        }
+        console.log(`LDP Resource created at: ${response.headers.get('Location')}`)
 
-        return Promise.resolve(undefined);
     }
 
     public async read(resourceIdentifier: string): Promise<Store> {
@@ -86,12 +93,12 @@ export class LDESinLDP implements ILDESinLDP {
         return await turtleStringToStore(text)
     }
 
-    public async update(materializedResourceIdentifier: string, store: Store): Promise<void> {
-        return Promise.resolve(undefined);
+    public async update(store: Store): Promise<void> {
+        await this.create(store)
     }
 
-    public async delete(materializedResourceIdentifier: string, store: Store): Promise<void> {
-        return Promise.resolve(undefined);
+    public async delete(store: Store): Promise<void> {
+        await this.create(store)
     }
 
     public async readMetadata(): Promise<Store> {
@@ -105,8 +112,6 @@ export class LDESinLDP implements ILDESinLDP {
     private async createContainer(resourceIdentifier: string, body?: string): Promise<void> {
         const response = await this.communication.put(resourceIdentifier, body)
         if (response.status !== 201) {
-            console.log(body)
-            console.log(await response.text())
             throw Error(`The container ${resourceIdentifier} was not created | status code: ${response.status}`)
         }
         console.log(`LDP Container created: ${response.url}`)

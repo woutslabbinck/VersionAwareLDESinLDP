@@ -7,15 +7,26 @@
 import {ComponentsManager} from 'componentsjs';
 import * as Path from "path";
 import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
-import {storeToString} from "./util/Conversion";
+import {storeToString, turtleStringToStore} from "./util/Conversion";
+import {DataFactory, Store} from "n3";
+import quad = DataFactory.quad;
+import namedNode = DataFactory.namedNode;
+const memberString = `
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:  <http://example.org/> .
+@prefix : <> .
 
+<#resource> dct:isVersionOf ex:resource1.
+<#resource> dct:issued "2021-12-15T10:00:00.000Z"^^xsd:dateTime.
+<#resource> dct:title "First version of the title".
+`
 export async function run() {
     console.log(Path.join(__dirname, '../'))
     const manager = await ComponentsManager.build(
         {
             mainModulePath: Path.join(__dirname, '../'), // Path to your npm package's root
             logLevel: 'info'
-            // mainModulePath: __dirname, // Path to your npm package's root
         }
     );
     await manager.configRegistry.register(Path.join(__dirname, '../', 'config/default.json'));
@@ -35,7 +46,6 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
         {
             mainModulePath: Path.join(__dirname, '../'), // Path to your npm package's root
             logLevel: 'info'
-            // mainModulePath: __dirname, // Path to your npm package's root
         }
     );
     await manager.configRegistry.register(Path.join(__dirname, '../', 'config/default.json'));
@@ -44,8 +54,12 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
         "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
     }
     const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables}) as ILDESinLDP;
-    await ldesinldp.initialise({
-        LDESinLDPIdentifier: `${baseIdentifier}`,
-        treePath: "http://purl.org/dc/terms/issued"
-    })
+    const baseContainer = await ldesinldp.read(baseIdentifier)
+    if (!baseContainer) {
+        await ldesinldp.initialise({
+            LDESinLDPIdentifier: `${baseIdentifier}`,
+            treePath: "http://purl.org/dc/terms/issued"
+        })
+    }
+    await ldesinldp.create('random', await turtleStringToStore(memberString))
 }

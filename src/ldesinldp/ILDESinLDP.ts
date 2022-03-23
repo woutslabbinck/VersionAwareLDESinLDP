@@ -19,10 +19,9 @@ export interface ILDESinLDP {
     /**
      * Creates a new resource in the LDESinLDP.
      * Uses the LDESinLDP protocol to find the location.
-     * @param materializedResourceIdentifier
      * @param store first state of the resource
      */
-    create: (materializedResourceIdentifier: string, store: Store) => Promise<void>
+    create: (store: Store) => Promise<void>
 
     /**
      * Reads the resource in the LDESinLDP.
@@ -32,19 +31,16 @@ export interface ILDESinLDP {
 
     /**
      * Updates a resource in the LDESinLDP.
-     * Uses the LDESinLDP protocol to find the location.
-     * @param materializedResourceIdentifier
-     * @param store updated state of the resource
+     * Uses the create operation to add the updated version of the resource to the LDESinLDP
+     * @param store updated version of the resource
      */
-    update: (materializedResourceIdentifier: string, store: Store) => Promise<void>
+    update: (store: Store) => Promise<void>
 
     /**
      * Marks the resource in the LDESinLDP as deleted.
-     *
-     * @param materializedResourceIdentifier
-     * @param store previous state of the resource
+     * @param store previous version of the resource
      */
-    delete: (materializedResourceIdentifier: string, store: Store) => Promise<void>
+    delete: (store: Store) => Promise<void>
 
     /**
      * Reads all the metadata of the LDESinLDP.
