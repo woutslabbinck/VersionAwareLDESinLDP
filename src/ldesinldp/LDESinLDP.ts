@@ -169,7 +169,7 @@ export class LDESinLDP implements ILDESinLDP {
             async transform(chunk, encoding, callback){
                 const resourceStore = await comm.read(chunk)
                 this.push({
-                    id: namedNode(chunk),
+                    id: namedNode(chunk+'#resource'), //todo, retrieve id (maybe do some transformations?)
                     quads: resourceStore.getQuads(null,null,null,null)
                 })
             }

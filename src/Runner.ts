@@ -19,7 +19,7 @@ const memberString = `
 @prefix : <> .
 
 <#resource> dct:isVersionOf ex:resource1.
-<#resource> dct:issued "${currentDate.toISOString()}"^^xsd:dateTime.
+<#resource> dct:created "${currentDate.toISOString()}"^^xsd:dateTime.
 <#resource> dct:title "Title at ${currentDate.toLocaleString()}".
 `
 
@@ -64,7 +64,7 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
         })
     }
     // create the a resource in the ldes
-    // await ldesinldp.create(await turtleStringToStore(memberString))
+    await ldesinldp.create(await turtleStringToStore(memberString))
 
     // read the metadata
     // await ldesinldp.readMetadata()

@@ -7,6 +7,7 @@
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
 import {Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
+import {storeToString} from "../util/Conversion";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -63,6 +64,7 @@ export class VersionAwareLDESinLDP {
         const transformedStream = stream.pipe(snapshotTransformer)
         transformedStream.on('data', ({id, quads}) => {
             console.log(`member: ${id.value}`)
+            console.log(storeToString(new Store(quads)))
         })
         // TODO: maybe add optional parameter of the date?
         return Promise.resolve(new Store())
