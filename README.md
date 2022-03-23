@@ -4,8 +4,8 @@
 
 - [ ] add logger
 - [ ] implement LDESinLDP.ts
-  - [ ] read 
-  - [ ] initialise
+  - [x] read 
+  - [x] initialise
   - [ ] create
   - [ ] update
   - [ ] delete

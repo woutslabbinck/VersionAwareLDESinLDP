@@ -29,3 +29,23 @@ export async function run() {
     const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables}) as ILDESinLDP;
     console.log(storeToString(await ldesinldp.read('https://tree.linkeddatafragments.org/announcements/root.ttl')))
 }
+
+export async function initiateLDESinLDP(baseIdentifier: string) {
+    const manager = await ComponentsManager.build(
+        {
+            mainModulePath: Path.join(__dirname, '../'), // Path to your npm package's root
+            logLevel: 'info'
+            // mainModulePath: __dirname, // Path to your npm package's root
+        }
+    );
+    await manager.configRegistry.register(Path.join(__dirname, '../', 'config/default.json'));
+
+    const variables: Record<string, unknown> = {
+        "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
+    }
+    const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:ldesinldp', {variables: variables}) as ILDESinLDP;
+    await ldesinldp.initialise({
+        LDESinLDPIdentifier: `${baseIdentifier}`,
+        treePath: "http://purl.org/dc/terms/issued"
+    })
+}

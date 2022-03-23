@@ -1,3 +1,4 @@
 #!/usr/bin/env node
-const {run} = require('..')
-run()
+const {initiateLDESinLDP, run} = require('..')
+// run()
+initiateLDESinLDP("http://localhost:3123/ldesinldp/")
