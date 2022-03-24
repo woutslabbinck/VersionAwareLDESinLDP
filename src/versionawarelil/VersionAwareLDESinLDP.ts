@@ -7,8 +7,11 @@
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
 import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
-import {DCT, TREE} from "../util/Vocabularies";
+import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import namedNode = DataFactory.namedNode;
+import {isContainerIdentifier} from "../util/IdentifierUtil";
+import {createSnapshotMetadata, extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
+import {storeToString} from "../util/Conversion";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -54,30 +57,40 @@ export class VersionAwareLDESinLDP {
     public async read(materializedResourceIdentifier: string): Promise<Store> {
         // TODO: maybe add optional parameter of the date?
         const memberStream = await this.LDESinLDP.readAllMembers()
-        const snapshotOptions = {
-            date: new Date(),
-            ldesIdentifier: "http://example.org/ES1",
-            snapshotIdentifier: "http://example.org/snapshot",
-            versionOfPath: "http://purl.org/dc/terms/isVersionOf",
-            timestampPath: "http://purl.org/dc/terms/created",
-            materialized: true
-        }
+        const metadataStore = await this.LDESinLDP.readMetadata()
+        const ldesIdentifier = metadataStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
+
+        const snapshotOptions = extractSnapshotOptions(metadataStore, ldesIdentifier)
+        snapshotOptions.materialized = true
+        snapshotOptions.date = new Date()
+        snapshotOptions.snapshotIdentifier = this.LDESinLDP.LDESinLDPIdentifier
+
         const snapshotTransformer = new SnapshotTransform(snapshotOptions)
         const transformedStream = memberStream.pipe(snapshotTransformer)
-
-        // filter out materialized resource
         const store = new Store()
-        for await (const member of transformedStream) {
-            if (member.id.value === materializedResourceIdentifier) {
-                store.addQuads(member.quads)
-                break
+
+        if (isContainerIdentifier(materializedResourceIdentifier)) {
+            if (this.LDESinLDP.LDESinLDPIdentifier === materializedResourceIdentifier) {
+                store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(RDF.type), namedNode(LDP.BasicContainer))
+                for await (const member of transformedStream) {
+                    store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(LDP.contains), member.id)
+                }
+            } else {
+                throw Error("A container can only be read if it is the base container (currently).")
             }
+        } else {
+            // filter out materialized resource
+            for await (const member of transformedStream) {
+                if (member.id.value === materializedResourceIdentifier) {
+                    store.addQuads(member.quads)
+                    break
+                }
+            }
+
+            // remove TREE/LDES specific triples
+            store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.created), null, null))
+            store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.hasVersion), null, null))
         }
-
-        // remove TREE/LDES specific triples
-        store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.created), null, null))
-        store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.hasVersion), null, null))
-
         return store
     }
 

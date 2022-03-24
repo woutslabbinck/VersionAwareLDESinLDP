@@ -7,7 +7,7 @@
 import {ComponentsManager} from 'componentsjs';
 import * as Path from "path";
 import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
-import {memberStreamtoStore, storeToString} from "./util/Conversion";
+import {memberStreamtoStore, storeToString, turtleStringToStore} from "./util/Conversion";
 import {VersionAwareLDESinLDP} from "./versionawarelil/VersionAwareLDESinLDP";
 
 const currentDate = new Date()
@@ -17,7 +17,7 @@ const memberString = `
 @prefix ex:  <http://example.org/> .
 @prefix : <> .
 
-<#resource> dct:isVersionOf ex:resource1.
+<#resource> dct:isVersionOf ex:resource2.
 <#resource> dct:created "${currentDate.toISOString()}"^^xsd:dateTime.
 <#resource> dct:title "Title at ${currentDate.toLocaleString()}".
 `
@@ -86,4 +86,8 @@ export async function instantiateVersionAwareLDESinLDP(baseIdentifier: string){
     const ldesinldp = await manager.instantiate('urn:@treecg/versionawareldesinldp:versionawareldesinldp', {variables: variables}) as VersionAwareLDESinLDP;
     const resource = await ldesinldp.read('http://example.org/resource1')
     console.log(storeToString(resource))
+
+    const container = await ldesinldp.read(baseIdentifier)
+    console.log(storeToString(container))
+
 }

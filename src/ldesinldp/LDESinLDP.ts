@@ -14,21 +14,26 @@ import namedNode = DataFactory.namedNode;
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {dateToLiteral, extractDateFromLiteral} from "../util/TimestampUtil";
 import {retrieveWriteLocation} from "./Util";
+import {isContainerIdentifier} from "../util/IdentifierUtil";
 
 export class LDESinLDP implements ILDESinLDP {
-    private readonly LDESinLDPIdentifier: string;
+    private readonly _LDESinLDPIdentifier: string;
     private readonly communication: Communication
 
     public constructor(LDESinLDPIdentifier: string, communication: Communication) {
-        this.LDESinLDPIdentifier = LDESinLDPIdentifier;
+        this._LDESinLDPIdentifier = LDESinLDPIdentifier;
         this.communication = communication;
-        if (!this.isContainerIdentifier(LDESinLDPIdentifier)) {
+        if (!isContainerIdentifier(LDESinLDPIdentifier)) {
             throw Error(`${LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }
     }
 
+    get LDESinLDPIdentifier(): string {
+        return this._LDESinLDPIdentifier;
+    }
+
     public async initialise(config: LDESinLDPConfig): Promise<void> {
-        if (!this.isContainerIdentifier(config.LDESinLDPIdentifier)) {
+        if (!isContainerIdentifier(config.LDESinLDPIdentifier)) {
             throw Error(`${config.LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }
         const date = new Date()
@@ -71,7 +76,7 @@ export class LDESinLDP implements ILDESinLDP {
     }
 
     public async create(store: Store): Promise<void> {
-        const location = await retrieveWriteLocation(this.LDESinLDPIdentifier, this.communication);
+        const location = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication);
         const response = await this.communication.post(location, storeToString(store))
         if (response.status !== 201) {
             throw Error(`The resource was not be created at ${location} 
@@ -105,21 +110,21 @@ export class LDESinLDP implements ILDESinLDP {
     public async readMetadata(): Promise<Store> {
         // Note to self: Should this be a store or just an interface or sth?
         // what if the ldesinldp is not actually an ldes in ldp? Error handling?
-        const rootStore = await this.read(this.LDESinLDPIdentifier)
+        const rootStore = await this.read(this._LDESinLDPIdentifier)
 
         const metadataStore = new Store()
         const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
-        const relationTriple = rootStore.getQuads(this.LDESinLDPIdentifier, TREE.relation, null, null)[0]
+        const relationTriple = rootStore.getQuads(this._LDESinLDPIdentifier, TREE.relation, null, null)[0]
 
         // add event stream
         metadataStore.addQuads(rootStore.getQuads(eventStreamNode, null, null, null))
 
         // add root node
-        metadataStore.addQuad(namedNode(this.LDESinLDPIdentifier), namedNode(RDF.type), namedNode(TREE.Node))
+        metadataStore.addQuad(namedNode(this._LDESinLDPIdentifier), namedNode(RDF.type), namedNode(TREE.Node))
         metadataStore.addQuad(relationTriple)
 
         // add ldp:inbox
-        metadataStore.addQuads(rootStore.getQuads(this.LDESinLDPIdentifier, LDP.inbox, null, null))
+        metadataStore.addQuads(rootStore.getQuads(this._LDESinLDPIdentifier, LDP.inbox, null, null))
 
         // add relation
         metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null, null, null))
@@ -131,7 +136,7 @@ export class LDESinLDP implements ILDESinLDP {
         const rootStore = await this.readMetadata()
 // note: maybe with a sparql query in comunica?
         // get all relations of the root node
-        const relationIdentifiers = rootStore.getObjects(this.LDESinLDPIdentifier, TREE.relation, null).map(object => object)
+        const relationIdentifiers = rootStore.getObjects(this._LDESinLDPIdentifier, TREE.relation, null).map(object => object)
 
         // get all nodes in the ldes in ldp
         const nodeIdentifiers: string[] = []
@@ -185,8 +190,4 @@ export class LDESinLDP implements ILDESinLDP {
         console.log(`LDP Container created: ${response.url}`)
     }
 
-    private isContainerIdentifier(resourceIdentifier: string): boolean {
-        // maybe also an http/https check?
-        return resourceIdentifier.endsWith('/')
-    }
 }

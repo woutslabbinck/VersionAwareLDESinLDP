@@ -9,6 +9,9 @@ import {Store} from "n3";
 import {Readable} from "stream";
 
 export interface ILDESinLDP {
+
+    LDESinLDPIdentifier: string;
+
     /**
      * Initialises an LDES in LDP using from the config the base, possibly a shape and the treePath.
      * By default, ldes:versionOfPath is dct:isVersionOf, ldes:timestampPath is dc:created and tree:relation is tree:GreaterThanOrEqualToRelation.
