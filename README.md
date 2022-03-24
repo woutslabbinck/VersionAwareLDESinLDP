@@ -12,6 +12,9 @@
   - [x] readMetadata
   - [x] readAllMembers
 - [ ] implement VersionAwareLDESinLDP.ts
+  - [ ] initialise
+  - [x] read
+  - [x] create
 - [ ] add tests
 - [ ] implement CLI
 - [ ] add lint

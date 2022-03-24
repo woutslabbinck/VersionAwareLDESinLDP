@@ -7,11 +7,12 @@
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
 import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
-import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
-import namedNode = DataFactory.namedNode;
+import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
-import {createSnapshotMetadata, extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
-import {storeToString} from "../util/Conversion";
+import {extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
+import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
+import namedNode = DataFactory.namedNode;
+import {dateToLiteral} from "../util/TimestampUtil";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -34,12 +35,28 @@ export class VersionAwareLDESinLDP {
      * Creates a new resource in the LDES in LDP using the protocol.
      * Also adds the timestamp and version triples.
      * Throws an error if the identifier already exists in the LDES in LDP
-     * @param materializedResourceIdentifier
-     * @param store
+     * @param materializedResourceIdentifier Identifier for the graph that you want to store
+     * @param store Graph that you want to store
+     * @param versionSpecificIdentifier Identifier that is the base of the RDF graph you are trying to store | TODO: properly explain
      * @returns {Promise<any>}
      */
-    public async create(materializedResourceIdentifier: string, store: Store): Promise<void> {
-        return Promise.resolve(undefined)
+    public async create(materializedResourceIdentifier: string, store: Store, versionSpecificIdentifier?: string): Promise<void> {
+        const containerStore = await this.read(this.LDESinLDP.LDESinLDPIdentifier)
+
+        // check whether it exists already
+        if (containerStore.getQuads(null, null, materializedResourceIdentifier, null).length > 0) {
+            throw Error(`Could not create ${materializedResourceIdentifier} as it already exists`)
+        }
+
+        // add version specific triples (defined in the LDES specification)
+        const metadata = await this.extractLdesMetadata()
+        versionSpecificIdentifier = versionSpecificIdentifier ? versionSpecificIdentifier : "#resource";
+        const id = namedNode(versionSpecificIdentifier)
+        store.addQuad(id, namedNode(metadata.versionOfPath!), namedNode(materializedResourceIdentifier))
+        store.addQuad(id, namedNode(metadata.timestampPath!), dateToLiteral(new Date()))
+
+        // store in the ldes in ldp
+        await this.LDESinLDP.create(store)
     }
 
     /**
@@ -57,10 +74,8 @@ export class VersionAwareLDESinLDP {
     public async read(materializedResourceIdentifier: string): Promise<Store> {
         // TODO: maybe add optional parameter of the date?
         const memberStream = await this.LDESinLDP.readAllMembers()
-        const metadataStore = await this.LDESinLDP.readMetadata()
-        const ldesIdentifier = metadataStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
 
-        const snapshotOptions = extractSnapshotOptions(metadataStore, ldesIdentifier)
+        const snapshotOptions = await this.extractLdesMetadata()
         snapshotOptions.materialized = true
         snapshotOptions.date = new Date()
         snapshotOptions.snapshotIdentifier = this.LDESinLDP.LDESinLDPIdentifier
@@ -116,5 +131,19 @@ export class VersionAwareLDESinLDP {
      */
     public async delete(materializedResourceIdentifier: string): Promise<void> {
 
+    }
+
+    /**
+     * extract some basic LDES metadata
+     *
+     * Note: currently it only extracts the snapshot options from the LDES in LDP
+     * @param store
+     * @returns {Promise<ISnapshotOptions>}
+     */
+    private async extractLdesMetadata(): Promise<ISnapshotOptions> {
+        const metadataStore = await this.LDESinLDP.readMetadata()
+        const ldesIdentifier = metadataStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
+
+        return extractSnapshotOptions(metadataStore, ldesIdentifier)
     }
 }
