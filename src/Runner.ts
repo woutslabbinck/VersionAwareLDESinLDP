@@ -7,8 +7,7 @@
 import {ComponentsManager} from 'componentsjs';
 import * as Path from "path";
 import {ILDESinLDP} from "./ldesinldp/ILDESinLDP";
-import {memberStreamtoStore, storeToString, turtleStringToStore} from "./util/Conversion";
-import {DataFactory, Store} from "n3";
+import {memberStreamtoStore, storeToString} from "./util/Conversion";
 import {VersionAwareLDESinLDP} from "./versionawarelil/VersionAwareLDESinLDP";
 
 const currentDate = new Date()
@@ -64,7 +63,7 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
         })
     }
     // create the a resource in the ldes
-    await ldesinldp.create(await turtleStringToStore(memberString))
+    // await ldesinldp.create(await turtleStringToStore(memberString))
 
     // read the metadata
     // await ldesinldp.readMetadata()

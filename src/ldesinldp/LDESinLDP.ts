@@ -169,12 +169,12 @@ export class LDESinLDP implements ILDESinLDP {
             async transform(chunk, encoding, callback){
                 const resourceStore = await comm.read(chunk)
                 this.push({
-                    id: namedNode(chunk+'#resource'), //todo, retrieve id (maybe do some transformations?)
+                    id: namedNode(chunk+'#resource'), // todo, retrieve id (maybe do some transformations?)
                     quads: resourceStore.getQuads(null,null,null,null)
                 })
             }
         })
-        return Promise.resolve(resourceIdentifierStream.pipe(transformer));
+        return resourceIdentifierStream.pipe(transformer);
     }
 
     private async createContainer(resourceIdentifier: string, body?: string): Promise<void> {

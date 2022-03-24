@@ -5,9 +5,10 @@
  * Created on 22/03/2022
  *****************************************/
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
-import {Store} from "n3";
+import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
-import {storeToString} from "../util/Conversion";
+import {DCT, TREE} from "../util/Vocabularies";
+import namedNode = DataFactory.namedNode;
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -51,7 +52,8 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<Store>} materialized representation of the resource if it exists
      */
     public async read(materializedResourceIdentifier: string): Promise<Store> {
-        const stream = await this.LDESinLDP.readAllMembers()
+        // TODO: maybe add optional parameter of the date?
+        const memberStream = await this.LDESinLDP.readAllMembers()
         const snapshotOptions = {
             date: new Date(),
             ldesIdentifier: "http://example.org/ES1",
@@ -61,13 +63,22 @@ export class VersionAwareLDESinLDP {
             materialized: true
         }
         const snapshotTransformer = new SnapshotTransform(snapshotOptions)
-        const transformedStream = stream.pipe(snapshotTransformer)
-        transformedStream.on('data', ({id, quads}) => {
-            console.log(`member: ${id.value}`)
-            console.log(storeToString(new Store(quads)))
-        })
-        // TODO: maybe add optional parameter of the date?
-        return Promise.resolve(new Store())
+        const transformedStream = memberStream.pipe(snapshotTransformer)
+
+        // filter out materialized resource
+        const store = new Store()
+        for await (const member of transformedStream) {
+            if (member.id.value === materializedResourceIdentifier) {
+                store.addQuads(member.quads)
+                break
+            }
+        }
+
+        // remove TREE/LDES specific triples
+        store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.created), null, null))
+        store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.hasVersion), null, null))
+
+        return store
     }
 
     /**
