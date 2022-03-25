@@ -109,8 +109,9 @@ export class VersionAwareLDESinLDP {
                     if (!VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
                         store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(LDP.contains), member.id)
                         // todo: remove experimental virtual containers OR make it possible via options
-                        VersionAwareLDESinLDP.removeVersionSpecificTriples(member, ldesMetadata)
-                        store.addQuads(member.quads)
+                        //  feedback Pieter: also make it possible to not be version materialized
+                        // VersionAwareLDESinLDP.removeVersionSpecificTriples(member, ldesMetadata)
+                        // store.addQuads(member.quads)
                     }
                 }
             } else {

@@ -3,7 +3,7 @@
 ## TODO
 
 - [ ] add logger
-- [ ] implement LDESinLDP.ts
+- [x] implement LDESinLDP.ts
   - [x] read 
   - [x] initialise
   - [x] create
@@ -11,10 +11,16 @@
   - [x] delete
   - [x] readMetadata
   - [x] readAllMembers
-- [ ] implement VersionAwareLDESinLDP.ts
-  - [ ] initialise
+- [x] implement VersionAwareLDESinLDP.ts
+  - [x] initialise
   - [x] read
   - [x] create
+  - [x] update
+  - [x] delete
 - [ ] add tests
-- [ ] implement CLI
+  - [ ] unit of utility
+  - [ ] unit
+  - [ ] integration
+- [ ] implement CLI -> does that make sense?
 - [ ] add lint
+- [ ] document how to use this and how it works in README.md
