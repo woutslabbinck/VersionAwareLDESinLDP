@@ -99,7 +99,8 @@ export const LDES = createUriAndTermNamespace('https://w3id.org/ldes#',
     'versionOfPath',
     'timestampPath',
     'versionMaterializationUntil',
-    'versionMaterializationOf');
+    'versionMaterializationOf',
+    'DeletedLDPResource');
 
 export const LDP = createUriAndTermNamespace('http://www.w3.org/ns/ldp#',
     'contains',

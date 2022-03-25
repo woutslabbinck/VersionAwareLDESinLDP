@@ -11,8 +11,10 @@ import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
-import namedNode = DataFactory.namedNode;
 import {dateToLiteral} from "../util/TimestampUtil";
+import {Member} from '@treecg/types'
+import namedNode = DataFactory.namedNode;
+import quad = DataFactory.quad;
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -28,7 +30,11 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<any>}
      */
     public async initialise(ldpContainerIdentifier: string, shape?: string): Promise<void> {
-        return Promise.resolve(undefined)
+        await this.LDESinLDP.initialise({
+            LDESinLDPIdentifier: ldpContainerIdentifier,
+            shape: shape,
+            treePath: DCT.created
+        })
     }
 
     /**
@@ -41,22 +47,27 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<any>}
      */
     public async create(materializedResourceIdentifier: string, store: Store, versionSpecificIdentifier?: string): Promise<void> {
-        const containerStore = await this.read(this.LDESinLDP.LDESinLDPIdentifier)
-
         // check whether it exists already
-        if (containerStore.getQuads(null, null, materializedResourceIdentifier, null).length > 0) {
+        let exists = false
+        try {
+            await this.read(materializedResourceIdentifier)
+            exists = true
+        } catch (e) {
+            exists = false
+        }
+        if (exists) {
             throw Error(`Could not create ${materializedResourceIdentifier} as it already exists`)
         }
+
+        const member = {id: namedNode(materializedResourceIdentifier), quads: store.getQuads(null, null, null, null)}
 
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
         versionSpecificIdentifier = versionSpecificIdentifier ? versionSpecificIdentifier : "#resource";
-        const id = namedNode(versionSpecificIdentifier)
-        store.addQuad(id, namedNode(metadata.versionOfPath!), namedNode(materializedResourceIdentifier))
-        store.addQuad(id, namedNode(metadata.timestampPath!), dateToLiteral(new Date()))
+        VersionAwareLDESinLDP.addVersionSpecificTriples(member, versionSpecificIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.create(store)
+        await this.LDESinLDP.create(new Store(member.quads))
     }
 
     /**
@@ -75,36 +86,57 @@ export class VersionAwareLDESinLDP {
         // TODO: maybe add optional parameter of the date?
         const memberStream = await this.LDESinLDP.readAllMembers()
 
-        const snapshotOptions = await this.extractLdesMetadata()
-        snapshotOptions.materialized = true
-        snapshotOptions.date = new Date()
-        snapshotOptions.snapshotIdentifier = this.LDESinLDP.LDESinLDPIdentifier
+        const ldesMetadata = await this.extractLdesMetadata()
+        const snapshotOptions: ISnapshotOptions = {
+            date: new Date(),
+            ldesIdentifier: ldesMetadata.ldesEventStreamIdentifier,
+            materialized: true,
+            snapshotIdentifier: this.LDESinLDP.LDESinLDPIdentifier, //todo: is this right?
+            timestampPath: ldesMetadata.timestampPath,
+            versionOfPath: ldesMetadata.versionOfPath
+
+        }
 
         const snapshotTransformer = new SnapshotTransform(snapshotOptions)
         const transformedStream = memberStream.pipe(snapshotTransformer)
         const store = new Store()
 
         if (isContainerIdentifier(materializedResourceIdentifier)) {
+            // create ldp:BasicContainer representation
             if (this.LDESinLDP.LDESinLDPIdentifier === materializedResourceIdentifier) {
                 store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(RDF.type), namedNode(LDP.BasicContainer))
                 for await (const member of transformedStream) {
-                    store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(LDP.contains), member.id)
+                    if (!VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
+                        store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(LDP.contains), member.id)
+                        // todo: remove experimental virtual containers OR make it possible via options
+                        VersionAwareLDESinLDP.removeVersionSpecificTriples(member, ldesMetadata)
+                        store.addQuads(member.quads)
+                    }
                 }
             } else {
                 throw Error("A container can only be read if it is the base container (currently).")
             }
         } else {
             // filter out materialized resource
+            let materializedResource = undefined
             for await (const member of transformedStream) {
                 if (member.id.value === materializedResourceIdentifier) {
-                    store.addQuads(member.quads)
+                    if (VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
+                        throw Error("Member has been deleted.")
+                    } else {
+                        materializedResource = member
+                    }
                     break
                 }
             }
 
             // remove TREE/LDES specific triples
-            store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.created), null, null))
-            store.removeQuads(store.getQuads(namedNode(materializedResourceIdentifier), namedNode(DCT.hasVersion), null, null))
+            if (materializedResource) {
+                VersionAwareLDESinLDP.removeVersionSpecificTriples(materializedResource, ldesMetadata)
+                store.addQuads(materializedResource.quads)
+            } else {
+                throw Error("404 Resource was not found")
+            }
         }
         return store
     }
@@ -115,10 +147,29 @@ export class VersionAwareLDESinLDP {
      * Throws an error if the identifier does not exist yet in the LDES in LDP
      * @param materializedResourceIdentifier
      * @param store
+     * @param versionSpecificIdentifier
      * @returns {Promise<any>}
      */
-    public async update(materializedResourceIdentifier: string, store: Store): Promise<void> {
-        return Promise.resolve(undefined)
+    public async update(materializedResourceIdentifier: string, store: Store, versionSpecificIdentifier?: string): Promise<void> {
+        // check whether it exists already
+        try {
+            await this.read(materializedResourceIdentifier)
+        } catch (e) {
+            throw Error(`Could not update ${materializedResourceIdentifier} as it does not exist already.`)
+        }
+
+        const member: Member = {
+            id: namedNode(materializedResourceIdentifier),
+            quads: store.getQuads(null, null, null, null)
+        }
+
+        // add version specific triples (defined in the LDES specification)
+        const metadata = await this.extractLdesMetadata()
+        versionSpecificIdentifier = versionSpecificIdentifier ? versionSpecificIdentifier : "#resource";
+        VersionAwareLDESinLDP.addVersionSpecificTriples(member, versionSpecificIdentifier, metadata)
+
+        // store in the ldes in ldp
+        await this.LDESinLDP.update(new Store(member.quads))
     }
 
     /**
@@ -130,20 +181,115 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<void>}
      */
     public async delete(materializedResourceIdentifier: string): Promise<void> {
+        let materializedResource: Store | undefined
+        try {
+            materializedResource = await this.read(materializedResourceIdentifier)
+        } catch (e) {
+            throw Error(`Could not delete ${materializedResourceIdentifier} as it does not exist already.`)
+        }
+        const metadata = await this.extractLdesMetadata()
 
+        const versionSpecificIdentifier = "#resource"
+        const member: Member = {
+            id: namedNode(materializedResourceIdentifier),
+            quads: []
+
+        }
+
+        // copy latest version of the resource
+        const quads = materializedResource.getQuads(null, null, null, null)
+        for (const q of quads) {
+            // transform quads which are coming from materializedResourceIdentifier
+            if (q.subject.value === materializedResourceIdentifier) {
+                member.quads.push(quad(namedNode(versionSpecificIdentifier), q.predicate, q.object))
+            } else {
+                // copy all others
+                member.quads.push(q)
+            }
+        }
+        // add version specific triples and deleted triple
+        VersionAwareLDESinLDP.addVersionSpecificTriples(member, versionSpecificIdentifier, metadata)
+        VersionAwareLDESinLDP.addDeletedTriple(member, versionSpecificIdentifier, metadata)
+
+        // store in the ldes in ldp
+        await this.LDESinLDP.delete(new Store(member.quads))
     }
 
     /**
-     * extract some basic LDES metadata
+     * Extract some basic LDES metadata
      *
      * Note: currently it only extracts the snapshot options from the LDES in LDP
-     * @param store
-     * @returns {Promise<ISnapshotOptions>}
+     * @returns {Promise<LDESMetadata>}
      */
-    private async extractLdesMetadata(): Promise<ISnapshotOptions> {
+    private async extractLdesMetadata(): Promise<LDESMetadata> {
         const metadataStore = await this.LDESinLDP.readMetadata()
         const ldesIdentifier = metadataStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
 
-        return extractSnapshotOptions(metadataStore, ldesIdentifier)
+        const snapshotOptions = extractSnapshotOptions(metadataStore, ldesIdentifier)
+        return {
+            deletedType: LDES.DeletedLDPResource,
+            ldesEventStreamIdentifier: ldesIdentifier,
+            rootNodeIdentifiers: [],
+            timestampPath: snapshotOptions.timestampPath!,
+            versionOfPath: snapshotOptions.versionOfPath!
+        }
     }
+
+    // todo: move static into utility class
+    /**
+     * Checks whether the materialized member is marked deleted or not
+     * @param member
+     * @param metadata
+     */
+    private static isDeleted(member: Member, metadata: LDESMetadata): boolean {
+        const store = new Store(member.quads)
+        return store.getQuads(member.id, namedNode(RDF.type), namedNode(metadata.deletedType), null).length > 0
+    }
+
+    /**
+     * Adds version specific triples (timestamp and version) to the quads of the member
+     * @param member
+     * @param versionSpecificIdentifier
+     * @param metadata
+     */
+    private static addVersionSpecificTriples(member: Member, versionSpecificIdentifier: string, metadata: LDESMetadata): void {
+        const id = namedNode(versionSpecificIdentifier)
+        member.quads.push(quad(id, namedNode(metadata.versionOfPath), namedNode(member.id.value)))
+        member.quads.push(quad(id, namedNode(metadata.timestampPath), dateToLiteral(new Date())))
+    }
+
+    /**
+     * Adds the deleted type the version specific resource (i.e. to the quads of the member)
+     * @param member
+     * @param versionSpecificIdentifier
+     * @param metadata
+     */
+    private static addDeletedTriple(member: Member, versionSpecificIdentifier: string, metadata: LDESMetadata): void {
+        const id = namedNode(versionSpecificIdentifier)
+        member.quads.push(quad(id, namedNode(RDF.type), namedNode(metadata.deletedType)))
+    }
+
+    /**
+     * Removes version specific triples from a materialized member
+     * @param member
+     * @param metadata
+     */
+    private static removeVersionSpecificTriples(member: Member, metadata: LDESMetadata): void {
+        const store = new Store(member.quads)
+        store.removeQuads(store.getQuads(member.id, namedNode(metadata.timestampPath), null, null))
+        store.removeQuads(store.getQuads(member.id, namedNode(metadata.versionOfPath), null, null))
+        store.removeQuads(store.getQuads(member.id, namedNode(metadata.deletedType), null, null))
+
+        store.removeQuads(store.getQuads(member.id, namedNode(DCT.hasVersion), null, null))
+        member.quads = store.getQuads(null, null, null, null)
+
+    }
+}
+
+interface LDESMetadata {
+    ldesEventStreamIdentifier: string,
+    rootNodeIdentifiers: string[],
+    timestampPath: string,
+    versionOfPath: string,
+    deletedType: string
 }

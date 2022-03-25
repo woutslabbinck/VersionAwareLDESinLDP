@@ -117,6 +117,9 @@ export async function createResource(baseIdentifier?: string, resourceIdentifier
     const versionSpecificResourceIdentifier = "#resource"
     store.addQuad(namedNode(versionSpecificResourceIdentifier), namedNode(DCT.title), literal("Some title created at: " + currentDate.toLocaleString()))
     await vAwareLDESinLDP.create(resourceIdentifier, store, versionSpecificResourceIdentifier)
+}
 
-    await vAwareLDESinLDP.read(resourceIdentifier)
+export async function deleteResource(baseIdentifier: string, resourceIdentifier: string) {
+    const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
+    await vAwareLDESinLDP.delete(resourceIdentifier)
 }

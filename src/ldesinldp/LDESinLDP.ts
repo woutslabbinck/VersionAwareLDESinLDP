@@ -135,7 +135,7 @@ export class LDESinLDP implements ILDESinLDP {
         until = until ? until : new Date()
         const rootStore = await this.readMetadata()
 // note: maybe with a sparql query in comunica?
-        // get all relations of the root node
+        // get all relations of the root node (Note: only works with tree:collections of one level deep)
         const relationIdentifiers = rootStore.getObjects(this._LDESinLDPIdentifier, TREE.relation, null).map(object => object)
 
         // get all nodes in the ldes in ldp
@@ -173,8 +173,10 @@ export class LDESinLDP implements ILDESinLDP {
             objectMode: true,
             async transform(chunk, encoding, callback){
                 const resourceStore = await comm.read(chunk)
+                // todo: retrieve id based on version identifier as this is used as predicate
+                //  this way hard coded is removed
                 this.push({
-                    id: namedNode(chunk+'#resource'), // todo, retrieve id (maybe do some transformations?)
+                    id: namedNode(chunk+'#resource'),
                     quads: resourceStore.getQuads(null,null,null,null)
                 })
             }
