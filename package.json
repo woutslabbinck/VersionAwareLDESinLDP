@@ -9,7 +9,8 @@
     "build:ts": "rm -rf dist/; tsc",
     "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts",
     "prepare": "npm run build",
-    "start": "node bin/client.js"
+    "start": "node bin/client.js",
+    "test": "jest"
   },
   "lsd:module": "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp",
   "lsd:components": "dist/components/components.jsonld",
@@ -21,7 +22,7 @@
     "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/config/": "config/",
     "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/dist/": "dist/"
   },
-    "keywords": [
+  "keywords": [
     "LDES",
     "LDP",
     "LD",
@@ -30,15 +31,20 @@
   "author": "Wout Slabbinck <wout.slabbinck@ugent.be>",
   "license": "ISC",
   "dependencies": {
-    "componentsjs": "^4.5.0",
-    "typescript": "^4.6.2",
-    "n3": "^1.14.0",
     "@rdfjs/data-model": "^1.3.4",
+    "@treecg/ldes-snapshot": "^0.0.4",
+    "componentsjs": "^4.5.0",
+    "n3": "^1.14.0",
     "rdf-store-stream": "^1.3.0",
     "streamify-string": "^1.0.1",
-    "@treecg/ldes-snapshot": "^0.0.4"
+    "typescript": "^4.6.2"
   },
   "devDependencies": {
-    "componentsjs-generator": "^2.6.1"
+    "@types/jest": "^27.4.1",
+    "componentsjs-generator": "^2.6.1",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.3",
+    "ts-node": "^10.6.0",
+    "@solid/community-server": "^3.0.0"
   }
 }

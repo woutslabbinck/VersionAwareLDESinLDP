@@ -12,7 +12,7 @@ export class LDPCommunication implements Communication {
     }
 
     public async get(resourceIdentifier: string, headers?: Headers): Promise<Response> {
-        headers = headers ? headers : new Headers({'Content-type': 'text/turtle'})
+        headers = headers ? headers : new Headers({'Accept': 'text/turtle'})
         return await fetch(resourceIdentifier, {
             method: 'GET',
             headers
