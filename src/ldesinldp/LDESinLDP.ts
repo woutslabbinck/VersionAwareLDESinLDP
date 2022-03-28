@@ -8,12 +8,12 @@ import {ILDESinLDP} from "./ILDESinLDP";
 import {Communication} from "../ldp/Communication";
 import {LDESinLDPConfig} from "./LDESinLDPConfig";
 import {DataFactory, Literal, Store} from "n3";
-import {Readable,Transform} from "stream";
+import {Readable, Transform} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import namedNode = DataFactory.namedNode;
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {dateToLiteral, extractDateFromLiteral} from "../util/TimestampUtil";
-import {retrieveWriteLocation} from "./Util";
+import {createVersionedEventStream, retrieveWriteLocation} from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 
 export class LDESinLDP implements ILDESinLDP {
@@ -40,30 +40,31 @@ export class LDESinLDP implements ILDESinLDP {
         // create root container and add the metadata for the root, shape and inbox
         const store = new Store()
 
-        // ldes
-        const eventStreamNode = namedNode(config.LDESinLDPIdentifier + '#EventStream')
-        const rootNode = namedNode(config.LDESinLDPIdentifier)
+        createVersionedEventStream(store, config, date)
+        // // ldes
+        // const eventStreamNode = namedNode(config.LDESinLDPIdentifier + '#EventStream')
+        // const rootNode = namedNode(config.LDESinLDPIdentifier)
         const relationIdentifier = config.LDESinLDPIdentifier + date.valueOf() + '/'
-
-        store.addQuad(eventStreamNode, namedNode(RDF.type), namedNode(LDES.EventStream))
-        store.addQuad(eventStreamNode, namedNode(LDES.versionOfPath), namedNode(DCT.isVersionOf))
-        store.addQuad(eventStreamNode, namedNode(LDES.timestampPath), namedNode(config.treePath))
-        store.addQuad(eventStreamNode, namedNode(TREE.view), rootNode)
-
-        if (config.shape) {
-            store.addQuad(eventStreamNode, namedNode(TREE.shape), namedNode(config.shape))
-        }
-
-        // rootNode
-        const relationNode = store.createBlankNode();
-        store.addQuad(rootNode, namedNode(RDF.type), namedNode(TREE.Node))
-        store.addQuad(rootNode, namedNode(TREE.relation), relationNode)
-
-        // add relation
-        store.addQuad(relationNode, namedNode(RDF.type), namedNode(TREE.GreaterThanOrEqualToRelation));
-        store.addQuad(relationNode, namedNode(TREE.node), namedNode(relationIdentifier));
-        store.addQuad(relationNode, namedNode(TREE.path), namedNode(config.treePath));
-        store.addQuad(relationNode, namedNode(TREE.value), dateToLiteral(date));
+        //
+        // store.addQuad(eventStreamNode, namedNode(RDF.type), namedNode(LDES.EventStream))
+        // store.addQuad(eventStreamNode, namedNode(LDES.versionOfPath), namedNode(DCT.isVersionOf))
+        // store.addQuad(eventStreamNode, namedNode(LDES.timestampPath), namedNode(config.treePath))
+        // store.addQuad(eventStreamNode, namedNode(TREE.view), rootNode)
+        //
+        // if (config.shape) {
+        //     store.addQuad(eventStreamNode, namedNode(TREE.shape), namedNode(config.shape))
+        // }
+        //
+        // // rootNode
+        // const relationNode = store.createBlankNode();
+        // store.addQuad(rootNode, namedNode(RDF.type), namedNode(TREE.Node))
+        // store.addQuad(rootNode, namedNode(TREE.relation), relationNode)
+        //
+        // // add relation
+        // store.addQuad(relationNode, namedNode(RDF.type), namedNode(TREE.GreaterThanOrEqualToRelation));
+        // store.addQuad(relationNode, namedNode(TREE.node), namedNode(relationIdentifier));
+        // store.addQuad(relationNode, namedNode(TREE.path), namedNode(config.treePath));
+        // store.addQuad(relationNode, namedNode(TREE.value), dateToLiteral(date));
 
         // add inbox
         store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
@@ -130,6 +131,7 @@ export class LDESinLDP implements ILDESinLDP {
         metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null, null, null))
         return rootStore
     }
+
 // todo: ask Ruben D if this makes sense or not. Maybe I need make this a sync function?
     public async readAllMembers(until: Date | undefined): Promise<Readable> {
         until = until ? until : new Date()
@@ -171,13 +173,13 @@ export class LDESinLDP implements ILDESinLDP {
         // stream of all members
         const transformer = new Transform({
             objectMode: true,
-            async transform(chunk, encoding, callback){
+            async transform(chunk, encoding, callback) {
                 const resourceStore = await comm.read(chunk)
                 // todo: retrieve id based on version identifier as this is used as predicate
                 //  this way hard coded is removed
                 this.push({
-                    id: namedNode(chunk+'#resource'),
-                    quads: resourceStore.getQuads(null,null,null,null)
+                    id: namedNode(chunk + '#resource'),
+                    quads: resourceStore.getQuads(null, null, null, null)
                 })
             }
         })

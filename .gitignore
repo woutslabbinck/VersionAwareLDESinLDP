@@ -111,3 +111,6 @@ config.json
 
 # package
 package-lock.json
+
+# data
+.data/

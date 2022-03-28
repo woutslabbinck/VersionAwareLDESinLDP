@@ -123,3 +123,8 @@ export async function deleteResource(baseIdentifier: string, resourceIdentifier:
     const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
     await vAwareLDESinLDP.delete(resourceIdentifier)
 }
+
+export async function initialiseLDESinLDP(baseIdentifier: string) {
+    const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
+    await vAwareLDESinLDP.initialise(baseIdentifier)
+}

@@ -2,7 +2,7 @@ import {baseUrl} from "../../util/solidHelper";
 import {LDPCommunication} from "../../../src/ldp/LDPCommunication";
 import {Communication} from "../../../src/ldp/Communication";
 
-describe('A LDPCommunication', () => {
+describe('An LDPCommunication', () => {
     let communication: Communication
     const TEXT_PLAIN = 'text/plain'
     const TEXT_TURTLE = 'text/turtle'
