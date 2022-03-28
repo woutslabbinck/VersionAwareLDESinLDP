@@ -45,6 +45,6 @@
     "jest": "^27.5.1",
     "ts-jest": "^27.1.3",
     "ts-node": "^10.6.0",
-    "@solid/community-server": "^3.0.0"
+    "@solid/community-server": "https://github.com/woutslabbinck/community-server.git#feat/metadata-editing"
   }
 }
