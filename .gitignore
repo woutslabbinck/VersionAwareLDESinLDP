@@ -113,4 +113,4 @@ config.json
 package-lock.json
 
 # data
-.data/
+data

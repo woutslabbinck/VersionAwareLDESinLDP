@@ -40,51 +40,35 @@ export class LDESinLDP implements ILDESinLDP {
         // create root container and add the metadata for the root, shape and inbox
         const store = new Store()
 
+        // create versioned LDES and its view (with corresponding relation) and shape according to LDES specification
+        // and add it to the store
         createVersionedEventStream(store, config, date)
-        // // ldes
-        // const eventStreamNode = namedNode(config.LDESinLDPIdentifier + '#EventStream')
-        // const rootNode = namedNode(config.LDESinLDPIdentifier)
+
         const relationIdentifier = config.LDESinLDPIdentifier + date.valueOf() + '/'
-        //
-        // store.addQuad(eventStreamNode, namedNode(RDF.type), namedNode(LDES.EventStream))
-        // store.addQuad(eventStreamNode, namedNode(LDES.versionOfPath), namedNode(DCT.isVersionOf))
-        // store.addQuad(eventStreamNode, namedNode(LDES.timestampPath), namedNode(config.treePath))
-        // store.addQuad(eventStreamNode, namedNode(TREE.view), rootNode)
-        //
-        // if (config.shape) {
-        //     store.addQuad(eventStreamNode, namedNode(TREE.shape), namedNode(config.shape))
-        // }
-        //
-        // // rootNode
-        // const relationNode = store.createBlankNode();
-        // store.addQuad(rootNode, namedNode(RDF.type), namedNode(TREE.Node))
-        // store.addQuad(rootNode, namedNode(TREE.relation), relationNode)
-        //
-        // // add relation
-        // store.addQuad(relationNode, namedNode(RDF.type), namedNode(TREE.GreaterThanOrEqualToRelation));
-        // store.addQuad(relationNode, namedNode(TREE.node), namedNode(relationIdentifier));
-        // store.addQuad(relationNode, namedNode(TREE.path), namedNode(config.treePath));
-        // store.addQuad(relationNode, namedNode(TREE.value), dateToLiteral(date));
 
         // add inbox
         store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
 
-        // send request to server to create
+        // send request to server to create base of the LDES in LDP
         await this.createContainer(config.LDESinLDPIdentifier, storeToString(store))
 
         // create first relation container
         await this.createContainer(relationIdentifier)
     }
 
-    public async create(store: Store): Promise<void> {
+    public async create(store: Store): Promise<string> {
         const location = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication);
         const response = await this.communication.post(location, storeToString(store))
         if (response.status !== 201) {
             throw Error(`The resource was not be created at ${location} 
             | status code: ${response.status}`)
         }
-        console.log(`LDP Resource created at: ${response.headers.get('Location')}`)
-
+        const resourceLocation = response.headers.get('Location')
+        if (!resourceLocation) {
+            throw Error("Did not receive the location of the created resource.")
+        }
+        console.log(`LDP Resource created at: ${resourceLocation}`)
+        return resourceLocation
     }
 
     public async read(resourceIdentifier: string): Promise<Store> {
@@ -100,12 +84,12 @@ export class LDESinLDP implements ILDESinLDP {
         return await turtleStringToStore(text, resourceIdentifier)
     }
 
-    public async update(store: Store): Promise<void> {
-        await this.create(store)
+    public async update(store: Store): Promise<string> {
+        return await this.create(store)
     }
 
-    public async delete(store: Store): Promise<void> {
-        await this.create(store)
+    public async delete(store: Store): Promise<string> {
+        return await this.create(store)
     }
 
     public async readMetadata(): Promise<Store> {
