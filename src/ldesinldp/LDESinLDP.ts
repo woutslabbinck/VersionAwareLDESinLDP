@@ -13,7 +13,7 @@ import {storeToString, turtleStringToStore} from "../util/Conversion";
 import namedNode = DataFactory.namedNode;
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {dateToLiteral, extractDateFromLiteral} from "../util/TimestampUtil";
-import {createVersionedEventStream, retrieveWriteLocation} from "./Util";
+import {createContainer, createVersionedEventStream, retrieveWriteLocation} from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 
 export class LDESinLDP implements ILDESinLDP {
@@ -50,10 +50,10 @@ export class LDESinLDP implements ILDESinLDP {
         store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
 
         // send request to server to create base of the LDES in LDP
-        await this.createContainer(config.LDESinLDPIdentifier, storeToString(store))
+        await createContainer(config.LDESinLDPIdentifier, this.communication, storeToString(store))
 
         // create first relation container
-        await this.createContainer(relationIdentifier)
+        await createContainer(relationIdentifier, this.communication)
     }
 
     public async create(store: Store): Promise<string> {
@@ -93,31 +93,33 @@ export class LDESinLDP implements ILDESinLDP {
     }
 
     public async readMetadata(): Promise<Store> {
-        // Note to self: Should this be a store or just an interface or sth?
-        // what if the ldesinldp is not actually an ldes in ldp? Error handling?
         const rootStore = await this.read(this._LDESinLDPIdentifier)
 
         const metadataStore = new Store()
-        const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
-        const relationTriple = rootStore.getQuads(this._LDESinLDPIdentifier, TREE.relation, null, null)[0]
+        try {
+            const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
+            const relationTriple = rootStore.getQuads(this._LDESinLDPIdentifier, TREE.relation, null, null)[0]
 
-        // add event stream
-        metadataStore.addQuads(rootStore.getQuads(eventStreamNode, null, null, null))
+            // add event stream
+            metadataStore.addQuads(rootStore.getQuads(eventStreamNode, null, null, null))
 
-        // add root node
-        metadataStore.addQuad(namedNode(this._LDESinLDPIdentifier), namedNode(RDF.type), namedNode(TREE.Node))
-        metadataStore.addQuad(relationTriple)
+            // add root node
+            metadataStore.addQuad(namedNode(this._LDESinLDPIdentifier), namedNode(RDF.type), namedNode(TREE.Node))
+            metadataStore.addQuad(relationTriple)
 
-        // add ldp:inbox
-        metadataStore.addQuads(rootStore.getQuads(this._LDESinLDPIdentifier, LDP.inbox, null, null))
+            // add ldp:inbox
+            metadataStore.addQuads(rootStore.getQuads(this._LDESinLDPIdentifier, LDP.inbox, null, null))
 
-        // add relation
-        metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null, null, null))
+            // add relation
+            metadataStore.addQuads(rootStore.getQuads(relationTriple.object, null, null, null))
+        } catch (e) {
+            throw Error(`${this._LDESinLDPIdentifier} is not an actual base of an LDES in LDP.`);
+        }
         return rootStore
     }
 
 // todo: ask Ruben D if this makes sense or not. Maybe I need make this a sync function?
-    public async readAllMembers(until: Date | undefined): Promise<Readable> {
+    public async readAllMembers(until?: Date): Promise<Readable> {
         until = until ? until : new Date()
         const rootStore = await this.readMetadata()
 // note: maybe with a sparql query in comunica?
@@ -169,13 +171,4 @@ export class LDESinLDP implements ILDESinLDP {
         })
         return resourceIdentifierStream.pipe(transformer);
     }
-
-    private async createContainer(resourceIdentifier: string, body?: string): Promise<void> {
-        const response = await this.communication.put(resourceIdentifier, body)
-        if (response.status !== 201) {
-            throw Error(`The container ${resourceIdentifier} was not created | status code: ${response.status}`)
-        }
-        console.log(`LDP Container created: ${response.url}`)
-    }
-
 }

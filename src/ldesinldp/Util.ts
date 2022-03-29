@@ -117,3 +117,12 @@ export function addRelationToNode(store: Store, config: LDESinLDPTreeRelationCon
     store.addQuad(relationNode, namedNode(TREE.path), namedNode(config.treePath));
     store.addQuad(relationNode, namedNode(TREE.value), dateToLiteral(config.date));
 }
+
+export async function createContainer(resourceIdentifier: string, communication: Communication, body?: string): Promise<void> {
+    // Note: maybe check identifier?
+    const response = await communication.put(resourceIdentifier, body)
+    if (response.status !== 201) {
+        throw Error(`The container ${resourceIdentifier} was not created | status code: ${response.status}`)
+    }
+    console.log(`LDP Container created: ${response.url}`)
+}

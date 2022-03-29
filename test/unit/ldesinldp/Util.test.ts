@@ -6,12 +6,13 @@ import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {
     addRelationToNode,
     addRootNodetoEventStream,
-    addShapeToEventStream, createVersionedEventStream,
+    addShapeToEventStream, createContainer, createVersionedEventStream,
     retrieveWriteLocation
 } from "../../../src/ldesinldp/Util";
 import {Store} from "n3";
 import {RDF} from "@solid/community-server";
 import {dateToLiteral} from "../../../src/util/TimestampUtil";
+import {Communication} from "../../../src/ldp/Communication";
 
 describe('A LDES in LDP Util', () => {
     describe('has functionality for write location', () => {
@@ -46,7 +47,7 @@ describe('A LDES in LDP Util', () => {
         it('throws error when no link headers are present', async () => {
             // non existing resources currently give no link headers
             // in the future, maybe mock communication here?
-            await expect(() => retrieveWriteLocation(baseUrl+'nonexistingresource', communication)).rejects.toThrow(Error)
+            await expect(() => retrieveWriteLocation(baseUrl + 'nonexistingresource', communication)).rejects.toThrow(Error)
         })
     })
 
@@ -109,5 +110,37 @@ describe('A LDES in LDP Util', () => {
             expect(store.getQuads(eventStreamIdentifier, LDES.versionOfPath, DCT.isVersionOf, null).length).toBe(1)
             expect(store.getQuads(eventStreamIdentifier, TREE.view, nodeIdentifier, null).length).toBe(1)
         })
+    });
+    describe('when creatin LDP containers', () => {
+        let mockCommunication: jest.Mocked<Communication>
+        const mockedBaseUrl = 'http://example.org/ldesinldp/'
+
+
+        beforeEach(() => {
+            mockCommunication = {
+                delete: jest.fn(),
+                head: jest.fn(),
+                get: jest.fn(),
+                patch: jest.fn(),
+                post: jest.fn(),
+                put: jest.fn()
+            }
+
+            mockCommunication.put.mockResolvedValue(new Response(null, {
+                status: 201
+            }))
+
+        });
+        it('succeeds when status is 201.', async () => {
+            await expect(() => createContainer(mockedBaseUrl, mockCommunication)).resolves
+        });
+
+        it('fails when status is not 201.', async () => {
+            mockCommunication.put = jest.fn()
+            mockCommunication.put.mockResolvedValue(new Response(null, {
+                status: 205
+            }))
+            await expect(() => createContainer(mockedBaseUrl, mockCommunication)).rejects.toThrow(Error)
+        });
     });
 })

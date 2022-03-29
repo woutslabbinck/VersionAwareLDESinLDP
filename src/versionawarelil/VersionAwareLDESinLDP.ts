@@ -15,6 +15,7 @@ import {dateToLiteral} from "../util/TimestampUtil";
 import {Member} from '@treecg/types'
 import namedNode = DataFactory.namedNode;
 import quad = DataFactory.quad;
+import {extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -219,21 +220,14 @@ export class VersionAwareLDESinLDP {
     /**
      * Extract some basic LDES metadata
      *
-     * Note: currently it only extracts the snapshot options from the LDES in LDP
      * @returns {Promise<LDESMetadata>}
      */
     private async extractLdesMetadata(): Promise<LDESMetadata> {
         const metadataStore = await this.LDESinLDP.readMetadata()
         const ldesIdentifier = metadataStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
+        // maybe check if this.LDESinLDP.LDESinLDPIdentifier is in ldesIdentifier
 
-        const snapshotOptions = extractSnapshotOptions(metadataStore, ldesIdentifier)
-        return {
-            deletedType: LDES.DeletedLDPResource,
-            ldesEventStreamIdentifier: ldesIdentifier,
-            rootNodeIdentifiers: [],
-            timestampPath: snapshotOptions.timestampPath!,
-            versionOfPath: snapshotOptions.versionOfPath!
-        }
+        return extractLdesMetadata(metadataStore, ldesIdentifier)
     }
 
     // todo: move static into utility class
@@ -287,10 +281,4 @@ export class VersionAwareLDESinLDP {
     }
 }
 
-interface LDESMetadata {
-    ldesEventStreamIdentifier: string,
-    rootNodeIdentifiers: string[],
-    timestampPath: string,
-    versionOfPath: string,
-    deletedType: string
-}
+
