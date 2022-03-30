@@ -161,10 +161,9 @@ export class LDESinLDP implements ILDESinLDP {
             objectMode: true,
             async transform(chunk, encoding, callback) {
                 const resourceStore = await comm.read(chunk)
-                // todo: retrieve id based on version identifier as this is used as predicate
-                //  this way hard coded is removed
+                const memberId = resourceStore.getSubjects(DCT.isVersionOf,null,null)[0].value
                 this.push({
-                    id: namedNode(chunk + '#resource'),
+                    id: namedNode(memberId),
                     quads: resourceStore.getQuads(null, null, null, null)
                 })
             }

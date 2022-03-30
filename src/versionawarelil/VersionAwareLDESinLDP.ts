@@ -16,6 +16,7 @@ import {Member} from '@treecg/types'
 import namedNode = DataFactory.namedNode;
 import quad = DataFactory.quad;
 import {extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
+import {memberStreamtoStore, storeToString} from "../util/Conversion";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -81,17 +82,27 @@ export class VersionAwareLDESinLDP {
      * NOTE: this means without caching, each read will query over the entire LDES in LDP.
      *  This means that the biggest optimization will be achieved here.
      * @param materializedResourceIdentifier
+     * @param options
      * @returns {Promise<Store>} materialized representation of the resource if it exists
      */
-    public async read(materializedResourceIdentifier: string): Promise<Store> {
+    public async read(materializedResourceIdentifier: string, options?: readOptions): Promise<Store> {
         // TODO: maybe add optional parameter of the date?
         const memberStream = await this.LDESinLDP.readAllMembers()
 
+        let date = new Date()
+        let materialized = true
+        let derived = false
+        if (options) {
+            date = options.date
+            materialized = options.materialized
+            derived = options.derived
+        }
+
         const ldesMetadata = await this.extractLdesMetadata()
         const snapshotOptions: ISnapshotOptions = {
-            date: new Date(),
+            date: date,
             ldesIdentifier: ldesMetadata.ldesEventStreamIdentifier,
-            materialized: true,
+            materialized: materialized,
             snapshotIdentifier: this.LDESinLDP.LDESinLDPIdentifier, //todo: is this right?
             timestampPath: ldesMetadata.timestampPath,
             versionOfPath: ldesMetadata.versionOfPath
@@ -109,10 +120,12 @@ export class VersionAwareLDESinLDP {
                 for await (const member of transformedStream) {
                     if (!VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
                         store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(LDP.contains), member.id)
-                        // todo: remove experimental virtual containers OR make it possible via options
-                        //  feedback Pieter: also make it possible to not be version materialized
-                        // VersionAwareLDESinLDP.removeVersionSpecificTriples(member, ldesMetadata)
-                        // store.addQuads(member.quads)
+                        if (derived) {
+                            if (materialized) {
+                                VersionAwareLDESinLDP.removeVersionSpecificTriples(member, ldesMetadata)
+                            }
+                            store.addQuads(member.quads)
+                        }
                     }
                 }
             } else {
@@ -183,13 +196,13 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<void>}
      */
     public async delete(materializedResourceIdentifier: string): Promise<void> {
-        let materializedResource: Store | undefined
+
+        let materializedResource: Store
         try {
             materializedResource = await this.read(materializedResourceIdentifier)
         } catch (e) {
             throw Error(`Could not delete ${materializedResourceIdentifier} as it does not exist already.`)
         }
-        const metadata = await this.extractLdesMetadata()
 
         const versionSpecificIdentifier = "#resource"
         const member: Member = {
@@ -209,7 +222,9 @@ export class VersionAwareLDESinLDP {
                 member.quads.push(q)
             }
         }
+
         // add version specific triples and deleted triple
+        const metadata = await this.extractLdesMetadata()
         VersionAwareLDESinLDP.addVersionSpecificTriples(member, versionSpecificIdentifier, metadata)
         VersionAwareLDESinLDP.addDeletedTriple(member, versionSpecificIdentifier, metadata)
 
@@ -282,3 +297,8 @@ export class VersionAwareLDESinLDP {
 }
 
 
+export interface readOptions {
+    date: Date
+    materialized: boolean
+    derived: boolean
+}
