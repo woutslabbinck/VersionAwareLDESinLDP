@@ -216,6 +216,7 @@ export class VersionAwareLDESinLDP {
         for (const q of quads) {
             // transform quads which are coming from materializedResourceIdentifier
             if (q.subject.value === materializedResourceIdentifier) {
+                // give new version specific identifier
                 member.quads.push(quad(namedNode(versionSpecificIdentifier), q.predicate, q.object))
             } else {
                 // copy all others
@@ -238,7 +239,7 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<LDESMetadata>}
      */
     private async extractLdesMetadata(): Promise<LDESMetadata> {
-        const metadataStore = await this.LDESinLDP.readMetadata()
+        const metadataStore = await this.LDESinLDP.readMetadata() // can fail (what if configuration is wrong)
         const ldesIdentifier = metadataStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
         // maybe check if this.LDESinLDP.LDESinLDPIdentifier is in ldesIdentifier
 

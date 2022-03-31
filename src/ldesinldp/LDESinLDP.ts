@@ -36,6 +36,8 @@ export class LDESinLDP implements ILDESinLDP {
         if (!isContainerIdentifier(config.LDESinLDPIdentifier)) {
             throw Error(`${config.LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }
+        // maybe extra check to see whether it exists already?
+
         const date = new Date()
         // create root container and add the metadata for the root, shape and inbox
         const store = new Store()

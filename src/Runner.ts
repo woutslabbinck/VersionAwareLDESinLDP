@@ -76,7 +76,12 @@ export async function initiateLDESinLDP(baseIdentifier: string) {
     console.log(storeToString(streamAsStore))
 }
 
-export async function instantiateVersionAwareLDESinLDP(baseIdentifier: string): Promise<VersionAwareLDESinLDP> {
+/**
+ * Instantiates a VersionAwareLDESinLDP object
+ * @param baseLDESinLDPIdentifier the base LDES in LDP URL
+ * @returns {Promise<VersionAwareLDESinLDP>}
+ */
+export async function versionAwareLDESinLDP(baseLDESinLDPIdentifier: string): Promise<VersionAwareLDESinLDP> {
     const manager = await ComponentsManager.build(
         {
             mainModulePath: Path.join(__dirname, '../'), // Path to your npm package's root
@@ -86,7 +91,7 @@ export async function instantiateVersionAwareLDESinLDP(baseIdentifier: string): 
     await manager.configRegistry.register(Path.join(__dirname, '../', 'config/attemptversionaware.json'));
 
     const variables: Record<string, unknown> = {
-        "urn:ldesinldp:variable:ldesinldpIdentifier": baseIdentifier
+        "urn:ldesinldp:variable:ldesinldpIdentifier": baseLDESinLDPIdentifier
     }
     return await manager.instantiate('urn:@treecg/versionawareldesinldp:versionawareldesinldp', {variables: variables}) as VersionAwareLDESinLDP
 }
@@ -95,14 +100,14 @@ export async function readResource(baseIdentifier?: string, resourceIdentifier?:
     baseIdentifier = baseIdentifier ? baseIdentifier : "http://localhost:3123/ldesinldp/"
     resourceIdentifier = resourceIdentifier ? resourceIdentifier : 'http://example.org/resource1'
 
-    const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
+    const vAwareLDESinLDP = await versionAwareLDESinLDP(baseIdentifier)
     const resource = await vAwareLDESinLDP.read(resourceIdentifier)
     console.log(storeToString(resource))
 }
 
 export async function readContainer(baseIdentifier?: string) {
     baseIdentifier = baseIdentifier ? baseIdentifier : "http://localhost:3123/ldesinldp/"
-    const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
+    const vAwareLDESinLDP = await versionAwareLDESinLDP(baseIdentifier)
     const container = await vAwareLDESinLDP.read(baseIdentifier)
     console.log(storeToString(container))
 }
@@ -110,7 +115,7 @@ export async function readContainer(baseIdentifier?: string) {
 export async function createResource(baseIdentifier?: string, resourceIdentifier?: string) {
     baseIdentifier = baseIdentifier ? baseIdentifier : "http://localhost:3123/ldesinldp/"
     resourceIdentifier = resourceIdentifier ? resourceIdentifier : 'http://example.org/resource3'
-    const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
+    const vAwareLDESinLDP = await versionAwareLDESinLDP(baseIdentifier)
 
     const store = new Store()
     // Note: it is good to have this one relative
@@ -120,11 +125,11 @@ export async function createResource(baseIdentifier?: string, resourceIdentifier
 }
 
 export async function deleteResource(baseIdentifier: string, resourceIdentifier: string) {
-    const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
+    const vAwareLDESinLDP = await versionAwareLDESinLDP(baseIdentifier)
     await vAwareLDESinLDP.delete(resourceIdentifier)
 }
 
 export async function initialiseLDESinLDP(baseIdentifier: string) {
-    const vAwareLDESinLDP = await instantiateVersionAwareLDESinLDP(baseIdentifier)
+    const vAwareLDESinLDP = await versionAwareLDESinLDP(baseIdentifier)
     await vAwareLDESinLDP.initialise(baseIdentifier)
 }
