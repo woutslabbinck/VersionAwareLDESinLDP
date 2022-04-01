@@ -16,6 +16,7 @@ import {createContainer, createVersionedEventStream, retrieveWriteLocation} from
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {Logger} from "../logging/Logger";
 import namedNode = DataFactory.namedNode;
+import {extractLdesMetadata} from "../util/LdesUtil";
 
 export class LDESinLDP implements ILDESinLDP {
     private readonly _LDESinLDPIdentifier: string;
@@ -98,7 +99,7 @@ export class LDESinLDP implements ILDESinLDP {
 
     public async readMetadata(): Promise<Store> {
         const rootStore = await this.read(this._LDESinLDPIdentifier)
-
+        // Note: only retrieve metdata of one layer deep -> it should actually follow all the relation nodes
         const metadataStore = new Store()
         try {
             const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
@@ -122,26 +123,36 @@ export class LDESinLDP implements ILDESinLDP {
         return rootStore
     }
 
-// todo: ask Ruben D if this makes sense or not. Maybe I need make this a sync function?
-    public async readAllMembers(until?: Date): Promise<Readable> {
-        until = until ? until : new Date()
+    public async readAllMembers(from?: Date, until?: Date): Promise<Readable> {
+        // from and until only makes sense when working with GTE relation as defined in the LDES in LDP spec
+        from = from ?? new Date(0)
+        until = until ?? new Date()
         const rootStore = await this.readMetadata()
+        const ldesIdentifier = rootStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
+        const ldesMetadata = extractLdesMetadata(rootStore, ldesIdentifier)
 // note: maybe with a sparql query in comunica?
-        // get all relations of the root node (Note: only works with tree:collections of one level deep)
-        const relationIdentifiers = rootStore.getObjects(this._LDESinLDPIdentifier, TREE.relation, null).map(object => object)
 
-        // get all nodes in the ldes in ldp
-        const nodeIdentifiers: string[] = []
-        for (const relationIdentifier of relationIdentifiers) {
-            const relation = new Store(rootStore.getQuads(relationIdentifier, null, null, null))
-            // todo error checking
-            const relationValue = extractDateFromLiteral(relation.getObjects(null, TREE.value, null)[0] as Literal)
+        // complicated code to narrow down the number of nodes based on the GTE relations
+        // if this errors, the relation value is not right in the metadata
+        const timestamps = ldesMetadata.views[0].relations.map(({value}) => {
+            return new Date(value).getTime()
+        })
+        const lowerthanFromTimestamps = timestamps.filter(timestamp => timestamp < from!.getTime())
 
-            if (until.getTime() > relationValue.getTime()) {
-                // todo error checking
-                nodeIdentifiers.push(relation.getObjects(null, TREE.node, null)[0].value)
+        // the highest date in all relations smaller than (earlier than) from, that is just below from OR new Date(0)
+        const fromRelationDate = timestamps.length > 0 ? new Date(Math.max(...lowerthanFromTimestamps)) : new Date(0)
+
+        // node identifiers of the relations that have members in between from - until
+        const nodeIdentifiers = ldesMetadata.views[0].relations.filter(({value}) => {
+            const relationValue = new Date(value)
+
+            if (relationValue.getTime() > fromRelationDate.getTime()) {
+                return false
             }
-        }
+            // if until is smaller than the relation value, then the relation is not needed
+            return relationValue.getTime() < until!.getTime();
+        }).map(({node}) => node)
+
         const comm = this
         // stream of resources within the ldes in ldp
         const resourceIdentifierStream = new Readable({
@@ -165,6 +176,7 @@ export class LDESinLDP implements ILDESinLDP {
             objectMode: true,
             async transform(chunk, encoding, callback) {
                 const resourceStore = await comm.read(chunk)
+                // can fail if it was actually not a member in the ldes
                 const memberId = resourceStore.getSubjects(DCT.isVersionOf, null, null)[0].value
                 this.push({
                     id: namedNode(memberId),

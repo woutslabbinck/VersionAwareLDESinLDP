@@ -1,5 +1,5 @@
 import {ILDESinLDP} from "../../../src/ldesinldp/ILDESinLDP";
-import {readOptions, VersionAwareLDESinLDP} from "../../../src/versionawarelil/VersionAwareLDESinLDP";
+import {ReadOptions, VersionAwareLDESinLDP} from "../../../src/versionawarelil/VersionAwareLDESinLDP";
 import {
     storeAsMemberStream, storeToString,
     turtleStringToStore
@@ -137,7 +137,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('returns the materialized version of a resource as a N3 store at a specific point in time.', async () => {
-            const options: readOptions = {
+            const options: ReadOptions = {
                 date: new Date("2022-02-01T00:00:00"),
                 derived: false,
                 materialized: true
@@ -162,7 +162,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('returns a metarialized derived container based on the options.', async () => {
-            const options: readOptions = {
+            const options: ReadOptions = {
                 date: new Date(),
                 derived: true,
                 materialized: true
@@ -177,7 +177,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('returns a derived container based on the options.', async () => {
-            const options: readOptions = {
+            const options: ReadOptions = {
                 date: new Date(),
                 derived: true,
                 materialized: false

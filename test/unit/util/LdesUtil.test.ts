@@ -1,7 +1,7 @@
 import {turtleStringToStore} from "../../../src/util/Conversion";
 import {extractLdesMetadata} from "../../../src/util/LdesUtil";
 import {Store} from "n3";
-import {DCT, LDES} from "../../../src/util/Vocabularies";
+import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 
 describe('An LdesUtil', () => {
     describe('for extracting metadata from a versioned LDES in LDP.', () => {
@@ -32,7 +32,9 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(ldesMetadata.versionOfPath).toBe(DCT.isVersionOf)
             expect(ldesMetadata.deletedType).toBe(LDES.DeletedLDPResource)
             expect(ldesMetadata.views[0].id).toBe('http://example.org/ldesinldp/')
-            expect(ldesMetadata.views[0].relationNodeIdentifiers[0]).toBe('http://example.org/ldesinldp/timestamppath/')
+            expect(ldesMetadata.views[0].relations[0].node).toBe('http://example.org/ldesinldp/timestamppath/')
+            expect(ldesMetadata.views[0].relations[0].type).toBe(TREE.GreaterThanOrEqualToRelation)
+            expect(ldesMetadata.views[0].relations[0].value).toBe("2022-03-28T14:53:28.841Z")
             expect(ldesMetadata.inbox).toBe('http://example.org/ldesinldp/timestamppath/')
             expect(ldesMetadata.timestampPath).toBe(DCT.created)
         });

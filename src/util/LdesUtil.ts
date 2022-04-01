@@ -6,8 +6,14 @@
  *****************************************/
 import {Store} from "n3";
 import {extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
-import {LDES, LDP, TREE} from "./Vocabularies";
+import {LDES, LDP, RDF, TREE} from "./Vocabularies";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
+
+export interface Relation {
+    type: string
+    value: string
+    node: string
+}
 
 export interface LDESMetadata {
     ldesEventStreamIdentifier: string
@@ -16,7 +22,7 @@ export interface LDESMetadata {
     deletedType: string
     views: {
         id: string
-        relationNodeIdentifiers: string[]
+        relations: Relation[]
     }[]
     inbox: string
 }
@@ -30,11 +36,16 @@ export function extractLdesMetadata(store: Store, ldesIdentifier: string): LDESM
         const viewIdentifiers = store.getObjects(ldesIdentifier, TREE.view, null).map(object => object.value)
         for (const viewIdentifier of viewIdentifiers) {
             const relationIdentifiers = store.getObjects(viewIdentifier, TREE.relation, null)
-            const relationNodeIdentifiers = []
+            const relations = []
             for (const relationIdentifier of relationIdentifiers) {
-                relationNodeIdentifiers.push(store.getObjects(relationIdentifier, TREE.node, null).map(object => object.value)[0])
+                let relation: Relation = {
+                    node: store.getObjects(relationIdentifier, TREE.node, null).map(object => object.value)[0],
+                    type: store.getObjects(relationIdentifier, RDF.type, null).map(object => object.value)[0],
+                    value: store.getObjects(relationIdentifier, TREE.value, null).map(object => object.value)[0]
+                }
+                relations.push(relation)
             }
-            views.push({id: viewIdentifier, relationNodeIdentifiers})
+            views.push({id: viewIdentifier, relations: relations})
         }
 
         inbox = store.getObjects(null, LDP.inbox, null)[0].value

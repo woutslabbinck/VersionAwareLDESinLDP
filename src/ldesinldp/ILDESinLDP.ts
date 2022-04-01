@@ -60,5 +60,5 @@ export interface ILDESinLDP {
      * If a date is given, it stops early based on the relations and the ldes:timestampPath in the resource.
      * @param until
      */
-    readAllMembers: (until?: Date) => Promise<Readable>
+    readAllMembers: (from?: Date, until?: Date) => Promise<Readable>
 }

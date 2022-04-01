@@ -80,8 +80,7 @@ export class VersionAwareLDESinLDP {
      * @param options
      * @returns {Promise<Store>} materialized representation of the resource if it exists
      */
-    public async read(materializedResourceIdentifier: string, options?: readOptions): Promise<Store> {
-        const memberStream = await this.LDESinLDP.readAllMembers()
+    public async read(materializedResourceIdentifier: string, options?: ReadOptions): Promise<Store> {
 
         let date = new Date()
         let materialized = true
@@ -91,6 +90,7 @@ export class VersionAwareLDESinLDP {
             materialized = options.materialized ?? materialized
             derived = options.derived ?? derived
         }
+        const memberStream = await this.LDESinLDP.readAllMembers(new Date(), date)
 
         const ldesMetadata = await this.extractLdesMetadata()
         const snapshotOptions: ISnapshotOptions = {
@@ -246,7 +246,7 @@ export class VersionAwareLDESinLDP {
 }
 
 
-export interface readOptions {
+export interface ReadOptions {
     date?: Date
     materialized?: boolean
     derived?: boolean
