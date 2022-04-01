@@ -1,6 +1,6 @@
 /***************************************
  * Title: VersionAwareLDESinLDP
- * Description: TODO
+ * Description: The operations to interact with a versioned LDES in LDP
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 22/03/2022
  *****************************************/
@@ -84,16 +84,15 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<Store>} materialized representation of the resource if it exists
      */
     public async read(materializedResourceIdentifier: string, options?: readOptions): Promise<Store> {
-        // TODO: maybe add optional parameter of the date?
         const memberStream = await this.LDESinLDP.readAllMembers()
 
         let date = new Date()
         let materialized = true
         let derived = false
         if (options) {
-            date = options.date
-            materialized = options.materialized
-            derived = options.derived
+            date = options.date ?? date
+            materialized = options.materialized ?? materialized
+            derived = options.derived ?? derived
         }
 
         const ldesMetadata = await this.extractLdesMetadata()
@@ -117,8 +116,12 @@ export class VersionAwareLDESinLDP {
                 store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(RDF.type), namedNode(LDP.BasicContainer))
                 for await (const member of transformedStream) {
                     if (!VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
+                        // add resource to the container via ldp:contains
                         store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(LDP.contains), member.id)
+
+                        // add resource content when the option is derived
                         if (derived) {
+                            // remove TREE/LDES specific triples when reading materialized
                             if (materialized) {
                                 VersionAwareLDESinLDP.removeVersionSpecificTriples(member, ldesMetadata)
                             }
@@ -130,26 +133,36 @@ export class VersionAwareLDESinLDP {
                 throw Error("A container can only be read if it is the base container (currently).")
             }
         } else {
-            // filter out materialized resource
-            let materializedResource = undefined
+            // filter out resource
+            let memberResource = undefined
             for await (const member of transformedStream) {
-                if (member.id.value === materializedResourceIdentifier) {
+                let materializedIDMember: string
+                if (materialized) {
+                    materializedIDMember = member.id.value
+                } else {
+                    materializedIDMember = extractMaterializedId(member, ldesMetadata.versionOfPath)
+                }
+                if (materializedIDMember === materializedResourceIdentifier) {
                     if (VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
                         throw Error("Member has been deleted.")
                     } else {
-                        materializedResource = member
+                        memberResource = member
                     }
                     break
                 }
             }
 
-            // remove TREE/LDES specific triples
-            if (materializedResource) {
-                VersionAwareLDESinLDP.removeVersionSpecificTriples(materializedResource, ldesMetadata)
-                store.addQuads(materializedResource.quads)
-            } else {
+            if (!memberResource) {
                 throw Error("404 Resource was not found")
             }
+
+            // remove TREE/LDES specific triples when reading materialized
+            if (materialized) {
+                VersionAwareLDESinLDP.removeVersionSpecificTriples(memberResource, ldesMetadata)
+            }
+
+            // add quads to the store that will be returned
+            store.addQuads(memberResource.quads)
         }
         return store
     }
@@ -194,7 +207,6 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<void>}
      */
     public async delete(materializedResourceIdentifier: string): Promise<void> {
-
         let materializedResource: Store
         try {
             materializedResource = await this.read(materializedResourceIdentifier)
@@ -297,7 +309,16 @@ export class VersionAwareLDESinLDP {
 
 
 export interface readOptions {
-    date: Date
-    materialized: boolean
-    derived: boolean
+    date?: Date
+    materialized?: boolean
+    derived?: boolean
+}
+
+function extractMaterializedId(member: Member, versionOfPath: string): string { // todo: test and import from snapshot
+    const store = new Store(member.quads)
+    const versionIds = store.getObjects(member.id, namedNode(versionOfPath), null)
+    if (versionIds.length !== 1) {
+        throw Error(`Found ${versionIds.length} identifiers following the version paths of ${member.id.value}; expected one such identifier.`)
+    }
+    return versionIds[0].value
 }
