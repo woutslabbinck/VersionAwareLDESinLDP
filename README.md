@@ -76,7 +76,7 @@ Which results into:
 #### Non-materialized Resource
 For this, some options have to be passed as an object
 
-There are three parameters in the options object, currently all required: date, materialized and boolean.
+There are three parameters in the options object: date, materialized and derived.
 The **default** is given below (which means without passing an options object, this will be used).
 ```javascript
 const options = {
@@ -97,6 +97,9 @@ await versionAware.read(materializedID, {
 
 Which in this case will be the following:
 ```turtle
+<http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/title> "Title" .
+<http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/isVersionOf> <http://example.org/resource1> .
+<http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/created> "2022-03-31T15:20:17.844Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
 
 ```
 
@@ -126,28 +129,28 @@ For each configuration the result of reading (printed as n-quads) is shown below
 
 Container representation
 ```turtle
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://localhost:3123/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> .
 ```
 
 Materialized Container representation
 ```turtle
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://example.org/resource1> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://example.org/resource1> .
 ```
 
 Derived Container representation
 ```turtle
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://localhost:3123/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> .
-<http://localhost:3123/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/title> "Title" .
-<http://localhost:3123/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/isVersionOf> <http://example.org/resource1> .
-<http://localhost:3123/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/created> "2022-03-31T15:20:17.844Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> .
+<http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/title> "Title" .
+<http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/isVersionOf> <http://example.org/resource1> .
+<http://localhost:3000/ldesinldp/1648479208841/570f0194-adbc-409b-b343-1622a802ee56#resource> <http://purl.org/dc/terms/created> "2022-03-31T15:20:17.844Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
 ```
 
 Derived materialized Container representation
 ```turtle
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
-<http://localhost:3123/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://example.org/resource1> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
+<http://localhost:3000/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://example.org/resource1> .
 <http://example.org/resource1> <http://purl.org/dc/terms/title> "Title" .
 ```

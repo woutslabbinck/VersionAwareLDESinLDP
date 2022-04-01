@@ -16,7 +16,7 @@
     - [x] update
     - [x] delete
     - [ ] refactor read
-        - [ ] make it possible to have non-materialized read
+        - [x] make it possible to have non-materialized read
         - [ ] make utils work on store instead of members -> less transformations
 - [x] add tests
     - [x] unit of utility

@@ -10,11 +10,10 @@ import {SnapshotTransform} from "@treecg/ldes-snapshot";
 import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
-import {dateToLiteral} from "../util/TimestampUtil";
 import {Member} from '@treecg/types'
 import {extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
+import {addDeletedTriple, addVersionSpecificTriples, isDeleted, removeVersionSpecificTriples} from "./Util";
 import namedNode = DataFactory.namedNode;
-import quad = DataFactory.quad;
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -48,7 +47,7 @@ export class VersionAwareLDESinLDP {
      */
     public async create(materializedResourceIdentifier: string, store: Store, versionSpecificIdentifier?: string): Promise<void> {
         // check whether it exists already
-        let exists = false
+        let exists: boolean
         try {
             await this.read(materializedResourceIdentifier)
             exists = true
@@ -59,15 +58,13 @@ export class VersionAwareLDESinLDP {
             throw Error(`Could not create ${materializedResourceIdentifier} as it already exists`)
         }
 
-        const member = {id: namedNode(materializedResourceIdentifier), quads: store.getQuads(null, null, null, null)}
-
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
         versionSpecificIdentifier = versionSpecificIdentifier ? versionSpecificIdentifier : "#resource";
-        VersionAwareLDESinLDP.addVersionSpecificTriples(member, versionSpecificIdentifier, metadata)
+        addVersionSpecificTriples(store, materializedResourceIdentifier, versionSpecificIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.create(new Store(member.quads))
+        await this.LDESinLDP.create(store)
     }
 
     /**
@@ -115,7 +112,7 @@ export class VersionAwareLDESinLDP {
             if (this.LDESinLDP.LDESinLDPIdentifier === materializedResourceIdentifier) {
                 store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(RDF.type), namedNode(LDP.BasicContainer))
                 for await (const member of transformedStream) {
-                    if (!VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
+                    if (!isDeleted(member, ldesMetadata)) {
                         // add resource to the container via ldp:contains
                         store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(LDP.contains), member.id)
 
@@ -123,7 +120,7 @@ export class VersionAwareLDESinLDP {
                         if (derived) {
                             // remove TREE/LDES specific triples when reading materialized
                             if (materialized) {
-                                VersionAwareLDESinLDP.removeVersionSpecificTriples(member, ldesMetadata)
+                                removeVersionSpecificTriples(member, ldesMetadata)
                             }
                             store.addQuads(member.quads)
                         }
@@ -143,7 +140,7 @@ export class VersionAwareLDESinLDP {
                     materializedIDMember = extractMaterializedId(member, ldesMetadata.versionOfPath)
                 }
                 if (materializedIDMember === materializedResourceIdentifier) {
-                    if (VersionAwareLDESinLDP.isDeleted(member, ldesMetadata)) {
+                    if (isDeleted(member, ldesMetadata)) {
                         throw Error("Member has been deleted.")
                     } else {
                         memberResource = member
@@ -158,7 +155,7 @@ export class VersionAwareLDESinLDP {
 
             // remove TREE/LDES specific triples when reading materialized
             if (materialized) {
-                VersionAwareLDESinLDP.removeVersionSpecificTriples(memberResource, ldesMetadata)
+                removeVersionSpecificTriples(memberResource, ldesMetadata)
             }
 
             // add quads to the store that will be returned
@@ -184,18 +181,13 @@ export class VersionAwareLDESinLDP {
             throw Error(`Could not update ${materializedResourceIdentifier} as it does not exist already.`)
         }
 
-        const member: Member = {
-            id: namedNode(materializedResourceIdentifier),
-            quads: store.getQuads(null, null, null, null)
-        }
-
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
         versionSpecificIdentifier = versionSpecificIdentifier ? versionSpecificIdentifier : "#resource";
-        VersionAwareLDESinLDP.addVersionSpecificTriples(member, versionSpecificIdentifier, metadata)
+        addVersionSpecificTriples(store, materializedResourceIdentifier, versionSpecificIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.update(new Store(member.quads))
+        await this.LDESinLDP.update(store)
     }
 
     /**
@@ -215,11 +207,7 @@ export class VersionAwareLDESinLDP {
         }
 
         const versionSpecificIdentifier = "#resource"
-        const member: Member = {
-            id: namedNode(materializedResourceIdentifier),
-            quads: []
-
-        }
+        const store = new Store()
 
         // copy latest version of the resource
         const quads = materializedResource.getQuads(null, null, null, null)
@@ -227,20 +215,20 @@ export class VersionAwareLDESinLDP {
             // transform quads which are coming from materializedResourceIdentifier
             if (q.subject.value === materializedResourceIdentifier) {
                 // give new version specific identifier
-                member.quads.push(quad(namedNode(versionSpecificIdentifier), q.predicate, q.object))
+                store.addQuad(namedNode(versionSpecificIdentifier), q.predicate, q.object)
             } else {
                 // copy all others
-                member.quads.push(q)
+                store.addQuad(q)
             }
         }
 
         // add version specific triples and deleted triple
         const metadata = await this.extractLdesMetadata()
-        VersionAwareLDESinLDP.addVersionSpecificTriples(member, versionSpecificIdentifier, metadata)
-        VersionAwareLDESinLDP.addDeletedTriple(member, versionSpecificIdentifier, metadata)
+        addVersionSpecificTriples(store, materializedResourceIdentifier, versionSpecificIdentifier, metadata)
+        addDeletedTriple(store, versionSpecificIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.delete(new Store(member.quads))
+        await this.LDESinLDP.delete(store)
     }
 
     /**
@@ -254,56 +242,6 @@ export class VersionAwareLDESinLDP {
         // maybe check if this.LDESinLDP.LDESinLDPIdentifier is in ldesIdentifier
 
         return extractLdesMetadata(metadataStore, ldesIdentifier)
-    }
-
-    // todo: move static into utility class
-    /**
-     * Checks whether the materialized member is marked deleted or not
-     * @param member
-     * @param metadata
-     */
-    private static isDeleted(member: Member, metadata: LDESMetadata): boolean {
-        const store = new Store(member.quads)
-        return store.getQuads(member.id, namedNode(RDF.type), namedNode(metadata.deletedType), null).length > 0
-    }
-
-    /**
-     * Adds version specific triples (timestamp and version) to the quads of the member
-     * @param member
-     * @param versionSpecificIdentifier
-     * @param metadata
-     */
-    private static addVersionSpecificTriples(member: Member, versionSpecificIdentifier: string, metadata: LDESMetadata): void {
-        const id = namedNode(versionSpecificIdentifier)
-        member.quads.push(quad(id, namedNode(metadata.versionOfPath), namedNode(member.id.value)))
-        member.quads.push(quad(id, namedNode(metadata.timestampPath), dateToLiteral(new Date())))
-    }
-
-    /**
-     * Adds the deleted type the version specific resource (i.e. to the quads of the member)
-     * @param member
-     * @param versionSpecificIdentifier
-     * @param metadata
-     */
-    private static addDeletedTriple(member: Member, versionSpecificIdentifier: string, metadata: LDESMetadata): void {
-        const id = namedNode(versionSpecificIdentifier)
-        member.quads.push(quad(id, namedNode(RDF.type), namedNode(metadata.deletedType)))
-    }
-
-    /**
-     * Removes version specific triples from a materialized member
-     * @param member
-     * @param metadata
-     */
-    private static removeVersionSpecificTriples(member: Member, metadata: LDESMetadata): void {
-        const store = new Store(member.quads)
-        store.removeQuads(store.getQuads(member.id, namedNode(metadata.timestampPath), null, null))
-        store.removeQuads(store.getQuads(member.id, namedNode(metadata.versionOfPath), null, null))
-        store.removeQuads(store.getQuads(member.id, namedNode(metadata.deletedType), null, null))
-
-        store.removeQuads(store.getQuads(member.id, namedNode(DCT.hasVersion), null, null))
-        member.quads = store.getQuads(null, null, null, null)
-
     }
 }
 
