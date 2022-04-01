@@ -1,0 +1,28 @@
+# TODO
+
+- [x] add logger -> hard coded in LDES in LDP
+- [x] implement LDESinLDP.ts
+    - [x] read
+    - [x] initialise
+    - [x] create
+    - [x] update
+    - [x] delete
+    - [x] readMetadata
+    - [x] readAllMembers
+- [x] implement VersionAwareLDESinLDP.ts
+    - [x] initialise
+    - [x] read
+    - [x] create
+    - [x] update
+    - [x] delete
+    - [ ] refactor read
+        - [ ] make it possible to have non-materialized read
+        - [ ] make utils work on store instead of members -> less transformations
+- [x] add tests
+    - [x] unit of utility
+    - [x] unit
+    - [ ] integration
+- [ ] implement CLI -> does that make sense?
+- [ ] add lint
+- [x] document how to use this and how it works in README.md
+- [ ] Publish

@@ -9,7 +9,6 @@
     "build:ts": "rm -rf dist/; tsc",
     "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts",
     "prepare": "npm run build",
-    "start": "node bin/client.js",
     "test": "jest"
   },
   "lsd:module": "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp",

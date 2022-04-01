@@ -9,14 +9,12 @@ import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
 import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
-import {extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {dateToLiteral} from "../util/TimestampUtil";
 import {Member} from '@treecg/types'
+import {extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
 import namedNode = DataFactory.namedNode;
 import quad = DataFactory.quad;
-import {extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
-import {memberStreamtoStore, storeToString} from "../util/Conversion";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;

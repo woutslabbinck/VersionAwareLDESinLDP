@@ -10,15 +10,17 @@ import {LDESinLDPConfig} from "./LDESinLDPConfig";
 import {DataFactory, Literal, Store} from "n3";
 import {Readable, Transform} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
-import namedNode = DataFactory.namedNode;
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
-import {dateToLiteral, extractDateFromLiteral} from "../util/TimestampUtil";
+import {extractDateFromLiteral} from "../util/TimestampUtil";
 import {createContainer, createVersionedEventStream, retrieveWriteLocation} from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
+import {Logger} from "../logging/Logger";
+import namedNode = DataFactory.namedNode;
 
 export class LDESinLDP implements ILDESinLDP {
     private readonly _LDESinLDPIdentifier: string;
-    private readonly communication: Communication
+    private readonly communication: Communication;
+    private readonly logger: Logger = new Logger(this);
 
     public constructor(LDESinLDPIdentifier: string, communication: Communication) {
         this._LDESinLDPIdentifier = LDESinLDPIdentifier;
@@ -69,7 +71,7 @@ export class LDESinLDP implements ILDESinLDP {
         if (!resourceLocation) {
             throw Error("Did not receive the location of the created resource.")
         }
-        console.log(`LDP Resource created at: ${resourceLocation}`)
+        this.logger.info(`LDP Resource created at: ${resourceLocation}`)
         return resourceLocation
     }
 
@@ -163,7 +165,7 @@ export class LDESinLDP implements ILDESinLDP {
             objectMode: true,
             async transform(chunk, encoding, callback) {
                 const resourceStore = await comm.read(chunk)
-                const memberId = resourceStore.getSubjects(DCT.isVersionOf,null,null)[0].value
+                const memberId = resourceStore.getSubjects(DCT.isVersionOf, null, null)[0].value
                 this.push({
                     id: namedNode(memberId),
                     quads: resourceStore.getQuads(null, null, null, null)
