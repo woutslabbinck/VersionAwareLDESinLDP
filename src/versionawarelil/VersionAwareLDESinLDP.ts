@@ -150,7 +150,7 @@ export class VersionAwareLDESinLDP {
             }
 
             if (!memberResource) {
-                throw Error("404 Resource was not found")
+                throw Error(`404 Resource "${materializedResourceIdentifier}" was not found`)
             }
 
             // remove TREE/LDES specific triples when reading materialized
