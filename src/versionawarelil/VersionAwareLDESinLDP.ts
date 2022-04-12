@@ -206,7 +206,7 @@ export class VersionAwareLDESinLDP {
             throw Error(`Could not delete ${materializedResourceIdentifier} as it does not exist already.`)
         }
 
-        const versionSpecificIdentifier = "#resource"
+        const versionSpecificIdentifier = "#resource" // maybe change later with uuid or something?
         const store = new Store()
 
         // copy latest version of the resource

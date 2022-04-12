@@ -1,11 +1,27 @@
 import {storeToString, turtleStringToStore} from "./src/util/Conversion";
-
-const {LDPCommunication, LDESinLDP, VersionAwareLDESinLDP} = require('./src/Index')
+import {VersionAwareLDESinLDP} from "./src/versionawarelil/VersionAwareLDESinLDP";
+import {LDPCommunication} from "./src/ldp/LDPCommunication";
+import {LDESinLDP} from "./src/ldesinldp/LDESinLDP";
+import { v4 as uuidv4 } from 'uuid';
+uuidv4();
 
 const ldesinldpIdentifier = 'http://localhost:3123/ldesinldp/'; // Base URL of the LDES in LDP
 const communication = new LDPCommunication();
 const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
-const versionAware = new VersionAwareLDESinLDP(ldesinldp);
+let versionAware = new VersionAwareLDESinLDP(ldesinldp);
+
+
+export async function init(base: string): Promise<VersionAwareLDESinLDP> {
+    const communication = new LDPCommunication();
+    const ldesinldp = new LDESinLDP(base, communication);
+    const versionAware = new VersionAwareLDESinLDP(ldesinldp);
+    const response = await fetch(base, {method: "HEAD"})
+    if (response.status !== 200) {
+        await versionAware.initialise(base)
+    }
+    return versionAware
+
+}
 
 export async function put(identifier: string, body: string): Promise<void> {
     const versionID = `https://example.org/${new Date().getTime()}/`
@@ -24,7 +40,7 @@ export async function put(identifier: string, body: string): Promise<void> {
 }
 
 export async function get(identifier: string, date?: Date): Promise<string> {
-    const store = await versionAware.read(identifier, {derived: true, date})
+    const store = await versionAware.read(identifier, {derived: true, date, materialized: true})
     return storeToString(store)
 }
 
@@ -61,13 +77,15 @@ const port = 3005
 const bodyParser = require('body-parser');
 app.use(bodyParser.text({type: 'text/turtle'}));
 
-const base = 'http://localhost:3123/ldesinldp'
+const base = `http://localhost:${port}/`
 app.get('/*', async (req: any, res: any) => {
+    const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl
+    const resourceIdentifier = fullUrl === base ? 'http://localhost:3123/newlil/' : fullUrl
     let text = ""
     const dateString = req.get('Accept-Datetime') ?? new Date()
     const date = new Date(dateString)
     try {
-        text = await get(base + req.originalUrl,date)
+        text = await get(resourceIdentifier, date)
         res.setHeader('content-type', 'text/turtle')
     } catch (e) {
         console.log(e)
@@ -80,13 +98,32 @@ app.put('/', async (req: any, res: any) => {
 })
 
 app.put('/*', async (req: any, res: any) => {
-    await put(base + req.originalUrl, req.body)
+    const resourceIdentifier = req.protocol + '://' + req.get('host') + req.originalUrl
+    await put(resourceIdentifier, req.body)
     res.send()
 })
 
-// todo post and delete
+app.post('/',async (req: any, res: any) => {
+    // maybe add slug later
+    const resourceIdentifier = req.protocol + '://' + req.get('host') + '/'+uuidv4()
+    await put(resourceIdentifier, req.body)
+    res.send()
+})
 
-app.listen(port, () => {
-    // todo initialise?
-    console.log(`Example app listening on port ${port}`)
+app.delete('/*',async (req: any, res: any) => {
+    const resourceIdentifier = req.protocol + '://' + req.get('host') + req.originalUrl
+    try {
+        await del(resourceIdentifier)
+        res.send()
+    } catch (e) {
+        console.log(e)
+        res.sendStatus(404)
+    }
+
+})
+
+// todo: document -> maybe other repo?
+app.listen(port, async () => {
+    console.log(`Example app url: http://localhost:${3005}/`)
+    versionAware = await init('http://localhost:3123/newlil/')
 })
