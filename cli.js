@@ -8,13 +8,16 @@ const app = express()
 const bodyParser = require('body-parser');
 app.use(bodyParser.text({type: 'text/turtle'}));
 
+// TODO: add derived and materialized configurable
 let lilIdentifier
 let versionAware
 let base
+let derived
+let materialized
+
 app.get('/*', async (req, res) => {
     const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl
     const resourceIdentifier = fullUrl === base ? lilIdentifier: fullUrl
-    console.log(resourceIdentifier)
     let text = ""
     const dateString = req.get('Accept-Datetime') ?? new Date()
     const date = new Date(dateString)
@@ -68,7 +71,6 @@ async function run() {
         )
         .help()
     const params = await yargs.parse()
-    console.log(params)
     base = `http://localhost:${params.port}/`
     lilIdentifier = params.ldesinldp
     app.listen(params.port, async () => {
