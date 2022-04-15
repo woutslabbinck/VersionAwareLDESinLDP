@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 const yargs = require('yargs')
-const { uuid } = require('uuidv4');
+const { v4 } = require('uuid');
 let {init, put, get, del} = require("./abstractLDP");
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser');
+const {storeToString} = require("./dist/util/Conversion");
 app.use(bodyParser.text({type: 'text/turtle'}));
 
 // TODO: add derived and materialized configurable
@@ -22,7 +23,8 @@ app.get('/*', async (req, res) => {
     const dateString = req.get('Accept-Datetime') ?? new Date()
     const date = new Date(dateString)
     try {
-        text = await get(versionAware ,resourceIdentifier, date)
+        const store = await versionAware.read(resourceIdentifier, {derived, date, materialized})
+        text = storeToString(store)
         res.setHeader('content-type', 'text/turtle')
     } catch (e) {
         console.log(e)
@@ -42,7 +44,7 @@ app.put('/*', async (req, res) => {
 
 app.post('/',async (req, res) => {
     // maybe add slug later
-    const resourceIdentifier = req.protocol + '://' + req.get('host') + '/'+uuidv4()
+    const resourceIdentifier = req.protocol + '://' + req.get('host') + '/'+v4()
     await put(versionAware, resourceIdentifier, req.body)
     res.send()
 })
@@ -65,7 +67,7 @@ async function run() {
             {
                 ldesinldp: {type: 'string', alias: 'l', default: 'http://localhost:3000/ldesinldp/', requiresArg: true},
                 port: {type: 'string', alias: 'p', default: '3005', requiresArg: true},
-                derived: {type: 'boolean', alias: 'd', default: true, requiresArg: true},
+                derived: {type: 'boolean', alias: 'd', default: false, requiresArg: true},
                 materialized: {type: 'boolean', alias: 'm', default: true, requiresArg: true},
             }
         )
@@ -73,6 +75,9 @@ async function run() {
     const params = await yargs.parse()
     base = `http://localhost:${params.port}/`
     lilIdentifier = params.ldesinldp
+    derived = params.derived
+    materialized = params.materialized
+
     app.listen(params.port, async () => {
         console.log(`LDP located at: ${base}`)
         console.log(`LDES in LDP located at: ${lilIdentifier}`)

@@ -46,15 +46,31 @@ chmod u+x cli.js
 ./cli.js 
 ```
 
-The default version runs derived and materialized. Using the options **TODO**
+### Configuring the LDP
 
-## Interacting with 
+| parameter name       | default value                      | description                                                  |
+| -------------------- | ---------------------------------- | ------------------------------------------------------------ |
+| `--ldesinldp, -l`    | `http://localhost:3000/ldesinldp/` | The LDES in LDP base URL (if it does not exist yet, one will be initialised when the CSS was set up using port 3000) |
+| `--port, -p`         | `3005`                             | The TCP port on which the server should listen.              |
+| `--derived, -d`      | `false`                            | When true, a derived view of the `ldp:container` is presented at `http://localhost:$PORT/` |
+| `--materialized, -m` | `true`                             | When true, all the contained resources will be materialized. |
 
-## TODO
+Note: The derived view of the LDES in LDP is the LDES represented as an `ldp:container` + containment triples + the contents of the resources contained in the `ldp:container`. Without the derived view, it is just the `ldp:container` + containment triples.
 
-- [x] Explain how to run the CSS
-- [ ] Explain how to start the abstraction layer
-  - [ ] Document the fields in the code that are important and which can be edited
-  - [ ] explain accept-datetime link header
-- [ ] maybe add this to the readme.md as an extra
-- [ ] General: add resources and explanation on how everything works
+## Fetching different states of a resource
+
+Analog to the [Memento RFC](https://datatracker.ietf.org/doc/html/rfc7089), the different versions of a resource can be retrieved. 
+
+This is achieved by using the **`Accept-Datetime`** header in the HTTP GET request, just like [Memento](https://datatracker.ietf.org/doc/html/rfc7089#section-2.1.1) does it.
+
+An example request to the base URL:
+
+```HTTP
+GET / HTTP/1.1
+Host: localhost:3005
+Accept-datetime: Mon, 4 Apr 2022 15:00:00
+```
+
+Which will respond with the `ldp:container` with the resources that were available at the 4th of April 2022 at 15:00.
+
+Currently, it is implemented that if there were no resources at that point in time, none will be returned. But I'm open for discussion about changing the behaviour and returning the oldest one always in that case accompanied with the **`Memento-Datetime`** header.

@@ -154,3 +154,9 @@ Derived materialized Container representation
 <http://localhost:3000/ldesinldp/> <http://www.w3.org/ns/ldp#contains> <http://example.org/resource1> .
 <http://example.org/resource1> <http://purl.org/dc/terms/title> "Title" .
 ```
+
+## LDP layer on top of the VersionAwareLDES in LDP library
+
+Run an abstraction [LDP](https://www.w3.org/TR/ldp/) layer on top of the [LDES in LDP](https://woutslabbinck.github.io/LDESinLDP/#ldesinldp) protocol using the [Version-Aware Approach](https://woutslabbinck.github.io/LDESinLDP/#version-aware-approach).
+
+How to do that is explained in the [Host LDP.md](./Host%20LDP.md) Markdown document.
