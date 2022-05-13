@@ -10,5 +10,12 @@ export * from './ldesinldp/LDESinLDPConfig'
 // version aware
 export * from './versionawarelil/VersionAwareLDESinLDP'
 
+// util
+export * from './util/Conversion'
+export * from './util/IdentifierUtil'
+export * from './util/LdesUtil'
+export * from './util/TimestampUtil'
+export * from './util/Vocabularies'
+
 // test
 export * from './Runner'

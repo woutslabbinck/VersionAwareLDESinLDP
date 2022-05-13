@@ -35,13 +35,13 @@ export class LDESinLDP implements ILDESinLDP {
         return this._LDESinLDPIdentifier;
     }
 
-    public async initialise(config: LDESinLDPConfig): Promise<void> {
+    public async initialise(config: LDESinLDPConfig, date?: Date): Promise<void> {
         if (!isContainerIdentifier(config.LDESinLDPIdentifier)) {
             throw Error(`${config.LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }
         // maybe extra check to see whether it exists already?
 
-        const date = new Date()
+        date = date ?? new Date()
         // create root container and add the metadata for the root, shape and inbox
         const store = new Store()
 
