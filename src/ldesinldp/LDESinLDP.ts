@@ -40,7 +40,11 @@ export class LDESinLDP implements ILDESinLDP {
             throw Error(`${config.LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }
         // maybe extra check to see whether it exists already?
-
+        const containerResponse = await this.communication.head(config.LDESinLDPIdentifier)
+        if (containerResponse.status === 200) {
+            this.logger.info(`LDES in LDP ${config.LDESinLDPIdentifier} already exists.`)
+            return
+        }
         date = date ?? new Date()
         // create root container and add the metadata for the root, shape and inbox
         const store = new Store()
@@ -56,8 +60,8 @@ export class LDESinLDP implements ILDESinLDP {
 
         // send request to server to create base of the LDES in LDP
         await createContainer(config.LDESinLDPIdentifier, this.communication)
-        const response = await this.communication.patch(config.LDESinLDPIdentifier +'.meta', // Note: currently meta hardcoded
-        `INSERT DATA {${storeToString(store)}}`)
+        const response = await this.communication.patch(config.LDESinLDPIdentifier + '.meta', // Note: currently meta hardcoded
+            `INSERT DATA {${storeToString(store)}}`)
 
         if (response.status !== 205) {
             throw Error(`The container ${config.LDESinLDPIdentifier} its metadata was not updated | status code: ${response.status}`)

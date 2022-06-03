@@ -125,6 +125,14 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(store.getQuads(lilIdentifier, LDP.inbox, writeLocation, null).length).toBe(1)
             // maybe create store based on date and do the same isomorphic rdf as in the CSS?
         });
+
+        it('does nothing when it was already initialised', async () => {
+            config.LDESinLDPIdentifier = baseUrl + 'lil_init_v2/'
+            await ldesinldp.initialise(config)
+
+            await expect(ldesinldp.initialise(config)).resolves.toBeUndefined()
+
+        })
     })
 
     describe('when creating a resource from an LDES in LDP', () => {
