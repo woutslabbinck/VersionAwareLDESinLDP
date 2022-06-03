@@ -28,7 +28,8 @@ export async function runSolid(): Promise<void> {
             'urn:solid-server:default:variable:loggingLevel': 'info',
             'urn:solid-server:default:variable:port': port,
             'urn:solid-server:default:variable:showStackTrace': false,
-            'urn:solid-server:default:variable:baseUrl': baseUrl
+            'urn:solid-server:default:variable:baseUrl': baseUrl,
+            "urn:solid-server:default:variable:seededPodConfigJson": null // https://github.com/CommunitySolidServer/CommunitySolidServer/pull/1165#issuecomment-1061145017
         }
     );
 }

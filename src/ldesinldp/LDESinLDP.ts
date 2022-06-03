@@ -55,8 +55,13 @@ export class LDESinLDP implements ILDESinLDP {
         store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
 
         // send request to server to create base of the LDES in LDP
-        await createContainer(config.LDESinLDPIdentifier, this.communication, storeToString(store))
+        await createContainer(config.LDESinLDPIdentifier, this.communication)
+        const response = await this.communication.patch(config.LDESinLDPIdentifier +'.meta', // Note: currently meta hardcoded
+        `INSERT DATA {${storeToString(store)}}`)
 
+        if (response.status !== 205) {
+            throw Error(`The container ${config.LDESinLDPIdentifier} its metadata was not updated | status code: ${response.status}`)
+        }
         // create first relation container
         await createContainer(relationIdentifier, this.communication)
     }

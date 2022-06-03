@@ -118,9 +118,9 @@ export function addRelationToNode(store: Store, config: LDESinLDPTreeRelationCon
     store.addQuad(relationNode, namedNode(TREE.value), dateToLiteral(config.date));
 }
 
-export async function createContainer(resourceIdentifier: string, communication: Communication, body?: string): Promise<void> {
+export async function createContainer(resourceIdentifier: string, communication: Communication): Promise<void> {
     // Note: maybe check identifier?
-    const response = await communication.put(resourceIdentifier, body)
+    const response = await communication.put(resourceIdentifier)
     if (response.status !== 201) {
         throw Error(`The container ${resourceIdentifier} was not created | status code: ${response.status}`)
     }
