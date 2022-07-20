@@ -8,22 +8,19 @@ import {Communication} from "./Communication";
 
 import {buildAuthenticatedFetch, createDpopHeader, generateDpopKeyPair} from '@inrupt/solid-client-authn-core';
 
-// const createDpopHeader = require('@inrupt/solid-client-authn-core').createDpopHeader
-// const buildAuthenticatedFetch = require('@inrupt/solid-client-authn-core').buildAuthenticatedFetch
-// const generateDpopKeyPair = require('@inrupt/solid-client-authn-core').generateDpopKeyPair
-
-export interface VALLOptions {
+// VersionAwareLdesInLdp option
+export interface VALILOptions {
     podurl: string;
     user_mail: string;
     user_password: string;
 }
 export class LDPCommunication implements Communication {
 
-    private readonly options: VALLOptions | undefined;
+    private readonly options: VALILOptions | undefined;
     private authFetch: undefined | any = undefined;
     private accessTokenTtl = new Date();
 
-    public constructor(options?: VALLOptions) {
+    public constructor(options?: VALILOptions) {
         this.options = options;
     }
 
@@ -34,7 +31,6 @@ export class LDPCommunication implements Communication {
         }
 
         if (this.accessTokenTtl <= new Date()) {
-            // This assumes your server is started under http://localhost:3000/.
             // This URL can also be found by checking the controls in JSON responses when interacting with the IDP API,
             // as described in the Identity Provider section.
             //https://solidproject.org/self-hosting/css
@@ -58,8 +54,7 @@ export class LDPCommunication implements Communication {
             // Both the ID and the secret need to be form-encoded.
             const authString = `${encodeURIComponent(id)}:${encodeURIComponent(secret)}`;
             // This URL can be found by looking at the "token_endpoint" field at
-            // http://localhost:3000/.well-known/openid-configuration
-            // if your server is hosted at http://localhost:3000/.
+            // {serverurl}/.well-known/openid-configuration
             const tokenUrl = `${this.options.podurl}.oidc/token`;
             const post_respons = await fetch(tokenUrl, {
                 method: 'POST',
@@ -75,24 +70,17 @@ export class LDPCommunication implements Communication {
             const postjson = await post_respons.json();
             console.log(postjson);
             // updated accessTokenTtl
-            const ttl = postjson["expires_in"]
-            this.accessTokenTtl = new Date()
-            this.accessTokenTtl.setSeconds(this.accessTokenTtl.getSeconds() + ttl)
+            const ttl = postjson["expires_in"];
+            this.accessTokenTtl = new Date();
+            this.accessTokenTtl.setSeconds(this.accessTokenTtl.getSeconds() + ttl);
             // This is the Access token that will be used to do an authenticated request to the server.
-            // The JSON also contains an "expires_in" field in seconds, 
-            // which you can use to know when you need request a new Access token.
             const {access_token: accessToken} = postjson;
 
             // The DPoP key needs to be the same key as the one used in the previous step.
             // The Access token is the one generated in the previous step.
             const authFetch = await buildAuthenticatedFetch(fetch, accessToken, {dpopKey});
             // authFetch can now be used as a standard fetch function that will authenticate as your WebID.
-            // This request will do a simple GET for example.
-            // const response = await authFetch('http://localhost:3000/public/', {method: "get"});
-            // console.log(response);
-            // console.log(response.body);
-            // console.log(await response.json());
-            this.authFetch = authFetch
+            this.authFetch = authFetch;
             return;
         }
     }
@@ -102,7 +90,7 @@ export class LDPCommunication implements Communication {
         headers = headers ? headers : new Headers({'Accept': 'text/turtle'})
         return await this.authFetch(resourceIdentifier, {
             method: 'GET',
-            headers
+            headers: headers
         });
     }
 
