@@ -17,7 +17,8 @@ export interface VALILOptions {
 export class LDPCommunication implements Communication {
 
     private readonly options: VALILOptions | undefined;
-    private authFetch: undefined | any = undefined;
+    // bit ugly, but don't know how to fix yet
+    private authFetch: any = undefined;
     private accessTokenTtl = new Date();
 
     public constructor(options?: VALILOptions) {
@@ -41,6 +42,8 @@ export class LDPCommunication implements Communication {
                 // The name field will be used when generating the ID of your token.
                 body: JSON.stringify({email: this.options.user_mail, password: this.options.user_password, name: 'my-token'}),
             });
+
+            console.log(creds);
 
             // These are the identifier and secret of your token.
             // Store the secret somewhere safe as there is no way to request it again from the server!
