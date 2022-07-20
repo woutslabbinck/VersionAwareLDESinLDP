@@ -56,7 +56,7 @@ export function createVersionedEventStream(store: Store, config: LDESinLDPConfig
     })
 }
 
-export function addShapeToEventStream(store: Store, config: { eventStreamIdentifier: string, shape?: string }): void {
+export function addShapeToEventStream(store: Store, config: {eventStreamIdentifier: string, shape?: string}): void {
     const eventStreamNode = namedNode(config.eventStreamIdentifier)
 
     if (config.shape) {
@@ -121,6 +121,8 @@ export function addRelationToNode(store: Store, config: LDESinLDPTreeRelationCon
 export async function createContainer(resourceIdentifier: string, communication: Communication): Promise<void> {
     // Note: maybe check identifier?
     const response = await communication.put(resourceIdentifier)
+    console.log(response);
+
     if (response.status !== 201) {
         throw Error(`The container ${resourceIdentifier} was not created | status code: ${response.status}`)
     }

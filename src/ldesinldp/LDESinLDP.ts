@@ -73,6 +73,18 @@ export class LDESinLDP implements ILDESinLDP {
     public async create(store: Store): Promise<string> {
         const location = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication);
         const response = await this.communication.post(location, storeToString(store))
+        // const login = require('../../login.js').logincss
+        // const fetch = login()
+
+        // const response = fetch(
+        //     location,
+        //     {
+        //         method: "post",
+        //         body: storeToString(store),
+        //         headers: new Headers({'Content-type': 'text/turtle'})
+        //     }
+        // )
+        console.log("HERE");
         if (response.status !== 201) {
             throw Error(`The resource was not be created at ${location} 
             | status code: ${response.status}`)
@@ -139,7 +151,7 @@ export class LDESinLDP implements ILDESinLDP {
         const rootStore = await this.readMetadata()
         const ldesIdentifier = rootStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
         const ldesMetadata = extractLdesMetadata(rootStore, ldesIdentifier)
-// note: maybe with a sparql query in comunica?
+        // note: maybe with a sparql query in comunica?
 
         // complicated code to narrow down the number of nodes based on the GTE relations
         // if this errors, the relation value is not right in the metadata
