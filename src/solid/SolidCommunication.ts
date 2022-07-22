@@ -2,15 +2,14 @@
  * Title: LDPCommunication
  * Description: Performs the HTTP request to a Linked Data Platform
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be) & Lars Van Cauter
- * Created on 21/03/2022
+ * Created on 20/07/2022
  *****************************************/
 import {Communication} from "../ldp/Communication";
 import {Session} from "@inrupt/solid-client-authn-node";
 
 export class SolidCommunication implements Communication {
 
-    // bit ugly, but don't know how to fix yet
-    private authFetch: any;
+    private authFetch: (...args: any[]) => Promise<Response>;
     private session: Session;
 
     public constructor(session: Session) {
