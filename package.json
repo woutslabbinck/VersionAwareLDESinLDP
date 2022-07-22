@@ -38,6 +38,7 @@
         "@treecg/types": "^0.2.2",
         "componentsjs": "^4.5.0",
         "componentsjs-generator": "^2.6.1",
+        "dotenv": "^16.0.1",
         "loglevel": "^1.8.0",
         "loglevel-plugin-prefix": "^0.8.4",
         "n3": "^1.14.0",

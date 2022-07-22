@@ -73,6 +73,10 @@ export class LDESinLDP implements ILDESinLDP {
     }
 
     public async create(store: Store): Promise<string> {
+        console.log("TESTESTST");
+
+        console.log(store);
+
         const location = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication);
         const response = await this.communication.post(location, storeToString(store))
         if (response.status !== 201) {
@@ -112,6 +116,8 @@ export class LDESinLDP implements ILDESinLDP {
         const rootStore = await this.read(this._LDESinLDPIdentifier)
         // Note: only retrieve metdata of one layer deep -> it should actually follow all the relation nodes
         const metadataStore = new Store()
+        console.log(rootStore);
+
         try {
             const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
             const relationTriple = rootStore.getQuads(this._LDESinLDPIdentifier, TREE.relation, null, null)[0]

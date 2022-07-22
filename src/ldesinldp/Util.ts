@@ -21,6 +21,9 @@ const parse = require('parse-link-header');
  */
 export async function retrieveWriteLocation(resourceIdentifier: string, communication: Communication): Promise<string> {
     const response = await communication.head(resourceIdentifier);
+    console.log(response);
+    console.log(response.headers);
+
     const linkHeaders = parse(response.headers.get('link'));
     if (!linkHeaders) {
         throw new Error('No Link Header present.');
@@ -127,4 +130,8 @@ export async function createContainer(resourceIdentifier: string, communication:
         throw Error(`The container ${resourceIdentifier} was not created | status code: ${response.status}`)
     }
     console.log(`LDP Container created: ${response.url}`)
+}
+
+export function sleep(ms: number): Promise<any> {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }

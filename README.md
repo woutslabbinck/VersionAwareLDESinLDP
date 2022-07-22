@@ -37,7 +37,7 @@ const versionAware = new VersionAwareLDESinLDP(ldesinldp);
 #### Authenticated
 ```javascript
 const {LDPCommunication, LDESinLDP, VersionAwareLDESinLDP} = require('@treecg/versionawareldesinldp');
-const session = ...; // Get a login session (@inrupt/solid-client-authn-node)
+const session = ...; // Get a login session (@inrupt/solid-client-authn-node or @inrupt/solid-client-authn-browser)
 const ldesinldpIdentifier = 'http://localhost:3000/ldesinldp/'; // Base URL of the LDES in LDP 
 const communication = new LDPCommunication(session);
 const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
