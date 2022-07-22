@@ -62,8 +62,10 @@ export class LDESinLDP implements ILDESinLDP {
         await createContainer(config.LDESinLDPIdentifier, this.communication)
         const response = await this.communication.patch(config.LDESinLDPIdentifier + '.meta', // Note: currently meta hardcoded
             `INSERT DATA {${storeToString(store)}}`)
+        console.log(response);
 
-        if (response.status !== 205) {
+
+        if (response.status > 299 || response.status < 200) {
             throw Error(`The container ${config.LDESinLDPIdentifier} its metadata was not updated | status code: ${response.status}`)
         }
         // create first relation container

@@ -17,5 +17,8 @@ export * from './util/LdesUtil'
 export * from './util/TimestampUtil'
 export * from './util/Vocabularies'
 
+// solid
+export * from './solid/SolidCommunication'
+
 // test
 export * from './Runner'
