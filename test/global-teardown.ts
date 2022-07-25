@@ -1,3 +1,5 @@
+// import fs from "fs"
 module.exports = async (): Promise<void> => {
-  process.exit();
+    // fs.rmSync("test/util/solidHelper.ts", {recursive: true, force: true})
+    process.exit();
 };
