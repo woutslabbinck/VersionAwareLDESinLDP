@@ -158,7 +158,8 @@ describe('An LDPCommunication', () => {
     describe('performing HTTP DELETE requests', () => {
         it('is successful.', async () => {
             const toDelete = baseUrl + 'delete_this'
-            await communication.put(toDelete)
+            const res = await communication.put(toDelete)
+            console.log(res)
 
             const response = await communication.delete(toDelete)
             expect(response.status).toBe(205)

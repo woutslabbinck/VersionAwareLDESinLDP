@@ -28,7 +28,7 @@ type InputOptions = {
 
 export async function login(validatedOptions: InputOptions): Promise<void> {
     const app = express();
-    const port = 3001;
+    const port = 3123;
     const iriBase = `http://localhost:${port}`;
     const storage = new InMemoryStorage();
 
@@ -93,6 +93,8 @@ These are your login credentials:
 
         // write session away
         writeFileSync(Path.join(__dirname, 'config.json'), JSON.stringify(storedSession));
+        console.log(__dirname);
+
 
         server.close();
     });

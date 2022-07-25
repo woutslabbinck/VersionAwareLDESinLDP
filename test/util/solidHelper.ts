@@ -1,8 +1,10 @@
 import Path from "path";
 import {AppRunner} from "@solid/community-server";
+import {Session} from "@rubensworks/solid-client-authn-isomorphic";
 import {readFileSync} from "fs";
 import {Store} from "n3";
 import {stringToStore} from "../../src/util/Conversion";
+import {login, isLoggedin, getSession, RegistrationType} from "../../src/util/Login";
 
 /***************************************
  * Title: solidHelper.ts
@@ -12,6 +14,21 @@ import {stringToStore} from "../../src/util/Conversion";
  *****************************************/
 const {port} = require('./testconfig.json')
 export const baseUrl = `http://localhost:${port}/`
+const url = "http://localhost:3002/";
+
+export async function initAuth() {
+    const validatedOptions = {
+        applicationName: "LDES-orchestrator",
+        registrationType: RegistrationType.Dynamic,
+        solidIdentityProvider: url
+    };
+    console.log("Login with email: test@mail.com password: test");
+
+
+    await login(validatedOptions);
+    await isLoggedin(); // code that checks whether you are already logged in
+    // const ses = await getSession();
+}
 
 /**
  * Start a solid server with public AC and file backend

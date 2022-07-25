@@ -73,10 +73,6 @@ export class LDESinLDP implements ILDESinLDP {
     }
 
     public async create(store: Store): Promise<string> {
-        console.log("TESTESTST");
-
-        console.log(store);
-
         const location = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication);
         const response = await this.communication.post(location, storeToString(store))
         if (response.status !== 201) {

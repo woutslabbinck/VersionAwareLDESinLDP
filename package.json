@@ -30,7 +30,6 @@
     "author": "Wout Slabbinck <wout.slabbinck@ugent.be>",
     "license": "ISC",
     "dependencies": {
-        "@inrupt/solid-client-authn-browser": "^1.12.1",
         "@inrupt/solid-client-authn-node": "^1.12.1",
         "@rdfjs/data-model": "^1.3.4",
         "@rubensworks/solid-client-authn-isomorphic": "^1.0.0",

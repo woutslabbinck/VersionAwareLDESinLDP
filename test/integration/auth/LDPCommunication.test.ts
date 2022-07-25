@@ -43,6 +43,7 @@ describe('An LDPCommunication', () => {
     describe('performing HTTP POST requests', () => {
         it('is successful with an empty body.', async () => {
             const response = await communication.post(baseUrl)
+
             expect(response.status).toBe(201)
             const location = response.headers.get('location')
             expect(location).toContain(baseUrl)
@@ -97,6 +98,8 @@ describe('An LDPCommunication', () => {
         it('is successful with a turtle body.', async () => {
             const turtleText = "<a> <b> <c>."
             const response = await communication.put(resourceLocation, turtleText)
+            console.log(response);
+
             expect(response.status).toBe(201)
 
             const getResponse = await communication.get(resourceLocation)

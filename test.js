@@ -1,12 +1,12 @@
 async function f() {
 
-    const {VersionAwareLDESinLDP, SolidCommunication, LDESinLDP} = require('./dist/Index.js');
+    const {VersionAwareLDESinLDP, SolidCommunication, LDPCommunication, LDESinLDP} = require('./dist/Index.js');
     const {login, isLoggedin, getSession} = require('./dist/util/Login')
     const validatedOptions = {
         applicationName: "LDES-orchestrator",
         registrationType: "dynamic",
-        // solidIdentityProvider: "http://localhost:3012"
-        solidIdentityProvider: "https://solidcommunity.net"
+        solidIdentityProvider: "http://localhost:3002"
+        // solidIdentityProvider: "https://solidcommunity.net"
     };
     // const test = async (s) => {
     // const url = 'https://lars-vc.solidcommunity.net/'
@@ -15,10 +15,11 @@ async function f() {
     await isLoggedin(); // code that checks whether you are already logged in
     const session = await getSession();
 
-    // const url = 'http://localhost:3012/'
-    const url = "https://solidcommunity.net/"
-    const ldesinldpIdentifier = `${url}public/testtt/`; // Base URL of the LDES in LDP 
+    const url = 'http://localhost:3002/'
+    // const url = "https://solidcommunity.net/"
+    const ldesinldpIdentifier = `${url}private/testtttt/`; // Base URL of the LDES in LDP 
     const communication = new SolidCommunication(session);
+    // const communication = new LDPCommunication();
     const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
     const versionAware = new VersionAwareLDESinLDP(ldesinldp);
 
