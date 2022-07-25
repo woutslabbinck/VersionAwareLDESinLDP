@@ -5,7 +5,7 @@
  * Created on 20/07/2022
  *****************************************/
 import {Communication} from "../ldp/Communication";
-import {Session} from "@inrupt/solid-client-authn-node";
+import {Session} from "@rubensworks/solid-client-authn-isomorphic";
 
 export class SolidCommunication implements Communication {
 
