@@ -43,6 +43,21 @@ const communication = new LDPCommunication(session);
 const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
 const versionAware = new VersionAwareLDESinLDP(ldesinldp);
 ```
+##### Session
+There is a provided way to get a session (this way doesn't need to be use however).
+```javascript
+const {login, isLoggedin, getSession} = require('./dist/util/Login')
+
+const validatedOptions = {
+    applicationName: "LDES-orchestrator",
+    registrationType: "dynamic",
+    solidIdentityProvider: "http://localhost:3000"
+};
+
+login(validatedOptions);
+await isLoggedin(); // code that checks whether you are already logged in
+const session = await getSession();
+```
 
 ### Initialising the LDES in LDP
 
