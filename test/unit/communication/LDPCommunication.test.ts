@@ -1,6 +1,7 @@
 import {baseUrl} from "../../util/solidHelper";
 import {LDPCommunication} from "../../../src/ldp/LDPCommunication";
 import {Communication} from "../../../src/ldp/Communication";
+import {getSession} from "../../../src/util/Login";
 
 describe('An LDPCommunication', () => {
     let communication: Communication
