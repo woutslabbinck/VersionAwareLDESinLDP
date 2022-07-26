@@ -62,7 +62,6 @@ export class LDESinLDP implements ILDESinLDP {
         await createContainer(config.LDESinLDPIdentifier, this.communication)
         const response = await this.communication.patch(config.LDESinLDPIdentifier + '.meta', // Note: currently meta hardcoded
             `INSERT DATA {${storeToString(store)}}`)
-        console.log(response);
 
 
         if (response.status > 299 || response.status < 200) {
@@ -112,7 +111,6 @@ export class LDESinLDP implements ILDESinLDP {
         const rootStore = await this.read(this._LDESinLDPIdentifier)
         // Note: only retrieve metdata of one layer deep -> it should actually follow all the relation nodes
         const metadataStore = new Store()
-        console.log(rootStore);
 
         try {
             const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
