@@ -46,7 +46,7 @@ const versionAware = new VersionAwareLDESinLDP(ldesinldp);
 ##### Session
 There is a provided way to get a session (this way doesn't need to be use however).
 ```javascript
-const {login, isLoggedin, getSession} = require('./dist/util/Login')
+const {login, isLoggedin, getSession} = require('@treecg/versionawareldesinldp')
 
 const validatedOptions = {
     applicationName: "LDES-orchestrator",
@@ -54,7 +54,7 @@ const validatedOptions = {
     solidIdentityProvider: "http://localhost:3000"
 };
 
-login(validatedOptions);
+await login(validatedOptions);
 await isLoggedin(); // code that checks whether you are already logged in
 const session = await getSession();
 ```
