@@ -1,5 +1,5 @@
 import {Communication} from "../../../src/ldp/Communication";
-import {SolidCommunication} from "../../../src/Index";
+import {SolidCommunication} from "../../../src/solid/SolidCommunication";
 import {getSession} from "../../../src/util/Login";
 import {Session} from "@rubensworks/solid-client-authn-isomorphic";
 
