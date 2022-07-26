@@ -7,7 +7,7 @@
     "scripts": {
         "build": "npm run build:ts && npm run build:components",
         "build:ts": "rm -rf dist/; tsc",
-        "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts",
+        "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts -i ignore_components.json",
         "prepare": "npm run build",
         "test": "jest",
         "test2": "./run_tests.sh"
