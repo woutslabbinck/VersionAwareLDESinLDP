@@ -10,7 +10,7 @@
         "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts",
         "prepare": "npm run build",
         "test": "jest",
-        "testserv": "./scr.sh"
+        "test2": "./run_tests.sh"
     },
     "lsd:module": "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp",
     "lsd:components": "dist/components/components.jsonld",
