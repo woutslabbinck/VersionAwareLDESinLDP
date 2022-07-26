@@ -93,8 +93,6 @@ These are your login credentials:
 
         // write session away
         writeFileSync(Path.join(__dirname, 'config.json'), JSON.stringify(storedSession));
-        console.log(__dirname);
-
 
         server.close();
     });

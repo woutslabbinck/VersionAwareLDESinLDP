@@ -26,15 +26,12 @@ export async function initAuth() {
         solidIdentityProvider: authBaseUrl
     };
     console.log("Login with email: test@mail.com password: test");
-
-
     await login(validatedOptions);
     await isLoggedin(); // code that checks whether you are already logged in
-    // const ses = await getSession();
 }
 
 export async function createTestAcc() {
-    const res = await fetch("http://localhost:3002/setup/", {
+    await fetch("http://localhost:3002/setup/", {
         "credentials": "include",
         "headers": {
             "Accept": "application/json",
@@ -48,8 +45,6 @@ export async function createTestAcc() {
         "method": "POST",
         "mode": "cors"
     });
-    console.log(res);
-
 }
 
 
