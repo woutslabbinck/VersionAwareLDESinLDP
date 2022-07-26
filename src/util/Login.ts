@@ -1,6 +1,6 @@
 /***************************************
  * Title: Login.ts
- * Description: TODO
+ * Description: Logs the user in
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 26/11/2021
  *****************************************/

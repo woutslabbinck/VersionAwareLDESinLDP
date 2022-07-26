@@ -2,12 +2,6 @@ import {Communication} from "../../../src/ldp/Communication";
 import {SolidCommunication} from "../../../src/solid/SolidCommunication";
 import {getSession} from "../../../src/util/Login";
 import {authBaseUrl} from "../../util/solidHelper";
-// import {Session} from "@rubensworks/solid-client-authn-isomorphic";
-
-// let mod;
-// import("node-fetch").then(module => {mod = module});;
-// const {Headers} = require("node-fetch");
-
 
 describe('An SolidCommunication', () => {
     // MAKE SURE A SOLIDSERVER WITH AUTH IS RUNNING ON PORT 3002
