@@ -63,7 +63,8 @@ export class LDESinLDP implements ILDESinLDP {
         const response = await this.communication.patch(config.LDESinLDPIdentifier + '.meta', // Note: currently meta hardcoded
             `INSERT DATA {${storeToString(store)}}`)
 
-        if (response.status !== 205) {
+
+        if (response.status > 299 || response.status < 200) {
             throw Error(`The container ${config.LDESinLDPIdentifier} its metadata was not updated | status code: ${response.status}`)
         }
         // create first relation container
@@ -110,6 +111,7 @@ export class LDESinLDP implements ILDESinLDP {
         const rootStore = await this.read(this._LDESinLDPIdentifier)
         // Note: only retrieve metdata of one layer deep -> it should actually follow all the relation nodes
         const metadataStore = new Store()
+
         try {
             const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
             const relationTriple = rootStore.getQuads(this._LDESinLDPIdentifier, TREE.relation, null, null)[0]
@@ -139,7 +141,7 @@ export class LDESinLDP implements ILDESinLDP {
         const rootStore = await this.readMetadata()
         const ldesIdentifier = rootStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
         const ldesMetadata = extractLdesMetadata(rootStore, ldesIdentifier)
-// note: maybe with a sparql query in comunica?
+        // note: maybe with a sparql query in comunica?
 
         // complicated code to narrow down the number of nodes based on the GTE relations
         // if this errors, the relation value is not right in the metadata

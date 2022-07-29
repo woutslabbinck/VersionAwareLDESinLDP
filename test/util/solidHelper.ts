@@ -3,6 +3,7 @@ import {AppRunner} from "@solid/community-server";
 import {readFileSync} from "fs";
 import {Store} from "n3";
 import {stringToStore} from "../../src/util/Conversion";
+import {login, isLoggedin, sleep, RegistrationType} from "../../src/util/Login";
 
 /***************************************
  * Title: solidHelper.ts
@@ -10,8 +11,23 @@ import {stringToStore} from "../../src/util/Conversion";
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 28/03/2022
  *****************************************/
-const {port} = require('./testconfig.json')
+const {port, authport} = require('./testconfig.json')
 export const baseUrl = `http://localhost:${port}/`
+export const authBaseUrl = `http://localhost:${authport}/`
+
+/**
+ * Login to the auth solid-server
+ */
+export async function initAuth() {
+    const validatedOptions = {
+        applicationName: "LDES-orchestrator",
+        registrationType: RegistrationType.Dynamic,
+        solidIdentityProvider: authBaseUrl
+    };
+    console.log("Login with email: test@mail.com password: test");
+    await login(validatedOptions);
+    await isLoggedin(); // code that checks whether you are already logged in
+}
 
 /**
  * Start a solid server with public AC and file backend
@@ -51,10 +67,6 @@ export async function isRunning(): Promise<void> {
         }
         await sleep(1000);
     }
-}
-
-export function sleep(ms: number): Promise<any> {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
