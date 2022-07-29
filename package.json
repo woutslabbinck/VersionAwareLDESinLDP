@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@solid/community-server": "https://github.com/woutslabbinck/community-server.git#9d99a6cf46ae0ced3302230d00d2d4b2e7ad9652",
+    "@types/express": "^4.17.13",
     "@types/jest": "^27.4.1",
     "body-parser": "^1.20.0",
     "express": "^4.17.3",
