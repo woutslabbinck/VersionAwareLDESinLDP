@@ -127,7 +127,3 @@ export async function createContainer(resourceIdentifier: string, communication:
     }
     console.log(`LDP Container created: ${response.url}`)
 }
-
-export function sleep(ms: number): Promise<any> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}

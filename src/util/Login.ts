@@ -11,7 +11,6 @@ import {Session, ILoginInputOptions, InMemoryStorage} from "@rubensworks/solid-c
 
 import {config} from 'dotenv';
 import express from "express";
-import {sleep} from "../ldesinldp/Util";
 
 config();
 
@@ -130,4 +129,8 @@ export async function getSession(): Promise<Session> {
     });
     unlinkSync(configPath);
     return session;
+}
+
+export function sleep(ms: number): Promise<any> {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }

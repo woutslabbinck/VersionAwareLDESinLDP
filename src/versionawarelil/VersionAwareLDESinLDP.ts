@@ -15,7 +15,6 @@ import {extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
 import {addDeletedTriple, addVersionSpecificTriples, isDeleted, removeVersionSpecificTriples} from "./Util";
 import namedNode = DataFactory.namedNode;
 
-
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
 
