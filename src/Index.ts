@@ -16,6 +16,10 @@ export * from './util/IdentifierUtil'
 export * from './util/LdesUtil'
 export * from './util/TimestampUtil'
 export * from './util/Vocabularies'
+export * from './util/Login'
+
+// solid
+export * from './solid/SolidCommunication'
 
 // test
 export * from './Runner'

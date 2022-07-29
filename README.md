@@ -15,6 +15,8 @@ npx @solid/community-server -p 3000 -f ./data -c "@css:config/file-no-setup.json
 
 ### Instantiating a version aware object
 
+#### Unauthenticated
+
 ```javascript
 const {versionAwareLDESinLDP} = require('@treecg/versionawareldesinldp');
 const ldesinldpIdentifier = 'http://localhost:3000/ldesinldp/'; // Base URL of the LDES in LDP 
@@ -30,6 +32,31 @@ const ldesinldpIdentifier = 'http://localhost:3000/ldesinldp/'; // Base URL of t
 const communication = new LDPCommunication();
 const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
 const versionAware = new VersionAwareLDESinLDP(ldesinldp);
+```
+
+#### Authenticated
+```javascript
+const {LDPCommunication, LDESinLDP, VersionAwareLDESinLDP} = require('@treecg/versionawareldesinldp');
+const session = ...; // Get a login session (@inrupt/solid-client-authn-node or @inrupt/solid-client-authn-browser)
+const ldesinldpIdentifier = 'http://localhost:3000/ldesinldp/'; // Base URL of the LDES in LDP 
+const communication = new LDPCommunication(session);
+const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
+const versionAware = new VersionAwareLDESinLDP(ldesinldp);
+```
+##### Session
+There is a provided way to get a session (this way doesn't need to be use however).
+```javascript
+const {login, isLoggedin, getSession} = require('@treecg/versionawareldesinldp')
+
+const validatedOptions = {
+    applicationName: "LDES-orchestrator",
+    registrationType: "dynamic",
+    solidIdentityProvider: "http://localhost:3000"
+};
+
+await login(validatedOptions);
+await isLoggedin(); // code that checks whether you are already logged in
+const session = await getSession();
 ```
 
 ### Initialising the LDES in LDP
