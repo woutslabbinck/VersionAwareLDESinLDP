@@ -7,13 +7,14 @@
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
 import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
-import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
+import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
-import {extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
+import {extractLdesMetadata, LDESMetadata, Relation} from "../util/LdesUtil";
 import {addDeletedTriple, addVersionSpecificTriples, isDeleted, removeVersionSpecificTriples} from "./Util";
 import namedNode = DataFactory.namedNode;
+import {extractDate, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -247,13 +248,114 @@ export class VersionAwareLDESinLDP {
 
         return extractLdesMetadata(metadataStore, ldesIdentifier)
     }
+
+    public async extractVersions(versionIdentifier: string, extractOptions: ExtractOptions = {
+        chronologically: false,
+        amount: 1
+    }): Promise<Member[]> {
+        const startDate = extractOptions.startDate ?? new Date(0)
+        const endDate = extractOptions.endDate ?? new Date()
+
+        // 1. filter out relations from TREE metadata
+        const metadata = await this.extractLdesMetadata();
+
+        // relations chronologically sorted
+        const metadataRelations = metadata.views[0].relations.sort((a, b) => {
+            // assumption: value is valid xsd:DateTime
+            const dateA = new Date(a.value)
+            const dateB = new Date(b.value)
+            return dateA.getTime() - dateB.getTime()
+        })
+
+        if (metadataRelations.length === 0) return []
+
+        const filteredRelations: Relation[] = []
+        // assumption: all relations are GTE
+        for (let i = 0; i < metadataRelations.length - 1; i++) {
+            const relation = metadataRelations[i]
+            const relationDateTimeStart = new Date(relation.value)
+            const relationDateTimeEnd = new Date(metadataRelations[i + 1].value)
+
+            if (!(startDate > relationDateTimeEnd || endDate < relationDateTimeStart)) {
+                // see Notes 26/9
+                filteredRelations.push(relation)
+            }
+        }
+
+        const lastRelation = metadataRelations[metadataRelations.length - 1]
+        if (new Date(lastRelation.value) <= endDate) {
+            filteredRelations.push(lastRelation)
+        }
+
+        // 2. filter out different versions for the versionIdentifier
+        if (!extractOptions.chronologically) {
+            filteredRelations.reverse()
+        }
+
+        const datedMembers: MemberDate [] = []
+        for (const relation of filteredRelations) {
+            const containerStore = await this.LDESinLDP.read(relation.node)
+            const children = containerStore.getObjects(relation.node, LDP.contains, null).map(value => value.id)
+
+            for (const child of children) {
+                const resource = await this.LDESinLDP.read(child)
+                const resourceVersionID = extractVersionId(resource, metadata.versionOfPath)
+                const resourceDate = extractDate(resource, metadata.timestampPath)
+                if (resourceVersionID === versionIdentifier && resourceDate >= startDate && resourceDate <= endDate) {
+                    const memberTerm = resource.getSubjects(metadata.versionOfPath, null, null)[0]
+                    datedMembers.push({
+                        id: memberTerm,
+                        quads: resource.getQuads(null, null, null, null),
+                        date: resourceDate
+                    })
+                }
+
+            }
+            if (datedMembers.length >= extractOptions.amount) {
+                break
+            }
+        }
+
+        const members: Member[] =[]
+
+        datedMembers.sort((a,b) => {
+            return a.date.getTime() - b.date.getTime()
+        })
+
+        if (!extractOptions.chronologically){
+            datedMembers.reverse()
+        }
+        return datedMembers.slice(0,extractOptions.amount)
+    }
 }
 
+interface MemberDate extends Member {
+    date: Date
+}
 
 export interface ReadOptions {
     date?: Date
     materialized?: boolean
     derived?: boolean
+}
+
+export interface ExtractOptions {
+    /**
+     * When true, versions are extracted from the earliest point in time
+     */
+    chronologically: boolean
+    /**
+     * Amount of versions to be extracted
+     */
+    amount: number
+    /**
+     * Start dateTime of the extraction
+     */
+    startDate?: Date;
+    /**
+     * End dateTime of the extraction
+     */
+    endDate?: Date;
 }
 
 function extractMaterializedId(member: Member, versionOfPath: string): string { // todo: test and import from snapshot
