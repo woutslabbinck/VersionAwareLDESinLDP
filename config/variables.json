@@ -8,6 +8,11 @@
       "comment": "Base of the LDES in LDP.",
       "@id": "urn:ldesinldp:variable:ldesinldpIdentifier",
       "@type": "Variable"
+    },
+    {
+      "comment": "Session.",
+      "@id": "urn:ldesinldp:variable:Session",
+      "@type": "Variable"
     }
   ]
 }

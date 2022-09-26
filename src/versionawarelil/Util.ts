@@ -30,13 +30,13 @@ export function isDeleted(member: Member, metadata: LDESMetadata): boolean {
 /**
  * Adds version specific triples (timestamp and version) to the quads of the member
  * @param store
- * @param materializedIdentifier
- * @param versionSpecificIdentifier
+ * @param versionIdentifier
+ * @param memberIdentifier
  * @param metadata
  */
-export function addVersionSpecificTriples(store: Store, materializedIdentifier: string, versionSpecificIdentifier: string, metadata: LDESMetadata): void {
-    const id = namedNode(versionSpecificIdentifier)
-    store.addQuad(id, namedNode(metadata.versionOfPath), namedNode(materializedIdentifier))
+export function addVersionSpecificTriples(store: Store, versionIdentifier: string, memberIdentifier: string, metadata: LDESMetadata): void {
+    const id = namedNode(memberIdentifier)
+    store.addQuad(id, namedNode(metadata.versionOfPath), namedNode(versionIdentifier))
     store.addQuad(id, namedNode(metadata.timestampPath), dateToLiteral(new Date()))
 }
 

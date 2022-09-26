@@ -9,8 +9,8 @@
         "build:ts": "rm -rf dist/; tsc",
         "build:components": "componentsjs-generator -s src -c dist/components -r awarelil --typeScopedContexts -i ignore_components.json",
         "prepare": "npm run build",
-        "test": "jest",
-        "test2": "./run_tests.sh"
+        "test": "./run_tests.sh",
+        "release": "npm run build && npm publish --access public"
     },
     "lsd:module": "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp",
     "lsd:components": "dist/components/components.jsonld",
@@ -22,6 +22,9 @@
         "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/config/": "config/",
         "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp/^0.0.0/dist/": "dist/"
     },
+    "files": [
+        "dist"
+    ],
     "keywords": [
         "LDES",
         "LDP",

@@ -40,47 +40,49 @@ export class VersionAwareLDESinLDP {
      * Creates a new resource in the LDES in LDP using the protocol.
      * Also adds the timestamp and version triples.
      * Throws an error if the identifier already exists in the LDES in LDP
-     * @param materializedResourceIdentifier Identifier for the graph that you want to store
+     *
+     * Note: the memberID must correspond to the main subject in the graph
+     * @param versionIdentifier The identifier of the version object
      * @param store Graph that you want to store
-     * @param versionSpecificIdentifier Identifier that is the base of the RDF graph you are trying to store | TODO: properly explain
+     * @param memberIdentifier The member identifier (used within the LDES)
      * @returns {Promise<any>}
      */
-    public async create(materializedResourceIdentifier: string, store: Store, versionSpecificIdentifier?: string): Promise<void> {
-        // check whether it exists already
+    public async create(versionIdentifier: string, store: Store, memberIdentifier?: string): Promise<void> {
+        // check whether the version Identifier already exists
         let exists: boolean
         try {
-            await this.read(materializedResourceIdentifier)
+            await this.read(versionIdentifier)
             exists = true
         } catch (e) {
             exists = false
         }
         if (exists) {
-            throw Error(`Could not create ${materializedResourceIdentifier} as it already exists`)
+            throw Error(`Could not create ${versionIdentifier} as it already exists`)
         }
 
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
-        versionSpecificIdentifier = versionSpecificIdentifier ? versionSpecificIdentifier : "#resource";
-        addVersionSpecificTriples(store, materializedResourceIdentifier, versionSpecificIdentifier, metadata)
+        memberIdentifier = memberIdentifier ? memberIdentifier : "#resource";
+        addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
         await this.LDESinLDP.create(store)
     }
 
     /**
-     * Reads the materialized version of the resource if it exists.
+     * Reads the (materialized) version of the resource if it exists.
      * When it does not exist OR when it is marked deleted, a not found error is returned.
-     * In this materialized representation, the TREE/LDES specific triples are removed.
+     * In the materialized representation, the TREE/LDES specific triples are removed.
      * When the identifier is the base container, the returned representation is an ldp:BasicContainer representation
      * where each materialized identifier is added to the representation via an ldp:contains predicate.
      *
      * NOTE: this means without caching, each read will query over the entire LDES in LDP.
      *  This means that the biggest optimization will be achieved here.
-     * @param materializedResourceIdentifier
+     * @param versionIdentifier The identifier of the version object
      * @param options
-     * @returns {Promise<Store>} materialized representation of the resource if it exists
+     * @returns {Promise<Store>} (materialized) representation of the resource if it exists
      */
-    public async read(materializedResourceIdentifier: string, options?: ReadOptions): Promise<Store> {
+    public async read(versionIdentifier: string, options?: ReadOptions): Promise<Store> {
 
         let date = new Date()
         let materialized = true
@@ -107,9 +109,9 @@ export class VersionAwareLDESinLDP {
         const transformedStream = memberStream.pipe(snapshotTransformer)
         const store = new Store()
 
-        if (isContainerIdentifier(materializedResourceIdentifier)) {
+        if (isContainerIdentifier(versionIdentifier)) {
             // create ldp:BasicContainer representation
-            if (this.LDESinLDP.LDESinLDPIdentifier === materializedResourceIdentifier) {
+            if (this.LDESinLDP.LDESinLDPIdentifier === versionIdentifier) {
                 store.addQuad(namedNode(this.LDESinLDP.LDESinLDPIdentifier), namedNode(RDF.type), namedNode(LDP.BasicContainer))
                 for await (const member of transformedStream) {
                     if (!isDeleted(member, ldesMetadata)) {
@@ -139,7 +141,7 @@ export class VersionAwareLDESinLDP {
                 } else {
                     materializedIDMember = extractMaterializedId(member, ldesMetadata.versionOfPath)
                 }
-                if (materializedIDMember === materializedResourceIdentifier) {
+                if (materializedIDMember === versionIdentifier) {
                     if (isDeleted(member, ldesMetadata)) {
                         throw Error("Member has been deleted.")
                     } else {
@@ -150,7 +152,7 @@ export class VersionAwareLDESinLDP {
             }
 
             if (!memberResource) {
-                throw Error(`404 Resource "${materializedResourceIdentifier}" was not found`)
+                throw Error(`404 Resource "${versionIdentifier}" was not found`)
             }
 
             // remove TREE/LDES specific triples when reading materialized
@@ -165,26 +167,28 @@ export class VersionAwareLDESinLDP {
     }
 
     /**
-     * Updates a resource in the LDES in LDP using the protocol.
+     * Creates a new resource in the LDES in LDP using the protocol.
      * Also adds the timestamp and version triples.
-     * Throws an error if the identifier does not exist yet in the LDES in LDP
-     * @param materializedResourceIdentifier
-     * @param store
-     * @param versionSpecificIdentifier
+     * Throws an error if the identifier already exists in the LDES in LDP
+     *
+     * Note: the memberID must correspond to the main subject in the graph
+     * @param versionIdentifier The identifier of the version object
+     * @param store Graph that you want to store
+     * @param memberIdentifier The member identifier (used within the LDES)
      * @returns {Promise<any>}
      */
-    public async update(materializedResourceIdentifier: string, store: Store, versionSpecificIdentifier?: string): Promise<void> {
+    public async update(versionIdentifier: string, store: Store, memberIdentifier?: string): Promise<void> {
         // check whether it exists already
         try {
-            await this.read(materializedResourceIdentifier)
+            await this.read(versionIdentifier)
         } catch (e) {
-            throw Error(`Could not update ${materializedResourceIdentifier} as it does not exist already.`)
+            throw Error(`Could not update ${versionIdentifier} as it does not exist already.`)
         }
 
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
-        versionSpecificIdentifier = versionSpecificIdentifier ? versionSpecificIdentifier : "#resource";
-        addVersionSpecificTriples(store, materializedResourceIdentifier, versionSpecificIdentifier, metadata)
+        memberIdentifier = memberIdentifier ? memberIdentifier : "#resource";
+        addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
         await this.LDESinLDP.update(store)
@@ -195,15 +199,15 @@ export class VersionAwareLDESinLDP {
      * It is done by copying the latest non materialized resource, making it ldes:DeletedLDPResource class and performing the update operation.
      *
      * NOTE: this operation will not update the event stream when the latest non materialized resource was already deleted
-     * @param materializedResourceIdentifier
+     * @param versionIdentifier The identifier of the version object
      * @returns {Promise<void>}
      */
-    public async delete(materializedResourceIdentifier: string): Promise<void> {
+    public async delete(versionIdentifier: string): Promise<void> {
         let materializedResource: Store
         try {
-            materializedResource = await this.read(materializedResourceIdentifier)
+            materializedResource = await this.read(versionIdentifier)
         } catch (e) {
-            throw Error(`Could not delete ${materializedResourceIdentifier} as it does not exist already.`)
+            throw Error(`Could not delete ${versionIdentifier} as it does not exist already.`)
         }
 
         const versionSpecificIdentifier = "#resource" // maybe change later with uuid or something?
@@ -212,8 +216,8 @@ export class VersionAwareLDESinLDP {
         // copy latest version of the resource
         const quads = materializedResource.getQuads(null, null, null, null)
         for (const q of quads) {
-            // transform quads which are coming from materializedResourceIdentifier
-            if (q.subject.value === materializedResourceIdentifier) {
+            // transform quads which are coming from versionIdentifier
+            if (q.subject.value === versionIdentifier) {
                 // give new version specific identifier
                 store.addQuad(namedNode(versionSpecificIdentifier), q.predicate, q.object)
             } else {
@@ -224,7 +228,7 @@ export class VersionAwareLDESinLDP {
 
         // add version specific triples and deleted triple
         const metadata = await this.extractLdesMetadata()
-        addVersionSpecificTriples(store, materializedResourceIdentifier, versionSpecificIdentifier, metadata)
+        addVersionSpecificTriples(store, versionIdentifier, versionSpecificIdentifier, metadata)
         addDeletedTriple(store, versionSpecificIdentifier, metadata)
 
         // store in the ldes in ldp
