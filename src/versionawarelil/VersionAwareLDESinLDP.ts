@@ -255,6 +255,7 @@ export class VersionAwareLDESinLDP {
     }): Promise<Member[]> {
         const startDate = extractOptions.startDate ?? new Date(0)
         const endDate = extractOptions.endDate ?? new Date()
+        const amount = extractOptions.amount ?? Infinity
 
         // 1. filter out relations from TREE metadata
         const metadata = await this.extractLdesMetadata();
@@ -311,7 +312,7 @@ export class VersionAwareLDESinLDP {
                 }
 
             }
-            if (datedMembers.length >= extractOptions.amount) {
+            if (datedMembers.length >= amount) {
                 break
             }
         }
@@ -347,7 +348,7 @@ export interface ExtractOptions {
     /**
      * Amount of versions to be extracted
      */
-    amount: number
+    amount?: number
     /**
      * Start dateTime of the extraction
      */

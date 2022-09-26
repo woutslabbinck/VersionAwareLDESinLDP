@@ -1,5 +1,11 @@
 # VersionAwareLDESinLDP
 
+The goal of this repository is to interact with an LDES in LDP with simple CRUD (Create, Read, Update and Read) operations.
+
+This library has been tested with the Community Solid Server (CSS).
+
+
+
 ## Using the library
 
 ### Set up
