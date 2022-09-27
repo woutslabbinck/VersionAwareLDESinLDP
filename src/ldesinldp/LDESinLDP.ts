@@ -197,4 +197,14 @@ export class LDESinLDP implements ILDESinLDP {
         })
         return resourceIdentifierStream.pipe(transformer);
     }
+
+    public async* readChildren(containerURL:string): AsyncIterable<Store>{
+        // TODO check if idd is container
+        const store = await this.read(containerURL)
+        const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
+        for (const childURL of children) {
+            const resourceStore = await this.read(childURL)
+            yield resourceStore
+        }
+    }
 }

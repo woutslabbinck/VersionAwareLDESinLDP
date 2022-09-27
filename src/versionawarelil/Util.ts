@@ -10,7 +10,7 @@
  * @param metadata
  */
 import {Member} from "@treecg/types";
-import {LDESMetadata} from "../util/LdesUtil";
+import {LDESMetadata, Relation} from "../util/LdesUtil";
 import {DataFactory, Store} from "n3";
 import {DCT, RDF} from "../util/Vocabularies";
 import {dateToLiteral} from "../util/TimestampUtil";
@@ -65,4 +65,42 @@ export function removeVersionSpecificTriples(member: Member, metadata: LDESMetad
     store.removeQuads(store.getQuads(member.id, namedNode(DCT.hasVersion), null, null))
     member.quads = store.getQuads(null, null, null, null)
 
+}
+
+/**
+ * Filters out the relations from a time-based LDES (all TREE GTE relations) that have members within the given time window [startDate, endDate].
+ * @param metadata The LDES metadata
+ * @param startDate The start time of the time window (Date object)
+ * @param endDate The end time of the time window (Date object)
+ * @returns {Promise<Relation[]>}
+ */
+export async function filterRelation(metadata: LDESMetadata, startDate: Date, endDate: Date): Promise<Relation[]>{
+    // relations chronologically sorted
+    const metadataRelations = metadata.views[0].relations.sort((a, b) => {
+        // assumption: value is valid xsd:DateTime
+        const dateA = new Date(a.value)
+        const dateB = new Date(b.value)
+        return dateA.getTime() - dateB.getTime()
+    })
+
+    if (metadataRelations.length === 0) return []
+
+    const filteredRelations: Relation[] = []
+    // assumption: all relations are GTE
+    for (let i = 0; i < metadataRelations.length - 1; i++) {
+        const relation = metadataRelations[i]
+        const relationDateTimeStart = new Date(relation.value)
+        const relationDateTimeEnd = new Date(metadataRelations[i + 1].value)
+
+        if (!(startDate > relationDateTimeEnd || endDate < relationDateTimeStart)) {
+            // see Notes 26/9
+            filteredRelations.push(relation)
+        }
+    }
+
+    const lastRelation = metadataRelations[metadataRelations.length - 1]
+    if (new Date(lastRelation.value) <= endDate) {
+        filteredRelations.push(lastRelation)
+    }
+    return filteredRelations
 }

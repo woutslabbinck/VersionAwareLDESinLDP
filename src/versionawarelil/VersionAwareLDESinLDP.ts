@@ -12,7 +12,13 @@ import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
 import {extractLdesMetadata, LDESMetadata, Relation} from "../util/LdesUtil";
-import {addDeletedTriple, addVersionSpecificTriples, isDeleted, removeVersionSpecificTriples} from "./Util";
+import {
+    addDeletedTriple,
+    addVersionSpecificTriples,
+    isDeleted,
+    removeVersionSpecificTriples,
+    filterRelation
+} from "./Util";
 import namedNode = DataFactory.namedNode;
 import {extractDate, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 
@@ -253,53 +259,27 @@ export class VersionAwareLDESinLDP {
         chronologically: false,
         amount: 1
     }): Promise<Member[]> {
+        // TODO: code does too much -> split up and test
+        //  e.g. methods in ldes in ldp to get all members in a container, util function that calculates based on metadata the containers that are within the range
+        // other aspect -> how to incorporate snapshot? (check notes?)
         const startDate = extractOptions.startDate ?? new Date(0)
         const endDate = extractOptions.endDate ?? new Date()
         const amount = extractOptions.amount ?? Infinity
 
-        // 1. filter out relations from TREE metadata
+        // 1. filter out relations from TREE metadata that may contain versions
         const metadata = await this.extractLdesMetadata();
+        const filteredRelations: Relation[] = await filterRelation(metadata, startDate, endDate)
 
-        // relations chronologically sorted
-        const metadataRelations = metadata.views[0].relations.sort((a, b) => {
-            // assumption: value is valid xsd:DateTime
-            const dateA = new Date(a.value)
-            const dateB = new Date(b.value)
-            return dateA.getTime() - dateB.getTime()
-        })
-
-        if (metadataRelations.length === 0) return []
-
-        const filteredRelations: Relation[] = []
-        // assumption: all relations are GTE
-        for (let i = 0; i < metadataRelations.length - 1; i++) {
-            const relation = metadataRelations[i]
-            const relationDateTimeStart = new Date(relation.value)
-            const relationDateTimeEnd = new Date(metadataRelations[i + 1].value)
-
-            if (!(startDate > relationDateTimeEnd || endDate < relationDateTimeStart)) {
-                // see Notes 26/9
-                filteredRelations.push(relation)
-            }
-        }
-
-        const lastRelation = metadataRelations[metadataRelations.length - 1]
-        if (new Date(lastRelation.value) <= endDate) {
-            filteredRelations.push(lastRelation)
-        }
-
-        // 2. filter out different versions for the versionIdentifier
+        // 2. filter out different versions for the versionIdentifier (contained in the time window)
         if (!extractOptions.chronologically) {
             filteredRelations.reverse()
         }
 
         const datedMembers: MemberDate [] = []
         for (const relation of filteredRelations) {
-            const containerStore = await this.LDESinLDP.read(relation.node)
-            const children = containerStore.getObjects(relation.node, LDP.contains, null).map(value => value.id)
+            const resources = this.LDESinLDP.readChildren(relation.node)
 
-            for (const child of children) {
-                const resource = await this.LDESinLDP.read(child)
+            for await (const resource of resources) {
                 const resourceVersionID = extractVersionId(resource, metadata.versionOfPath)
                 const resourceDate = extractDate(resource, metadata.timestampPath)
                 if (resourceVersionID === versionIdentifier && resourceDate >= startDate && resourceDate <= endDate) {
@@ -310,14 +290,11 @@ export class VersionAwareLDESinLDP {
                         date: resourceDate
                     })
                 }
-
             }
             if (datedMembers.length >= amount) {
                 break
             }
         }
-
-        const members: Member[] =[]
 
         datedMembers.sort((a,b) => {
             return a.date.getTime() - b.date.getTime()

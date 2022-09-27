@@ -61,4 +61,6 @@ export interface ILDESinLDP {
      * @param until
      */
     readAllMembers: (from?: Date, until?: Date) => Promise<Readable>
+
+    readChildren: (containerURL: string) => AsyncIterable<Store>
 }
