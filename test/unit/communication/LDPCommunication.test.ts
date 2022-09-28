@@ -12,12 +12,11 @@ describe('An LDPCommunication', () => {
     const plainTextHeader = new Headers({'Content-type': TEXT_PLAIN})
     const htmlTextHeader = new Headers({'Accept': TEXT_HTML})
     const n3TextHeader = new Headers({'content-type': TEXT_N3})
+
     beforeAll(() => {
         communication = new LDPCommunication()
     });
 
-    beforeEach(() => {
-    });
     describe('performing HTTP GET requests', () => {
         it('returns a text/turtle body with the default headers.', async () => {
             const response = await communication.get(baseUrl)

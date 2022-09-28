@@ -12,11 +12,12 @@ import {Readable, Transform} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {extractDateFromLiteral} from "../util/TimestampUtil";
-import {createContainer, createVersionedEventStream, retrieveWriteLocation} from "./Util";
+import {addRelationToNode, createContainer, createVersionedEventStream, retrieveWriteLocation} from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {Logger} from "../logging/Logger";
 import namedNode = DataFactory.namedNode;
 import {extractLdesMetadata} from "../util/LdesUtil";
+import {filterRelation} from "../versionawarelil/Util";
 
 export class LDESinLDP implements ILDESinLDP {
     private readonly _LDESinLDPIdentifier: string;
@@ -107,6 +108,38 @@ export class LDESinLDP implements ILDESinLDP {
         return await this.create(store)
     }
 
+    public async newRelation(date?: Date) {
+        date = date ?? new Date()
+        const relationIdentifier = this._LDESinLDPIdentifier + date.getTime() + '/'
+
+        // create new container
+        await createContainer(relationIdentifier, this.communication)
+
+        // get tree path from other relations
+        // can I make these assumptions here -> one view and at least one relation
+        // If so this code makes sense
+        const metadataStore = await this.readMetadata()
+        const eventStreamURI = metadataStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject.value
+        const metadata = extractLdesMetadata(metadataStore, eventStreamURI)
+        const treePath = metadata.views[0].relations[0].path
+
+        // create new relation
+        const relationStore = new Store()
+        addRelationToNode(relationStore, {date, nodeIdentifier: this._LDESinLDPIdentifier , treePath: treePath} )
+
+        // update metadata: both the relation and the inbox
+        const currentInbox = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication)
+        const sparqlUpdateQuery = `DELETE DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};
+INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .
+ ${storeToString(relationStore)} }`
+        const response = await this.communication.patch(this._LDESinLDPIdentifier+'.meta', sparqlUpdateQuery)
+        if (response.status > 299 || response.status < 200) {
+            console.log(await response.text())
+            throw Error(`The LDES metadata ${eventStreamURI} was not updated for the new relation ${relationIdentifier} | status code: ${response.status}`)
+        }
+    }
+
+
     public async readMetadata(): Promise<Store> {
         const rootStore = await this.read(this._LDESinLDPIdentifier)
         // Note: only retrieve metdata of one layer deep -> it should actually follow all the relation nodes
@@ -141,64 +174,33 @@ export class LDESinLDP implements ILDESinLDP {
         const rootStore = await this.readMetadata()
         const ldesIdentifier = rootStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
         const ldesMetadata = extractLdesMetadata(rootStore, ldesIdentifier)
-        // note: maybe with a sparql query in comunica?
 
-        // complicated code to narrow down the number of nodes based on the GTE relations
-        // if this errors, the relation value is not right in the metadata
-        const timestamps = ldesMetadata.views[0].relations.map(({value}) => {
-            return new Date(value).getTime()
-        })
-        const lowerthanFromTimestamps = timestamps.filter(timestamp => timestamp < from!.getTime())
-
-        // the highest date in all relations smaller than (earlier than) from, that is just below from OR new Date(0)
-        const fromRelationDate = timestamps.length > 0 ? new Date(Math.max(...lowerthanFromTimestamps)) : new Date(0)
-
-        // node identifiers of the relations that have members in between from - until
-        const nodeIdentifiers = ldesMetadata.views[0].relations.filter(({value}) => {
-            const relationValue = new Date(value)
-
-            if (relationValue.getTime() > fromRelationDate.getTime()) {
-                return false
-            }
-            // if until is smaller than the relation value, then the relation is not needed
-            return relationValue.getTime() < until!.getTime();
-        }).map(({node}) => node)
+        const relations = filterRelation(ldesMetadata, from, until)
 
         const comm = this
         // stream of resources within the ldes in ldp
-        const resourceIdentifierStream = new Readable({
-            objectMode: true,
-            async read() {
-                for (const nodeIdentifier of nodeIdentifiers) {
-                    // todo: defensive, what if this errors?
-                    const nodeStore = await comm.read(nodeIdentifier)
-                    const identifiers: string[] = nodeStore.getObjects(nodeIdentifier, LDP.contains, null).map(object => object.value)
 
-                    for (const identifier of identifiers) {
-                        this.push(identifier)
-                    }
-                }
-                this.push(null)
+        const memberStream = new Readable({
+            objectMode: true,
+            read(size: number) {
             }
         })
-
-        // stream of all members
-        const transformer = new Transform({
-            objectMode: true,
-            async transform(chunk, encoding, callback) {
-                const resourceStore = await comm.read(chunk)
-                // can fail if it was actually not a member in the ldes
-                const memberId = resourceStore.getSubjects(DCT.isVersionOf, null, null)[0].value
-                this.push({
+        for (const relation of relations) {
+            // todo: defensive, what if this errors?
+            const resources = comm.readChildren(relation.node)
+            for await (const resource of resources) {
+                const memberId = resource.getSubjects(DCT.isVersionOf, null, null)[0].value
+                memberStream.push({
                     id: namedNode(memberId),
-                    quads: resourceStore.getQuads(null, null, null, null)
+                    quads: resource.getQuads(null, null, null, null)
                 })
             }
-        })
-        return resourceIdentifierStream.pipe(transformer);
+        }
+        memberStream.push(null)
+        return memberStream
     }
 
-    public async* readChildren(containerURL:string): AsyncIterable<Store>{
+    public async* readChildren(containerURL: string): AsyncIterable<Store> {
         // TODO check if idd is container
         const store = await this.read(containerURL)
         const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)

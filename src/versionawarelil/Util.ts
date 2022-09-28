@@ -72,9 +72,9 @@ export function removeVersionSpecificTriples(member: Member, metadata: LDESMetad
  * @param metadata The LDES metadata
  * @param startDate The start time of the time window (Date object)
  * @param endDate The end time of the time window (Date object)
- * @returns {Promise<Relation[]>}
+ * @returns {Relation[]}
  */
-export async function filterRelation(metadata: LDESMetadata, startDate: Date, endDate: Date): Promise<Relation[]>{
+export function filterRelation(metadata: LDESMetadata, startDate: Date, endDate: Date): Relation[]{
     // relations chronologically sorted
     const metadataRelations = metadata.views[0].relations.sort((a, b) => {
         // assumption: value is valid xsd:DateTime

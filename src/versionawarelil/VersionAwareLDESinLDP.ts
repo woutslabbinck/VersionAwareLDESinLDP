@@ -99,7 +99,7 @@ export class VersionAwareLDESinLDP {
             materialized = options.materialized ?? materialized
             derived = options.derived ?? derived
         }
-        const memberStream = await this.LDESinLDP.readAllMembers(new Date(), date)
+        const memberStream = await this.LDESinLDP.readAllMembers(new Date(0), date)
 
         const ldesMetadata = await this.extractLdesMetadata()
         const snapshotOptions: ISnapshotOptions = {

@@ -13,6 +13,7 @@ export interface Relation {
     type: string
     value: string
     node: string
+    path: string
 }
 
 export interface LDESMetadata {
@@ -41,7 +42,8 @@ export function extractLdesMetadata(store: Store, ldesIdentifier: string): LDESM
                 let relation: Relation = {
                     node: store.getObjects(relationIdentifier, TREE.node, null).map(object => object.value)[0],
                     type: store.getObjects(relationIdentifier, RDF.type, null).map(object => object.value)[0],
-                    value: store.getObjects(relationIdentifier, TREE.value, null).map(object => object.value)[0]
+                    value: store.getObjects(relationIdentifier, TREE.value, null).map(object => object.value)[0],
+                    path: store.getObjects(relationIdentifier, TREE.path, null).map(object => object.value)[0]
                 }
                 relations.push(relation)
             }

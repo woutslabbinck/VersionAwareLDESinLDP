@@ -2,10 +2,12 @@ import {Communication} from "../../../src/ldp/Communication";
 import {SolidCommunication} from "../../../src/solid/SolidCommunication";
 import {getSession} from "../../../src/util/Login";
 import {authBaseUrl} from "../../util/solidHelper";
+import {LDPCommunication} from "../../../dist/ldp/LDPCommunication";
 
 describe('An SolidCommunication', () => {
     // MAKE SURE A SOLIDSERVER WITH AUTH IS RUNNING ON PORT 3002
     let communication: Communication
+    let unauthCommunication: Communication
     const TEXT_PLAIN = 'text/plain'
     const TEXT_TURTLE = 'text/turtle'
     const TEXT_HTML = 'text/html';
@@ -17,12 +19,25 @@ describe('An SolidCommunication', () => {
 
     beforeAll(async () => {
         const session = await getSession()
+        // create acl file for solid authenticated
+        const response = await session.fetch(authBaseUrl +'.acl',{
+            method: 'PUT',
+            headers: {'content-type': TEXT_TURTLE},
+            body: `@prefix acl: <http://www.w3.org/ns/auth/acl#>.
 
-        communication = new SolidCommunication(session)
+<#authorization>
+    a               acl:Authorization;
+    acl:agent  <${session.info.webId}>;
+    acl:mode        acl:Read, acl:Write, acl:Append, acl:Control;
+    acl:accessTo    <./>;
+    acl:default     <./>.
+`
+        })
+        unauthCommunication = new LDPCommunication();
+
+        communication = new SolidCommunication(session);
     });
 
-    beforeEach(() => {
-    });
 
     describe('performing HTTP GET requests', () => {
         it('returns a text/turtle body with the default headers.', async () => {
@@ -36,6 +51,11 @@ describe('An SolidCommunication', () => {
             expect(response.status).toBe(200)
             expect(response.headers.get('Content-type')).toBe(TEXT_HTML)
         })
+
+        it('errors when not having correct permissions.', async () => {
+            const response = await unauthCommunication.get(authBaseUrl)
+            expect(response.status).toBe(401)
+        })
     });
 
     describe('performing HTTP HEAD requests', () => {
@@ -45,6 +65,11 @@ describe('An SolidCommunication', () => {
             expect(response.headers.get('Content-type')).toBe(TEXT_TURTLE)
             expect(await response.text()).toBe("")
         });
+
+        it('errors when not having correct permissions.', async () => {
+            const response = await unauthCommunication.head(authBaseUrl)
+            expect(response.status).toBe(401)
+        })
     });
 
     describe('performing HTTP POST requests', () => {
@@ -83,6 +108,11 @@ describe('An SolidCommunication', () => {
             expect(getResponse.headers.get('Content-type')).toBe(TEXT_PLAIN)
 
         });
+
+        it('errors when not having correct permissions.', async () => {
+            const response = await unauthCommunication.post(authBaseUrl)
+            expect(response.status).toBe(401)
+        })
     });
 
     describe('performing HTTP PUT requests', () => {
@@ -120,6 +150,11 @@ describe('An SolidCommunication', () => {
             expect(await getResponse.text()).toBe(text)
             expect(getResponse.headers.get('Content-type')).toBe(TEXT_PLAIN)
         });
+
+        it('errors when not having correct permissions.', async () => {
+            const response = await unauthCommunication.put(resourceLocation)
+            expect(response.status).toBe(401)
+        })
     });
 
     describe('performing HTTP PATCH requests', () => {
@@ -160,6 +195,11 @@ describe('An SolidCommunication', () => {
             expect(await getResponse.text()).toContain(turtleText)
             expect(getResponse.headers.get('Content-type')).toBe(TEXT_TURTLE)
         })
+
+        it('errors when not having correct permissions.', async () => {
+            const response = await unauthCommunication.patch(resourceLocation)
+            // expect(response.status).toBe(401) Note: bug in CSS -> so gives wrong response
+        })
     })
 
     describe('performing HTTP DELETE requests', () => {
@@ -170,5 +210,15 @@ describe('An SolidCommunication', () => {
             const response = await communication.delete(toDelete)
             expect(response.status).toBe(205)
         });
+
+        it('errors when not having correct permissions.', async () => {
+            const toDelete = authBaseUrl + 'to_delete'
+            await communication.put(toDelete)
+
+            const response = await unauthCommunication.delete(toDelete)
+            expect(response.status).toBe(401)
+
+            await communication.delete(toDelete)
+        })
     });
 })

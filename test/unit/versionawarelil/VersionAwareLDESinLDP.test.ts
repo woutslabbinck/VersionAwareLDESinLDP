@@ -49,6 +49,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
     beforeEach(async () => {
         mockLDESinLDP = {
+            readChildren: jest.fn(),
             LDESinLDPIdentifier: ldesinLDPIdentifier,
             create: jest.fn(),
             delete: jest.fn(),

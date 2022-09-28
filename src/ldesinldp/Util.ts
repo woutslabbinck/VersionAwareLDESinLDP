@@ -90,8 +90,17 @@ export function addRootNodetoEventStream(store: Store, config: LDESinLDPRootNode
 }
 
 export interface LDESinLDPTreeRelationConfig {
+    /**
+     * used for creating the identifier of the relation
+     */
     date: Date
+    /**
+     * tree:node identifier
+     */
     nodeIdentifier: string
+    /**
+     * tree:path, i.e. the shacl Property path
+     */
     treePath: string
 }
 
