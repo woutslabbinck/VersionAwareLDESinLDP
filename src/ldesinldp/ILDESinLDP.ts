@@ -52,7 +52,7 @@ export interface ILDESinLDP {
      * Create a new GTE relation (fragment) in the LDESinLDP
      * @param date
      */
-    newRelation: (date?: Date) => Promise<void>
+    newFragment: (date?: Date) => Promise<void>
 
     /**
      * Reads all the metadata of the LDESinLDP.

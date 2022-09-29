@@ -33,13 +33,16 @@ export class VersionAwareLDESinLDP {
      * Initialises an LDES in LDP at the base using as tree:path dc:created and optionally the shape URL as tree:shape.
      * @param ldpContainerIdentifier base URL where the LDES in LDP will reside
      * @param shape shape URL
+     * @param timestampPath
+     * @param versionOfPath
      * @returns {Promise<any>}
      */
-    public async initialise(ldpContainerIdentifier: string, shape?: string): Promise<void> {
+    public async initialise(ldpContainerIdentifier: string, shape?: string, timestampPath?: string, versionOfPath?:string): Promise<void> {
         await this.LDESinLDP.initialise({
             LDESinLDPIdentifier: ldpContainerIdentifier,
             shape: shape,
-            treePath: DCT.created
+            treePath: timestampPath ?? DCT.created,
+            versionOfPath: versionOfPath ?? DCT.isVersionOf
         })
     }
 
@@ -268,7 +271,7 @@ export class VersionAwareLDESinLDP {
 
         // 1. filter out relations from TREE metadata that may contain versions
         const metadata = await this.extractLdesMetadata();
-        const filteredRelations: Relation[] = await filterRelation(metadata, startDate, endDate)
+        const filteredRelations: Relation[] = filterRelation(metadata, startDate, endDate)
 
         // 2. filter out different versions for the versionIdentifier (contained in the time window)
         if (!extractOptions.chronologically) {

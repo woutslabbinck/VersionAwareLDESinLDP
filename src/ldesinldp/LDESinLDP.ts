@@ -11,7 +11,6 @@ import {DataFactory, Literal, Store} from "n3";
 import {Readable, Transform} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
-import {extractDateFromLiteral} from "../util/TimestampUtil";
 import {addRelationToNode, createContainer, createVersionedEventStream, retrieveWriteLocation} from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {Logger} from "../logging/Logger";
@@ -108,7 +107,7 @@ export class LDESinLDP implements ILDESinLDP {
         return await this.create(store)
     }
 
-    public async newRelation(date?: Date) {
+    public async newFragment(date?: Date) {
         date = date ?? new Date()
         const relationIdentifier = this._LDESinLDPIdentifier + date.getTime() + '/'
 
@@ -116,8 +115,7 @@ export class LDESinLDP implements ILDESinLDP {
         await createContainer(relationIdentifier, this.communication)
 
         // get tree path from other relations
-        // can I make these assumptions here -> one view and at least one relation
-        // If so this code makes sense
+        // Assumptions: one view and at least one relation (all relations GTE)
         const metadataStore = await this.readMetadata()
         const eventStreamURI = metadataStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject.value
         const metadata = extractLdesMetadata(metadataStore, eventStreamURI)
@@ -125,15 +123,17 @@ export class LDESinLDP implements ILDESinLDP {
 
         // create new relation
         const relationStore = new Store()
-        addRelationToNode(relationStore, {date, nodeIdentifier: this._LDESinLDPIdentifier , treePath: treePath} )
+        addRelationToNode(relationStore, {date, nodeIdentifier: this._LDESinLDPIdentifier, treePath: treePath})
 
         // update metadata: both the relation and the inbox
         const currentInbox = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication)
         const sparqlUpdateQuery = `DELETE DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};
 INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .
  ${storeToString(relationStore)} }`
-        const response = await this.communication.patch(this._LDESinLDPIdentifier+'.meta', sparqlUpdateQuery)
+        const response = await this.communication.patch(this._LDESinLDPIdentifier + '.meta', sparqlUpdateQuery)
         if (response.status > 299 || response.status < 200) {
+            const deleteContainerResponse = await this.communication.delete(relationIdentifier)
+            console.log(`Removing container ${relationIdentifier} | status code ${deleteContainerResponse.status}`)
             console.log(await response.text())
             throw Error(`The LDES metadata ${eventStreamURI} was not updated for the new relation ${relationIdentifier} | status code: ${response.status}`)
         }
@@ -145,6 +145,7 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
         // Note: only retrieve metdata of one layer deep -> it should actually follow all the relation nodes
         const metadataStore = new Store()
 
+        // test whether it is indeed an EventStream
         try {
             const eventStreamNode = rootStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject
             const relationTriple = rootStore.getQuads(this._LDESinLDPIdentifier, TREE.relation, null, null)[0]
@@ -182,7 +183,7 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
 
         const memberStream = new Readable({
             objectMode: true,
-            read(size: number) {
+            read() {
             }
         })
         for (const relation of relations) {
@@ -201,12 +202,13 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
     }
 
     public async* readChildren(containerURL: string): AsyncIterable<Store> {
-        // TODO check if idd is container
-        const store = await this.read(containerURL)
-        const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
-        for (const childURL of children) {
-            const resourceStore = await this.read(childURL)
-            yield resourceStore
+        if (isContainerIdentifier(containerURL)) {
+            const store = await this.read(containerURL)
+            const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
+            for (const childURL of children) {
+                const resourceStore = await this.read(childURL)
+                yield resourceStore
+            }
         }
     }
 }

@@ -4,11 +4,6 @@
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 01/04/2022
  *****************************************/
-/**
- * Checks whether the materialized member is marked deleted or not
- * @param member
- * @param metadata
- */
 import {Member} from "@treecg/types";
 import {LDESMetadata, Relation} from "../util/LdesUtil";
 import {DataFactory, Store} from "n3";
@@ -17,7 +12,7 @@ import {dateToLiteral} from "../util/TimestampUtil";
 import namedNode = DataFactory.namedNode;
 
 /**
- * Verifies whether a member is marked as deleted based
+ * Verifies whether a member is marked as deleted
  * @param member
  * @param metadata
  * @returns {boolean}

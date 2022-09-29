@@ -44,7 +44,7 @@ export function createVersionedEventStream(store: Store, config: LDESinLDPConfig
     const eventStreamNode = namedNode(eventStreamIdentifier)
 
     store.addQuad(eventStreamNode, namedNode(RDF.type), namedNode(LDES.EventStream))
-    store.addQuad(eventStreamNode, namedNode(LDES.versionOfPath), namedNode(DCT.isVersionOf))
+    store.addQuad(eventStreamNode, namedNode(LDES.versionOfPath), namedNode(config.versionOfPath))
     store.addQuad(eventStreamNode, namedNode(LDES.timestampPath), namedNode(config.treePath))
 
     addShapeToEventStream(store, {eventStreamIdentifier, shape: config.shape});
