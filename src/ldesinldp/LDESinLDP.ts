@@ -90,7 +90,7 @@ export class LDESinLDP implements ILDESinLDP {
         const response = await this.communication.get(resourceIdentifier)
 
         if (response.status !== 200) {
-            throw new Error('Resource not found') //todo: maybe add error classes?
+            throw new Error(`Resource not found: ${resourceIdentifier}`)
         }
         if (response.headers.get('content-type') !== 'text/turtle') {
             throw new Error('Works only on rdf data')
@@ -142,7 +142,8 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
 
     public async readMetadata(): Promise<Store> {
         const rootStore = await this.read(this._LDESinLDPIdentifier)
-        // Note: only retrieve metdata of one layer deep -> it should actually follow all the relation nodes
+        // This function only retrieves metadata of one layer deep
+        // A proper read metadata MUST follow all the relation nodes (via link traversal)
         const metadataStore = new Store()
 
         // test whether it is indeed an EventStream
@@ -187,7 +188,6 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
             }
         })
         for (const relation of relations) {
-            // todo: defensive, what if this errors?
             const resources = comm.readChildren(relation.node)
             for await (const resource of resources) {
                 const memberId = resource.getSubjects(DCT.isVersionOf, null, null)[0].value

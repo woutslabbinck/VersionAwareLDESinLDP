@@ -10,6 +10,7 @@ import {DataFactory, Store} from "n3";
 import {LDESinLDPConfig} from "./LDESinLDPConfig";
 import {dateToLiteral} from "../util/TimestampUtil";
 import namedNode = DataFactory.namedNode;
+import {isContainerIdentifier} from "../util/IdentifierUtil";
 
 const parse = require('parse-link-header');
 
@@ -114,7 +115,6 @@ export interface LDESinLDPTreeRelationConfig {
  * @param config
  */
 export function addRelationToNode(store: Store, config: LDESinLDPTreeRelationConfig): void {
-    // TODO: expand function `addRelationToNode` to allow for an url to be added (in case B-TREE implementation is needed)
     const relationNodeIdentifier = config.nodeIdentifier + config.date.valueOf() + '/'
     const node = namedNode(config.nodeIdentifier)
     const relationNode = store.createBlankNode();
@@ -129,7 +129,9 @@ export function addRelationToNode(store: Store, config: LDESinLDPTreeRelationCon
 }
 
 export async function createContainer(resourceIdentifier: string, communication: Communication): Promise<void> {
-    // Note: maybe check identifier?
+    if (!isContainerIdentifier(resourceIdentifier)){
+        throw Error(`Tried creating a container at URL ${resourceIdentifier}, however this is not a Container (due to slash semantics).`)
+    }
     const response = await communication.put(resourceIdentifier)
 
     if (response.status !== 201) {

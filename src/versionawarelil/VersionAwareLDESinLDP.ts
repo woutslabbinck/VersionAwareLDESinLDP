@@ -262,9 +262,6 @@ export class VersionAwareLDESinLDP {
         chronologically: false,
         amount: 1
     }): Promise<Member[]> {
-        // TODO: code does too much -> split up and test
-        //  e.g. methods in ldes in ldp to get all members in a container, util function that calculates based on metadata the containers that are within the range
-        // other aspect -> how to incorporate snapshot? (check notes?)
         const startDate = extractOptions.startDate ?? new Date(0)
         const endDate = extractOptions.endDate ?? new Date()
         const amount = extractOptions.amount ?? Infinity
