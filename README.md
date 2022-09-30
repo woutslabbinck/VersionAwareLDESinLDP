@@ -35,7 +35,7 @@ First install the packages.
 
 ```bash
 # install packages
-npm i
+npm i @treecg/versionawareldesinldp
 # (Optionally) set up a solid server
 npx @solid/community-server -p 3000 -f ./data -c "@css:config/file-no-setup.json"
 ```
