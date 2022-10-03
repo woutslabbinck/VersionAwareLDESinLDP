@@ -1,7 +1,4 @@
 import {baseUrl} from "../../util/solidHelper";
-import {LDPCommunication} from "../../../src/ldp/LDPCommunication";
-import {LDESinLDP} from "../../../src/ldesinldp/LDESinLDP";
-import {LDESinLDPConfig} from "../../../src/ldesinldp/LDESinLDPConfig";
 import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {
     addRelationToNode,
@@ -15,40 +12,44 @@ import {dateToLiteral} from "../../../src/util/TimestampUtil";
 import {Communication} from "../../../src/ldp/Communication";
 
 describe('A LDES in LDP Util', () => {
+
     describe('has functionality for write location', () => {
         const location = baseUrl + 'ldesinldp_util/'
-        const communication = new LDPCommunication()
-        const ldesinldp = new LDESinLDP(location, communication)
+        let mockCommunication: jest.Mocked<Communication>
+
+        const inboxContainerURL = baseUrl + '/timestamp/'
 
         beforeAll(async () => {
-            const config: LDESinLDPConfig = {
-                LDESinLDPIdentifier: location,
-                treePath: DCT.created,
-                versionOfPath: DCT.isVersionOf
+            mockCommunication = {
+                delete: jest.fn(),
+                head: jest.fn(),
+                get: jest.fn(),
+                patch: jest.fn(),
+                post: jest.fn(),
+                put: jest.fn()
             }
-            await ldesinldp.initialise(config)
+
+            const inboxHeader = new Headers({'Link': `<${inboxContainerURL}>; rel="http://www.w3.org/ns/ldp#inbox"`})
+            const headResponse = new Response(null, {status: 200, headers: inboxHeader})
+            mockCommunication.head.mockResolvedValue(headResponse)
         });
 
         it('finds the correct location.', async () => {
-            const writeLocation = await retrieveWriteLocation(location, communication)
+            const writeLocation = await retrieveWriteLocation(location, mockCommunication)
 
-            // retrieve the location via the root node: it MUST be the tree:node in the only tree:relation
-            const store = await ldesinldp.read(location)
-            const relationNode = store.getObjects(location, TREE.relation, null)[0]
-            const nodeIdentifier = store.getObjects(relationNode, TREE.node, null)[0].value
-
-            expect(writeLocation).toBe(nodeIdentifier)
+            expect(writeLocation).toBe(inboxContainerURL)
         });
 
         it('throws error when no ldp:inbox present', async () => {
-            // in the future, maybe mock communication here?
-            await expect(() => retrieveWriteLocation(baseUrl, communication)).rejects.toThrow(Error)
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 200, headers: new Headers()}))
+
+            await expect(() => retrieveWriteLocation(baseUrl, mockCommunication)).rejects.toThrow(Error)
         })
 
         it('throws error when no link headers are present', async () => {
-            // non-existing resources currently give no link headers
-            // in the future, maybe mock communication here?
-            await expect(() => retrieveWriteLocation(baseUrl + 'nonexistingresource', communication)).rejects.toThrow(Error)
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 200}))
+
+            await expect(() => retrieveWriteLocation(baseUrl + 'nonexistingresource', mockCommunication)).rejects.toThrow(Error)
         })
     })
 
@@ -105,7 +106,11 @@ describe('A LDES in LDP Util', () => {
 
         it('generates metadata for a versioned LDES as defined in LDES in LDP.', () => {
             const store = new Store()
-            createVersionedEventStream(store, {LDESinLDPIdentifier: base, treePath, versionOfPath: DCT.isVersionOf}, date)
+            createVersionedEventStream(store, {
+                LDESinLDPIdentifier: base,
+                treePath,
+                versionOfPath: DCT.isVersionOf
+            }, date)
             expect(store.getQuads(eventStreamIdentifier, RDF.type, LDES.EventStream, null).length).toBe(1)
             expect(store.getQuads(eventStreamIdentifier, LDES.timestampPath, DCT.created, null).length).toBe(1)
             expect(store.getQuads(eventStreamIdentifier, LDES.versionOfPath, DCT.isVersionOf, null).length).toBe(1)
