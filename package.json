@@ -1,6 +1,6 @@
 {
     "name": "@treecg/versionawareldesinldp",
-    "version": "0.0.0",
+    "version": "0.0.1-alpha.0",
     "description": "Client package for interacting with an LDES in LDP (version-aware approach)",
     "main": "./dist/Index.js",
     "types": "./dist/Index.d.ts",
