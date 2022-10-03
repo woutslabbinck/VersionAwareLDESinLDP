@@ -17,7 +17,8 @@ describe('An LDESinLDP', () => {
 
     const ldesinldpConfig: LDESinLDPConfig = {
         LDESinLDPIdentifier: lilIdentifier,
-        treePath: DCT.created
+        treePath: DCT.created,
+        versionOfPath: DCT.isVersionOf
     }
 
     const resourceStore = new Store()
@@ -99,19 +100,22 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         // note: this is kind of an integration test
         const lilIdentifier = baseUrl + 'ldesinldp_init/'
         const treePath = DCT.created
+        const versionOfPath = DCT.isVersionOf
 
         let config: LDESinLDPConfig
         beforeEach(() => {
             config = {
                 LDESinLDPIdentifier: lilIdentifier,
-                treePath
+                treePath,
+                versionOfPath
             }
         })
 
         it('fails when the given LDESinLDPIdentifier is not a container.', async () => {
             await expect(ldesinldp.initialise({
                 LDESinLDPIdentifier: 'http://example.org',
-                treePath
+                treePath,
+                versionOfPath
             })).rejects.toThrow(Error)
         })
 

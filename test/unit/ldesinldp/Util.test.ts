@@ -23,7 +23,8 @@ describe('A LDES in LDP Util', () => {
         beforeAll(async () => {
             const config: LDESinLDPConfig = {
                 LDESinLDPIdentifier: location,
-                treePath: DCT.created
+                treePath: DCT.created,
+                versionOfPath: DCT.isVersionOf
             }
             await ldesinldp.initialise(config)
         });
@@ -45,7 +46,7 @@ describe('A LDES in LDP Util', () => {
         })
 
         it('throws error when no link headers are present', async () => {
-            // non existing resources currently give no link headers
+            // non-existing resources currently give no link headers
             // in the future, maybe mock communication here?
             await expect(() => retrieveWriteLocation(baseUrl + 'nonexistingresource', communication)).rejects.toThrow(Error)
         })
@@ -104,7 +105,7 @@ describe('A LDES in LDP Util', () => {
 
         it('generates metadata for a versioned LDES as defined in LDES in LDP.', () => {
             const store = new Store()
-            createVersionedEventStream(store, {LDESinLDPIdentifier: base, treePath}, date)
+            createVersionedEventStream(store, {LDESinLDPIdentifier: base, treePath, versionOfPath: DCT.isVersionOf}, date)
             expect(store.getQuads(eventStreamIdentifier, RDF.type, LDES.EventStream, null).length).toBe(1)
             expect(store.getQuads(eventStreamIdentifier, LDES.timestampPath, DCT.created, null).length).toBe(1)
             expect(store.getQuads(eventStreamIdentifier, LDES.versionOfPath, DCT.isVersionOf, null).length).toBe(1)

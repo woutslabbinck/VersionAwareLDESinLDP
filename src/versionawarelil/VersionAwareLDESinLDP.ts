@@ -20,7 +20,7 @@ import {
     filterRelation
 } from "./Util";
 import namedNode = DataFactory.namedNode;
-import {extractDate, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
+import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -109,7 +109,7 @@ export class VersionAwareLDESinLDP {
             date: date,
             ldesIdentifier: ldesMetadata.ldesEventStreamIdentifier,
             materialized: materialized,
-            snapshotIdentifier: this.LDESinLDP.LDESinLDPIdentifier, //todo: is this right?
+            snapshotIdentifier: this.LDESinLDP.LDESinLDPIdentifier, // is this right? The snapshot is derived from the original LDES in LDP
             timestampPath: ldesMetadata.timestampPath,
             versionOfPath: ldesMetadata.versionOfPath
 
@@ -334,13 +334,4 @@ export interface ExtractOptions {
      * End dateTime of the extraction
      */
     endDate?: Date;
-}
-
-function extractMaterializedId(member: Member, versionOfPath: string): string { // todo: test and import from snapshot
-    const store = new Store(member.quads)
-    const versionIds = store.getObjects(member.id, namedNode(versionOfPath), null)
-    if (versionIds.length !== 1) {
-        throw Error(`Found ${versionIds.length} identifiers following the version paths of ${member.id.value}; expected one such identifier.`)
-    }
-    return versionIds[0].value
 }
