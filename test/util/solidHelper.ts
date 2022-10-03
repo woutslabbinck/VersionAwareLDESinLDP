@@ -24,9 +24,18 @@ export async function initAuth() {
         registrationType: RegistrationType.Dynamic,
         solidIdentityProvider: authBaseUrl
     };
-    console.log("Login with email: test@mail.com password: test");
-    await login(validatedOptions);
-    await isLoggedin(); // code that checks whether you are already logged in
+    try {
+        const response = await fetch(authBaseUrl)
+        if (response) {
+            console.log("Login with email: test@mail.com password: test");
+            await login(validatedOptions);
+            await isLoggedin(); // code that checks whether you are already logged in
+        }
+
+    }
+    catch (e) {
+        console.log(`IDP not running at: ${authBaseUrl}. Tests requiring authentication will fail.`)
+    }
 }
 
 /**

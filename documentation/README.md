@@ -18,6 +18,18 @@ When `npm run test` is executed, a [script](../run_tests.sh) is run that execute
 
 ### Running isolated tests
 
+#### Without authentication
+
+Run the individual test.
+Example:
+```shell
+jest test/unit/versionawarelil/VersionAwareLDESinLDP.test.tsc
+```
+
+#### With authentication
+
+Here a CSS server with IDP is required
+
 1. Set up a CSS with IDP on port 3002: `npx @solid/community-server -p 3002`
 2. Create a test account: `curl 'http://localhost:3002/setup' -X POST -H 'content-type: application/json' -H 'Origin: http://localhost:3002' --data-raw '{"registration":"on","createWebId":"on","webId":"","register":"on","createPod":"on","rootPod":"on","podName":"","email":"test@mail.com","password":"test","confirmPassword":"test"}'`
 3. Run the individual test e.g.: `jest test/unit/communication/SolidCommunication.test.ts`
