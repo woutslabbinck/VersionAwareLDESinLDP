@@ -70,6 +70,10 @@ export function removeVersionSpecificTriples(member: Member, metadata: LDESMetad
  * @returns {Relation[]}
  */
 export function filterRelation(metadata: LDESMetadata, startDate: Date, endDate: Date): Relation[]{
+    if (metadata.views.length===0){
+        throw Error('There is no view in the LDES.')
+    }
+
     // relations chronologically sorted
     const metadataRelations = metadata.views[0].relations.sort((a, b) => {
         // assumption: value is valid xsd:DateTime

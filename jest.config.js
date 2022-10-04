@@ -19,6 +19,7 @@ module.exports = {
         '/test/',
         '/src/util/Vocabularies.ts',
         '/src/util/Conversion.ts',
+        '/src/util/Login.ts',
         '/src/util/TimestampUtil.ts',
         'src/logging'
     ],

@@ -41,8 +41,10 @@ describe('A LDES in LDP Util', () => {
         });
 
         it('throws error when no ldp:inbox present', async () => {
-            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 200, headers: new Headers()}))
-
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, {
+                status: 200,
+                headers: new Headers({'Link': '<example>;rel="something"'})
+            }))
             await expect(() => retrieveWriteLocation(baseUrl, mockCommunication)).rejects.toThrow(Error)
         })
 
