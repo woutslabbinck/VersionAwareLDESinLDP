@@ -57,7 +57,7 @@ export function createVersionedEventStream(store: Store, config: LDESinLDPConfig
     })
 }
 
-export function addShapeToEventStream(store: Store, config: {eventStreamIdentifier: string, shape?: string}): void {
+export function addShapeToEventStream(store: Store, config: { eventStreamIdentifier: string, shape?: string }): void {
     const eventStreamNode = namedNode(config.eventStreamIdentifier)
 
     if (config.shape) {
@@ -115,7 +115,7 @@ export interface LDESinLDPTreeRelationConfig {
  * @param config
  */
 export function addRelationToNode(store: Store, config: LDESinLDPTreeRelationConfig): void {
-    const relationNodeIdentifier = config.nodeIdentifier + config.date.valueOf() + '/'
+    const relationNodeIdentifier = getRelationIdentifier(config.nodeIdentifier, config.date)
     const node = namedNode(config.nodeIdentifier)
     const relationNode = store.createBlankNode();
 
@@ -129,7 +129,7 @@ export function addRelationToNode(store: Store, config: LDESinLDPTreeRelationCon
 }
 
 export async function createContainer(resourceIdentifier: string, communication: Communication): Promise<void> {
-    if (!isContainerIdentifier(resourceIdentifier)){
+    if (!isContainerIdentifier(resourceIdentifier)) {
         throw Error(`Tried creating a container at URL ${resourceIdentifier}, however this is not a Container (due to slash semantics).`)
     }
     const response = await communication.put(resourceIdentifier)
@@ -138,4 +138,8 @@ export async function createContainer(resourceIdentifier: string, communication:
         throw Error(`The container ${resourceIdentifier} was not created | status code: ${response.status}`)
     }
     console.log(`LDP Container created: ${response.url}`)
+}
+
+export function getRelationIdentifier(ldesinLDPIdentifier: string, date: Date): string {
+    return ldesinLDPIdentifier + date.getTime() + '/'
 }

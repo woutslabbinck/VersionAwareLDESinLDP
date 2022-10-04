@@ -11,7 +11,13 @@ import {DataFactory, Literal, Store} from "n3";
 import {Readable, Transform} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
-import {addRelationToNode, createContainer, createVersionedEventStream, retrieveWriteLocation} from "./Util";
+import {
+    addRelationToNode,
+    createContainer,
+    createVersionedEventStream,
+    getRelationIdentifier,
+    retrieveWriteLocation
+} from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {Logger} from "../logging/Logger";
 import namedNode = DataFactory.namedNode;
@@ -53,7 +59,7 @@ export class LDESinLDP implements ILDESinLDP {
         // and add it to the store
         createVersionedEventStream(store, config, date)
 
-        const relationIdentifier = config.LDESinLDPIdentifier + date.valueOf() + '/'
+        const relationIdentifier = getRelationIdentifier(config.LDESinLDPIdentifier, date)
 
         // add inbox
         store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))

@@ -10,8 +10,8 @@ describe('An LDESinLDP', () => {
     const date = new Date()
 
     let mockCommunication: jest.Mocked<Communication>
-    let mockedLDESinLDP: LDESinLDP
-    const mockedBaseUrl = 'http://example.org/ldesinldp/'
+    let ldesinldp: LDESinLDP
+    const lilBase = 'http://example.org/ldesinldp/'
     const inboxContainerURL = 'http://example.org/ldesinldp/timestamp/'
     const createdURL = 'http://example.org/ldesinldp/timestamp/created'
 
@@ -28,27 +28,6 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 <http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#timestampPath> <http://purl.org/dc/terms/created> .
 <http://example.org/ldesinldp/#EventStream> <https://w3id.org/tree#view> <http://example.org/ldesinldp/> .
 `
-
-    // beforeAll(async () => {
-    //     await ldesinldp.initialise(ldesinldpConfig)
-    //
-    //     resourceStore.addQuad(namedNode("#resource"), namedNode(DCT.isVersionOf), namedNode("http://example.org/resource1"))
-    //     resourceStore.addQuad(namedNode("#resource"), namedNode(DCT.title), namedNode(`First version of resource ${date.toLocaleString()}`))
-    //     resourceStore.addQuad(namedNode("#resource"), namedNode(ldesinldpConfig.treePath), dateToLiteral(date))
-    // })
-    //
-    // afterAll(async () => {
-    //     // Note: currently not needed
-    //     // code to remove the ldes in ldp with one container, could be extended for multiple relations in the ldes
-    //     const firstRelationNodeContainer = await retrieveWriteLocation(lilIdentifier, communication)
-    //     const firstRelationNodeStore = await ldesinldp.read(firstRelationNodeContainer)
-    //     const resourceIdentifiers = firstRelationNodeStore.getObjects(firstRelationNodeContainer, LDP.contains, null)
-    //         .map(object => object.value)
-    //     const deleteRequests = resourceIdentifiers.map(resourceIdentifier => communication.delete(resourceIdentifier))
-    //     await Promise.all(deleteRequests)
-    //     await communication.delete(lilIdentifier)
-    // })
-
     beforeEach(() => {
         mockCommunication = {
             delete: jest.fn(),
@@ -64,11 +43,11 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         const headResponse = new Response(null, {status: 200, headers: inboxHeader})
         mockCommunication.head.mockResolvedValue(headResponse)
 
-        mockedLDESinLDP = new LDESinLDP(mockedBaseUrl, mockCommunication)
+        ldesinldp = new LDESinLDP(lilBase, mockCommunication)
     });
 
     it('returns the LDESinLDPIdentifier when calling its get function.', () => {
-        expect(mockedLDESinLDP.LDESinLDPIdentifier).toBe(mockedBaseUrl)
+        expect(ldesinldp.LDESinLDPIdentifier).toBe(lilBase)
     });
 
     describe('when instantiating an LDES in LDP', () => {
@@ -88,21 +67,21 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const postResponse = new Response(null, {status: 201, headers: locationHeader})
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
-            await expect(mockedLDESinLDP.create(resourceStore)).resolves.toBe(createdURL)
+            await expect(ldesinldp.create(resourceStore)).resolves.toBe(createdURL)
         });
 
         it('throws error when posting the resource failed.', async () => {
             const postResponse = new Response(null, {status: 500})
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
-            await expect(mockedLDESinLDP.create(resourceStore)).rejects.toThrow(Error)
+            await expect(ldesinldp.create(resourceStore)).rejects.toThrow(Error)
         });
 
         it('throws error when no location is returned.', async () => {
             const postResponse = new Response(null, {status: 201})
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
-            await expect(mockedLDESinLDP.create(resourceStore)).rejects.toThrow(Error)
+            await expect(ldesinldp.create(resourceStore)).rejects.toThrow(Error)
         });
     })
 
@@ -115,7 +94,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             })
             mockCommunication.get.mockResolvedValueOnce(getResponse)
 
-            const store = await mockedLDESinLDP.read(createdURL)
+            const store = await ldesinldp.read(createdURL)
             expect(store.size).toBe(1)
         });
 
@@ -123,14 +102,14 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const getResponse = new Response(null, {status: 404})
             mockCommunication.get.mockResolvedValueOnce(getResponse)
 
-            await expect(() => mockedLDESinLDP.read(createdURL)).rejects.toThrow(Error)
+            await expect(() => ldesinldp.read(createdURL)).rejects.toThrow(Error)
         });
 
         it('throws an error when the content-type is not text/turtle', async () => {
             const getResponse = new Response(null, {status: 200})
             mockCommunication.get.mockResolvedValueOnce(getResponse)
 
-            await expect(() => mockedLDESinLDP.read(createdURL)).rejects.toThrow(Error)
+            await expect(() => ldesinldp.read(createdURL)).rejects.toThrow(Error)
 
         });
     })
@@ -141,7 +120,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const postResponse = new Response(null, {status: 201, headers: locationHeader})
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
-            await expect(mockedLDESinLDP.update(resourceStore)).resolves.toBe(createdURL)
+            await expect(ldesinldp.update(resourceStore)).resolves.toBe(createdURL)
         });
     })
 
@@ -151,7 +130,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const postResponse = new Response(null, {status: 201, headers: locationHeader})
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
-            await expect(mockedLDESinLDP.delete(resourceStore)).resolves.toBe(createdURL)
+            await expect(ldesinldp.delete(resourceStore)).resolves.toBe(createdURL)
         });
     })
 
@@ -172,15 +151,15 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             })
             mockCommunication.get = jest.fn()
             mockCommunication.get.mockResolvedValueOnce(getResponse)
-            await expect(mockedLDESinLDP.readMetadata()).rejects.toThrow(Error)
+            await expect(ldesinldp.readMetadata()).rejects.toThrow(Error)
         });
 
         it('returns the metadata of the LDES in LDP as a store.', async () => {
-            await expect(mockedLDESinLDP.readMetadata()).resolves.toBeDefined()
+            await expect(ldesinldp.readMetadata()).resolves.toBeDefined()
         })
 
         it('returns the metadata of the LDES in LDP, which can be extracted.', async () => {
-            const metadataStore = await mockedLDESinLDP.readMetadata()
+            const metadataStore = await ldesinldp.readMetadata()
             const ldesMetadata = extractLdesMetadata(metadataStore, 'http://example.org/ldesinldp/#EventStream')
             expect(ldesMetadata.views.length).toBe(1)
         })
@@ -213,11 +192,63 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('returns the members in the LDES in LDP.', async () => {
-            const memberStream = await mockedLDESinLDP.readAllMembers()
+            const memberStream = await ldesinldp.readAllMembers()
             const members = await memberStreamtoStore(memberStream)
             expect(members.size).toBe(3)
             expect(members.getObjects(null, DCT.title, null)[0].value).toBe("test")
             expect(members.getObjects(null, DCT.isVersionOf, null)[0].value).toBe("http://example.org/resource1")
         });
     })
+
+
+    describe('when creating a new fragment', () => {
+        const dateNewFragment = new Date('2022-10-04')
+        const fragmentIdentifier = `${lilBase + dateNewFragment.getTime()}/`
+
+        beforeEach(() => {
+            // new container created
+            mockCommunication.put.mockResolvedValueOnce(new Response(null, {status: 201}))
+            // read metadata
+            mockCommunication.get.mockResolvedValue(new Response(lilString,
+                {
+                    status: 200,
+                    headers: new Headers({'content-type': 'text/turtle'})
+                }
+            ))
+        });
+
+        it('fails when a container cannot be created.', async () => {
+            mockCommunication.put.mockResolvedValueOnce(new Response(null, {status: 404}))
+            // error due to `createContainer` function
+            await expect(async () => ldesinldp.newFragment(dateNewFragment)).rejects.toThrow(Error)
+        });
+
+        it('sends the correct PATCH request.', async () => {
+            // patch metadata
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 205}))
+
+            await ldesinldp.newFragment(dateNewFragment)
+            expect(mockCommunication.put).lastCalledWith(fragmentIdentifier)
+            expect(mockCommunication.patch).lastCalledWith(lilBase+'.meta',`DELETE DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <${inboxContainerURL}> .};
+INSERT DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/1664841600000/> .
+ _:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
+_:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
+_:b0 <https://w3id.org/tree#path> <http://purl.org/dc/terms/created> .
+_:b0 <https://w3id.org/tree#value> "${dateNewFragment.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:b0 .
+ }`)
+        });
+
+        it('rejects when the PATCH request failed.', async () => {
+            // patch metadata fails
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 409}))
+            // deletion of container is successful
+            mockCommunication.delete.mockResolvedValue(new Response(null, {status: 205}))
+
+            await expect(async () => ldesinldp.newFragment(dateNewFragment)).rejects.toThrow(Error)
+            expect(mockCommunication.put).lastCalledWith(fragmentIdentifier)
+            expect(mockCommunication.delete).lastCalledWith(fragmentIdentifier)
+
+        });
+    });
 })

@@ -14,19 +14,20 @@ import {RDF} from "@solid/community-server";
 import {baseUrl} from "../../util/solidHelper";
 import {Readable} from "stream";
 import quad = DataFactory.quad;
+import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldesinldp/Util";
 
 describe('A VersionAwareLDESinLDP', () => {
     let mockLDESinLDP: jest.Mocked<ILDESinLDP>
     let vAwareLDESinLDP: VersionAwareLDESinLDP
     const ldesinLDPIdentifier = "http://example.org/ldesinldp/"
 
-    function createResource(versionId: string, materializedId: string, date?: Date): Quad[] {
+    function createResource(memberId: string, versionId: string, date?: Date): Quad[] {
         const store = new Store()
         date = date ? date : new Date()
-        store.addQuad(namedNode(versionId), namedNode(DCT.title), literal(`A title at ${date.toLocaleString()}`))
-        store.addQuad(namedNode(versionId), namedNode(DCT.isVersionOf), namedNode(materializedId))
-        store.addQuad(namedNode(versionId), namedNode(DCT.created), dateToLiteral(date))
-        store.addQuad(namedNode(resourceBase + '#collection'), namedNode(TREE.member), namedNode(versionId)) // added to make storeAsMemberStream work
+        store.addQuad(namedNode(memberId), namedNode(DCT.title), literal(`A title at ${date.toLocaleString()}`))
+        store.addQuad(namedNode(memberId), namedNode(DCT.isVersionOf), namedNode(versionId))
+        store.addQuad(namedNode(memberId), namedNode(DCT.created), dateToLiteral(date))
+        store.addQuad(namedNode(resourceBase + '#collection'), namedNode(TREE.member), namedNode(memberId)) // added to make storeAsMemberStream work
         return store.getQuads(null, null, null, null)
     }
 
@@ -198,8 +199,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         it('throws error when resource was deleted.', async () => {
             // stream with one resource with extra triples
             const resource1Quads = createResource(resource1 + 'v1', resource1, new Date("2022-01-01T00:00:00"))
-            const resource1Quadsv2 = createResource(resource1 + 'v2', resource1,new Date("2022-01-02T00:00:00"))
-            resource1Quadsv2.push(quad(namedNode(resource1 + 'v2'),namedNode(RDF.type),namedNode(LDES.DeletedLDPResource)))
+            const resource1Quadsv2 = createResource(resource1 + 'v2', resource1, new Date("2022-01-02T00:00:00"))
+            resource1Quadsv2.push(quad(namedNode(resource1 + 'v2'), namedNode(RDF.type), namedNode(LDES.DeletedLDPResource)))
             const stream = new Readable({
                 objectMode: true,
                 read() {
@@ -242,12 +243,6 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
     });
 
     describe('when deleting a version aware LDES in LDP', () => {
-
-
-        beforeEach(() => {
-
-
-        });
         it('succeeds when the materializedIdentifier does already exist.', async () => {
             await expect(await vAwareLDESinLDP.delete(resource1)).toBeUndefined()
         });
@@ -272,6 +267,109 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             mockLDESinLDP.readAllMembers.mockResolvedValueOnce(stream)
             await expect(await vAwareLDESinLDP.delete(resource1)).toBeUndefined()
 
+        });
+    });
+
+    describe('when requesting multiple versions', () => {
+
+        const memberDate1 = new Date("2022-01-01")
+        const memberDate2 = new Date("2022-02-01")
+        const memberDate3 = new Date("2022-03-01")
+        const memberDate4 = new Date("2022-04-01")
+        const t1 = new Date("2022-01-05")
+        const t2 = new Date("2022-03-05")
+
+        function createLDESStore(date: Date): Store {
+            const store = new Store()
+            createVersionedEventStream(store, {
+                LDESinLDPIdentifier: ldesinLDPIdentifier,
+                treePath: DCT.created,
+                versionOfPath: DCT.isVersionOf
+            }, date)
+            const relationIdentifier = getRelationIdentifier(ldesinLDPIdentifier, date)
+            store.addQuad(namedNode(ldesinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
+            return store
+        }
+
+        beforeEach(() => {
+            mockLDESinLDP.readChildren.mockImplementation((id): AsyncIterable<Store> => {
+                async function* test() {
+                    yield new Store(createResource('#resource', resource1, memberDate1))
+                    yield new Store(createResource('#resource', resource1, memberDate2))
+                    yield new Store(createResource('#resource', resource1, memberDate3))
+                    yield new Store(createResource('#resource', resource1, memberDate4))
+                    yield new Store(createResource('#resource', resource2, memberDate1))
+                }
+
+                return test()
+            })
+        });
+
+        it('returns the most recent version when no option is given.', async () => {
+            const versions = await vAwareLDESinLDP.extractVersions(resource1)
+            expect(versions.length).toBe(1)
+            expect(versions[0].quads).toEqual(createResource('#resource', resource1, memberDate4))
+        });
+
+        it('return all versions.', async () => {
+            const versions = await vAwareLDESinLDP.extractVersions(resource1, {
+                amount: Infinity,
+                chronologically: true,
+            })
+            expect(versions.length).toBe(4)
+            expect(versions[0].quads).toEqual(createResource('#resource', resource1, memberDate1))
+            expect(versions[1].quads).toEqual(createResource('#resource', resource1, memberDate2))
+            expect(versions[2].quads).toEqual(createResource('#resource', resource1, memberDate3))
+            expect(versions[3].quads).toEqual(createResource('#resource', resource1, memberDate4))
+
+        });
+
+        it('returns all versions between t1 and t2 chronologically.', async () => {
+            const relationDate = new Date('2022-01-01')
+            const store = createLDESStore(relationDate)
+
+            mockLDESinLDP.readMetadata.mockResolvedValueOnce(store)
+            console.log(storeToString(store))
+
+            const versions = await vAwareLDESinLDP.extractVersions(resource1, {
+                amount: Infinity,
+                chronologically: true,
+                startDate: t1,
+                endDate: t2
+            })
+            expect(versions.length).toBe(2)
+            expect(versions[0].quads).toEqual(createResource('#resource', resource1, memberDate2))
+            expect(versions[1].quads).toEqual(createResource('#resource', resource1, memberDate3))
+        })
+
+        it('returns all versions between t1 and t2 reverse chronologically.', async () => {
+            const relationDate = new Date('2022-01-01')
+            const store = createLDESStore(relationDate)
+
+            mockLDESinLDP.readMetadata.mockResolvedValueOnce(store)
+            console.log(storeToString(store))
+
+            const versions = await vAwareLDESinLDP.extractVersions(resource1, {
+                amount: Infinity,
+                chronologically: false,
+                startDate: t1,
+                endDate: t2
+            })
+            expect(versions.length).toBe(2)
+            expect(versions[0].quads).toEqual(createResource('#resource', resource1, memberDate3))
+            expect(versions[1].quads).toEqual(createResource('#resource', resource1, memberDate2))
+        })
+
+
+        it('returns nothing when there are no members.', async () => {
+            // mock the resources
+            mockLDESinLDP.readChildren.mockImplementation((id): AsyncIterable<Store> => {
+                async function* test() {
+                }
+                return test()
+            })
+            const versions = await vAwareLDESinLDP.extractVersions(resource1)
+            expect(versions.length).toBe(0)
         });
     });
 })
