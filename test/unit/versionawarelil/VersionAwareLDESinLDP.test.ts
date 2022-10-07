@@ -236,8 +236,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             await expect(await vAwareLDESinLDP.update(resource1, updatedResourceStore, '#resource')).toBeUndefined()
         });
 
-        it('throws an error when the materializedIdentifier does not exist yet.', async () => {
-            await expect(async () => await vAwareLDESinLDP.update(baseUrl + 'resource3', updatedResourceStore)).rejects.toThrow(Error)
+        it('succeeds when the materializedIdentifier does not exist yet.', async () => {
+            await expect(await vAwareLDESinLDP.update(baseUrl + 'resource3', updatedResourceStore)).toBeUndefined()
         });
     });
 

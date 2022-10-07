@@ -109,9 +109,9 @@ export class LDESinLDP implements ILDESinLDP {
         await this.updateMetadata(inboxURL)
         await this.maybeNewFragment();
 
-        const response = await this.communication.post(inboxURL, storeToString(store))
+        const response = await this.communication.post(this.metadata.inbox, storeToString(store))
         if (response.status !== 201) {
-            throw Error(`The resource was not be created at ${inboxURL} 
+            throw Error(`The resource was not be created at ${this.metadata.inbox} 
             | status code: ${response.status}`)
         }
         const resourceLocation = response.headers.get('Location')
@@ -165,6 +165,9 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
             console.log(await response.text())
             throw Error(`The LDES metadata ${metadata.ldesEventStreamIdentifier} was not updated for the new relation ${relationIdentifier} | status code: ${response.status}`)
         }
+
+        // update local metadata -> not Relation also must be added to metadata
+        this.metadata.inbox = relationIdentifier
     }
 
     public async readMetadata(): Promise<Store> {

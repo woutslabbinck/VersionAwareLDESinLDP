@@ -179,7 +179,6 @@ export class VersionAwareLDESinLDP {
     /**
      * Creates a new resource in the LDES in LDP using the protocol.
      * Also adds the timestamp and version triples.
-     * Throws an error if the identifier already exists in the LDES in LDP
      *
      * Note: the memberID must correspond to the main subject in the graph
      * @param versionIdentifier The identifier of the version object
@@ -188,13 +187,6 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<any>}
      */
     public async update(versionIdentifier: string, store: Store, memberIdentifier?: string): Promise<void> {
-        // check whether it exists already
-        try {
-            await this.read(versionIdentifier)
-        } catch (e) {
-            throw Error(`Could not update ${versionIdentifier} as it does not exist already.`)
-        }
-
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
         memberIdentifier = memberIdentifier ? memberIdentifier : "#resource";

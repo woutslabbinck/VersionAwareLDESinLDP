@@ -17,7 +17,7 @@ describe('An LDESinLDP', () => {
     let mockCommunication: jest.Mocked<Communication>
     let ldesinldp: LDESinLDP
     const lilBase = 'http://example.org/ldesinldp/'
-    const inboxContainerURL = 'http://example.org/ldesinldp/timestamp/'
+    const inboxContainerURL = 'http://example.org/ldesinldp/timestamppath/'
     const createdURL = 'http://example.org/ldesinldp/timestamp/created'
 
     let readMetadataResponse: Response
@@ -216,7 +216,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(mockCommunication.get).toBeCalledTimes(2)
             expect(mockCommunication.put).toBeCalledTimes(0)
             expect(mockCommunication.post).toBeCalledTimes(1)
-            expect(mockCommunication.post).toBeCalledWith(inboxContainerURL, storeToString(resourceStore))
+            expect(mockCommunication.post).toBeCalledWith(getRelationIdentifier(lilBase, date), storeToString(resourceStore))
 
         });
     })
