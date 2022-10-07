@@ -109,8 +109,5 @@ dist
 # config file
 config.json
 
-# package
-package-lock.json
-
 # data
 data
