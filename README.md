@@ -24,8 +24,8 @@ It provides functions to **initialise** a versioned LDES in LDP and **create**, 
 
 The class `LDESinLDP` is an implementation of the LDES in LDP protocol.  This class is used within `VersionAwareLDESinLDP` and provides some utilities.
 
-The three main features **initialising**, **appending a member** and **creating a new fragment** are implemented through their respective function `initialise`, `create` and `newFragment`.
-However, adding the version triple and time triple to append a member to the LDES in LDP is not done in the `create` function.
+The three main features **initialising**, **appending a member** and **creating a new fragment** are implemented through their respective function `initialise`, `append` and `newFragment`.
+However, adding the version triple and time triple to append a member to the LDES in LDP is not done in the `append` function.
 
 ## Using the library
 
@@ -38,6 +38,8 @@ First install the packages.
 npm i @treecg/versionawareldesinldp
 # (Optionally) set up a solid server
 npx @solid/community-server -p 3000 -f ./data -c "@css:config/file-no-setup.json"
+# or one without file system
+npx @solid/community-server -c test/util/memory-no-setup.json
 ```
 
 ### Initialising an LDES in LDP
