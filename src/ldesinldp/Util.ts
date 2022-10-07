@@ -49,7 +49,7 @@ export function createVersionedEventStream(store: Store, config: LDESinLDPConfig
     store.addQuad(eventStreamNode, namedNode(LDES.timestampPath), namedNode(config.treePath))
 
     addShapeToEventStream(store, {eventStreamIdentifier, shape: config.shape});
-    addRootNodetoEventStream(store, {
+    addRootNodeToEventStream(store, {
         eventStreamIdentifier: eventStreamIdentifier,
         nodeIdentifier: config.LDESinLDPIdentifier,
         treePath: config.treePath,
@@ -77,7 +77,7 @@ export interface LDESinLDPRootNodeConfig {
  * @param store
  * @param config
  */
-export function addRootNodetoEventStream(store: Store, config: LDESinLDPRootNodeConfig): void {
+export function addRootNodeToEventStream(store: Store, config: LDESinLDPRootNodeConfig): void {
     const eventStreamNode = namedNode(config.eventStreamIdentifier)
     const rootNode = namedNode(config.nodeIdentifier)
 

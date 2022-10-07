@@ -76,7 +76,7 @@ export class VersionAwareLDESinLDP {
         addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.create(store)
+        await this.LDESinLDP.append(store)
     }
 
     /**
@@ -201,7 +201,7 @@ export class VersionAwareLDESinLDP {
         addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.update(store)
+        await this.LDESinLDP.append(store)
     }
 
     /**
@@ -242,7 +242,7 @@ export class VersionAwareLDESinLDP {
         addDeletedTriple(store, versionSpecificIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.delete(store)
+        await this.LDESinLDP.append(store)
     }
 
     /**
@@ -277,7 +277,7 @@ export class VersionAwareLDESinLDP {
 
         const datedMembers: MemberDate [] = []
         for (const relation of filteredRelations) {
-            const resources = this.LDESinLDP.readChildren(relation.node)
+            const resources = this.LDESinLDP.readPage(relation.node)
 
             for await (const resource of resources) {
                 const resourceVersionID = extractVersionId(resource, metadata.versionOfPath)

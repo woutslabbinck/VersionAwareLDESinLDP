@@ -27,4 +27,10 @@ export interface LDESinLDPConfig {
      * URI used to indicate the ldes:versionOfPath
      */
     versionOfPath: string
+
+    /**
+     * Also mentioned as bucket size en @treecg/types.
+     * When a fragmentation has greater or equal than `size`, a new relation MUST be added
+     */
+    pageSize?: number
 }

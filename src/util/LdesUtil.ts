@@ -8,6 +8,7 @@ import {Store} from "n3";
 import {extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 import {LDES, LDP, RDF, TREE} from "./Vocabularies";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
+import {storeToString} from "./Conversion";
 
 export interface Relation {
     type: string
@@ -21,6 +22,7 @@ export interface LDESMetadata {
     timestampPath: string
     versionOfPath: string
     deletedType: string
+    fragmentSize?: number // Note: temporary -> after discussion with Arthur should be changed
     views: {
         id: string
         relations: Relation[]
@@ -32,6 +34,8 @@ export function extractLdesMetadata(store: Store, ldesIdentifier: string): LDESM
     let snapshotOptions: ISnapshotOptions
     const views = []
     let inbox: string
+    const str = storeToString(store)
+    let fragmentSize: number | undefined
     try {
         snapshotOptions = extractSnapshotOptions(store, ldesIdentifier)
         const viewIdentifiers = store.getObjects(ldesIdentifier, TREE.view, null).map(object => object.value)
@@ -48,6 +52,11 @@ export function extractLdesMetadata(store: Store, ldesIdentifier: string): LDESM
                 relations.push(relation)
             }
             views.push({id: viewIdentifier, relations: relations})
+
+            if (store.getObjects(viewIdentifier, LDES.pageSize, null)[0]) { // NOTE: might be changed based on viewDescription
+                fragmentSize = parseInt(store.getObjects(viewIdentifier, LDES.pageSize, null)[0].value)
+            }
+
         }
 
         inbox = store.getObjects(null, LDP.inbox, null)[0].value
@@ -60,6 +69,15 @@ export function extractLdesMetadata(store: Store, ldesIdentifier: string): LDESM
         views: views,
         timestampPath: snapshotOptions.timestampPath!,
         versionOfPath: snapshotOptions.versionOfPath!,
-        inbox: inbox
+        inbox: inbox,
+        fragmentSize
     }
+}
+
+export function extractLDESIdentifier(store: Store) {
+    const ldes = store.getSubjects(RDF.type, LDES.EventStream, null)
+    if (ldes.length > 1) {
+        console.log(`Multiple LDESes detected. ${ldes[0].value} was extracted`)
+    }
+    return ldes[0].value
 }

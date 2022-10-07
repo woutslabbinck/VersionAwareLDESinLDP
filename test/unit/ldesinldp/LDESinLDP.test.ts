@@ -1,9 +1,14 @@
 import {LDESinLDP} from "../../../src/ldesinldp/LDESinLDP";
-import {DCT, LDP} from "../../../src/util/Vocabularies";
-import {Store} from "n3";
+import {DCT, LDES, LDP} from "../../../src/util/Vocabularies";
+import {DataFactory, Store} from "n3";
 import {Communication} from "../../../src/ldp/Communication";
 import {extractLdesMetadata} from "../../../src/util/LdesUtil";
-import {memberStreamtoStore,} from "../../../src/util/Conversion";
+import {memberStreamtoStore, storeToString,} from "../../../src/util/Conversion";
+import {LDESinLDPConfig} from "../../../src/ldesinldp/LDESinLDPConfig";
+import mock = jest.mock;
+import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldesinldp/Util";
+import namedNode = DataFactory.namedNode;
+import literal = DataFactory.literal;
 
 describe('An LDESinLDP', () => {
     const resourceStore = new Store()
@@ -15,6 +20,10 @@ describe('An LDESinLDP', () => {
     const inboxContainerURL = 'http://example.org/ldesinldp/timestamp/'
     const createdURL = 'http://example.org/ldesinldp/timestamp/created'
 
+    let readMetadataResponse: Response
+    let textTurtleHeader: Headers
+
+    let config: LDESinLDPConfig
     const lilString = `
 <http://example.org/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Node> .
 <http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:genid1 .
@@ -28,6 +37,14 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 <http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#timestampPath> <http://purl.org/dc/terms/created> .
 <http://example.org/ldesinldp/#EventStream> <https://w3id.org/tree#view> <http://example.org/ldesinldp/> .
 `
+    beforeAll(() => {
+        config = {
+            LDESinLDPIdentifier: lilBase,
+            treePath: DCT.created,
+            versionOfPath: DCT.isVersionOf
+        }
+    });
+
     beforeEach(() => {
         mockCommunication = {
             delete: jest.fn(),
@@ -43,6 +60,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         const headResponse = new Response(null, {status: 200, headers: inboxHeader})
         mockCommunication.head.mockResolvedValue(headResponse)
 
+        textTurtleHeader = new Headers(new Headers({'content-type': 'text/turtle'}))
+        readMetadataResponse = new Response(lilString, {status: 200, headers: textTurtleHeader})
         ldesinldp = new LDESinLDP(lilBase, mockCommunication)
     });
 
@@ -61,27 +80,144 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
     });
 
-    describe('when creating a resource from an LDES in LDP', () => {
-        it('returns the URL of the created resource when succeeded.', async () => {
-            const locationHeader = new Headers({'Location': createdURL})
-            const postResponse = new Response(null, {status: 201, headers: locationHeader})
-            mockCommunication.post.mockResolvedValueOnce(postResponse)
+    describe('when initialising an LDES in LDP', () => {
+        let store: Store
+        let relationIdentifier: string
 
-            await expect(ldesinldp.create(resourceStore)).resolves.toBe(createdURL)
+        beforeEach(() => {
+            store = new Store()
+            createVersionedEventStream(store, config, date)
+            relationIdentifier = getRelationIdentifier(lilBase, date)
+            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
+        });
+
+        it('succeeds when it was not initialised yet.', async () => {
+            mockCommunication.put.mockResolvedValue(new Response(null, {status: 201}))
+            mockCommunication.patch.mockResolvedValue(new Response(null, {status: 205}))
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 500}))
+
+            const patchQuery = `INSERT DATA {${storeToString(store)}}`
+
+            await ldesinldp.initialise(config, date)
+            expect(mockCommunication.patch).toBeCalledWith(lilBase + '.meta', patchQuery)
+            expect(mockCommunication.patch).toBeCalledTimes(1)
+            expect(mockCommunication.put).toBeCalledTimes(2)
+            expect(mockCommunication.put).toHaveBeenNthCalledWith(1, lilBase)
+            expect(mockCommunication.put).toHaveBeenNthCalledWith(2, relationIdentifier)
+        })
+
+        it('persists the maximum page size.', async () => {
+            mockCommunication.put.mockResolvedValue(new Response(null, {status: 201}))
+            mockCommunication.patch.mockResolvedValue(new Response(null, {status: 205}))
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 500}))
+
+            const pageSize = 10
+            config.pageSize = pageSize
+
+            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDES.pageSize), literal(config.pageSize))
+            const patchQuery = `INSERT DATA {${storeToString(store)}}`
+
+            await ldesinldp.initialise(config, date)
+            expect(mockCommunication.patch).toBeCalledWith(lilBase + '.meta', patchQuery)
+        })
+
+        it('succeeds when it was already initialised.', async () => {
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 200}))
+
+            await ldesinldp.initialise(config)
+            expect(mockCommunication.head).toBeCalledWith(lilBase)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+
+        });
+    });
+
+    describe('when appending a resource to an LDES in LDP', () => {
+        // store for metadata
+        let store: Store
+        const pageSize = 1
+        let postResponse: Response
+
+        beforeEach(() => {
+            // mock for updateMetadata
+            mockCommunication.get.mockResolvedValue(readMetadataResponse)
+
+            // metadata with pageSize store
+            store = new Store()
+            createVersionedEventStream(store, config, date)
+            config.pageSize = pageSize
+
+            const relationIdentifier = getRelationIdentifier(lilBase, date)
+            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
+            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDES.pageSize), literal(config.pageSize))
+
+            const locationHeader = new Headers({'Location': createdURL})
+            postResponse = new Response(null, {status: 201, headers: locationHeader})
+
+        });
+
+        it('returns the URL of the created resource when succeeded.', async () => {
+            mockCommunication.post.mockResolvedValueOnce(postResponse)
+            await expect(ldesinldp.append(resourceStore)).resolves.toBe(createdURL)
+            expect(mockCommunication.post).toBeCalledWith(inboxContainerURL, storeToString(resourceStore))
+            expect(mockCommunication.post).toBeCalledTimes(1)
+            expect(mockCommunication.get).toBeCalledTimes(1)
+
         });
 
         it('throws error when posting the resource failed.', async () => {
-            const postResponse = new Response(null, {status: 500})
+            postResponse = new Response(null, {status: 500})
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
-            await expect(ldesinldp.create(resourceStore)).rejects.toThrow(Error)
+            await expect(ldesinldp.append(resourceStore)).rejects.toThrow(Error)
+            expect(mockCommunication.post).toBeCalledTimes(1)
+
         });
 
         it('throws error when no location is returned.', async () => {
-            const postResponse = new Response(null, {status: 201})
+            postResponse = new Response(null, {status: 201})
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
-            await expect(ldesinldp.create(resourceStore)).rejects.toThrow(Error)
+            await expect(ldesinldp.append(resourceStore)).rejects.toThrow(Error)
+            expect(mockCommunication.post).toBeCalledTimes(1)
+        });
+
+        it('creates a new fragment when the # of members in the current fragment >= pageSize.', async () => {
+            const metadataResponse = new Response(storeToString(store), {status: 200, headers: textTurtleHeader})
+            mockCommunication.get.mockResolvedValueOnce(metadataResponse)
+
+            const fragmentStore = new Store()
+            fragmentStore.addQuad(namedNode(getRelationIdentifier(lilBase, date)), namedNode(LDP.contains), namedNode('childURL'))
+            const fragmentResponse = new Response(storeToString(fragmentStore), {status: 200, headers: textTurtleHeader})
+            mockCommunication.get.mockResolvedValueOnce(fragmentResponse)
+            // mock container created -> for new fragment
+            mockCommunication.put.mockResolvedValue(new Response(null, {status: 201}))
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 205}))
+            // mock new resource created -> new member (append method)
+            mockCommunication.post.mockResolvedValueOnce(postResponse)
+
+            await ldesinldp.append(resourceStore)
+
+            expect(mockCommunication.get).toBeCalledTimes(3)
+            expect(mockCommunication.put).toBeCalledTimes(1)
+            expect(mockCommunication.post).toBeCalledTimes(1)
+            expect(mockCommunication.patch).toBeCalledTimes(1)
+        });
+
+        it('creates no new fragment when the # of members in the current fragment < pageSize.', async () => {
+            const metadataResponse = new Response(storeToString(store), {status: 200, headers: textTurtleHeader})
+            mockCommunication.get.mockResolvedValueOnce(metadataResponse)
+
+            const fragmentResponse = new Response(storeToString(new Store()), {status: 200, headers: textTurtleHeader})
+            mockCommunication.get.mockResolvedValueOnce(fragmentResponse)
+
+            mockCommunication.post.mockResolvedValueOnce(postResponse)
+            await ldesinldp.append(resourceStore)
+
+            expect(mockCommunication.get).toBeCalledTimes(2)
+            expect(mockCommunication.put).toBeCalledTimes(0)
+            expect(mockCommunication.post).toBeCalledTimes(1)
+            expect(mockCommunication.post).toBeCalledWith(inboxContainerURL, storeToString(resourceStore))
+
         });
     })
 
@@ -111,26 +247,6 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
             await expect(() => ldesinldp.read(createdURL)).rejects.toThrow(Error)
 
-        });
-    })
-
-    describe('when updating a resource from an LDES in LDP', () => {
-        it('returns the URL of the updated resource when succeeded.', async () => {
-            const locationHeader = new Headers({'Location': createdURL})
-            const postResponse = new Response(null, {status: 201, headers: locationHeader})
-            mockCommunication.post.mockResolvedValueOnce(postResponse)
-
-            await expect(ldesinldp.update(resourceStore)).resolves.toBe(createdURL)
-        });
-    })
-
-    describe('when deleting a resource from an LDES in LDP', () => {
-        it('returns the URL of the deleted resource when succeeded.', async () => {
-            const locationHeader = new Headers({'Location': createdURL})
-            const postResponse = new Response(null, {status: 201, headers: locationHeader})
-            mockCommunication.post.mockResolvedValueOnce(postResponse)
-
-            await expect(ldesinldp.delete(resourceStore)).resolves.toBe(createdURL)
         });
     })
 
@@ -229,7 +345,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
             await ldesinldp.newFragment(dateNewFragment)
             expect(mockCommunication.put).lastCalledWith(fragmentIdentifier)
-            expect(mockCommunication.patch).lastCalledWith(lilBase+'.meta',`DELETE DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <${inboxContainerURL}> .};
+            expect(mockCommunication.patch).lastCalledWith(lilBase + '.meta', `DELETE DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <${inboxContainerURL}> .};
 INSERT DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/1664841600000/> .
  _:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
 _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
