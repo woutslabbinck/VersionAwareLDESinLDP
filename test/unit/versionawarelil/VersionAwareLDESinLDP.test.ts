@@ -51,16 +51,15 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
     beforeEach(async () => {
         mockLDESinLDP = {
             newFragment: jest.fn(),
-            readChildren: jest.fn(),
+            readPage: jest.fn(),
             LDESinLDPIdentifier: ldesinLDPIdentifier,
-            create: jest.fn(),
-            delete: jest.fn(),
+            append: jest.fn(),
             initialise: jest.fn(),
             read: jest.fn(),
             readAllMembers: jest.fn(),
             readMetadata: jest.fn(),
-            update: jest.fn()
         }
+
         const memberStore = new Store()
         memberStore.addQuads(createResource(resourceBase + 'resource1v1', resource1))
         memberStore.addQuads(createResource(resourceBase + 'resource1v2', resource1))
@@ -237,8 +236,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             await expect(await vAwareLDESinLDP.update(resource1, updatedResourceStore, '#resource')).toBeUndefined()
         });
 
-        it('throws an error when the materializedIdentifier does not exist yet.', async () => {
-            await expect(async () => await vAwareLDESinLDP.update(baseUrl + 'resource3', updatedResourceStore)).rejects.toThrow(Error)
+        it('succeeds when the materializedIdentifier does not exist yet.', async () => {
+            await expect(await vAwareLDESinLDP.update(baseUrl + 'resource3', updatedResourceStore)).toBeUndefined()
         });
     });
 
@@ -292,7 +291,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         }
 
         beforeEach(() => {
-            mockLDESinLDP.readChildren.mockImplementation((id): AsyncIterable<Store> => {
+            mockLDESinLDP.readPage.mockImplementation((id): AsyncIterable<Store> => {
                 async function* test() {
                     yield new Store(createResource('#resource', resource1, memberDate1))
                     yield new Store(createResource('#resource', resource1, memberDate2))
@@ -329,7 +328,6 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const store = createLDESStore(relationDate)
 
             mockLDESinLDP.readMetadata.mockResolvedValueOnce(store)
-            console.log(storeToString(store))
 
             const versions = await vAwareLDESinLDP.extractVersions(resource1, {
                 amount: Infinity,
@@ -347,7 +345,6 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const store = createLDESStore(relationDate)
 
             mockLDESinLDP.readMetadata.mockResolvedValueOnce(store)
-            console.log(storeToString(store))
 
             const versions = await vAwareLDESinLDP.extractVersions(resource1, {
                 amount: Infinity,
@@ -363,7 +360,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
         it('returns nothing when there are no members.', async () => {
             // mock the resources
-            mockLDESinLDP.readChildren.mockImplementation((id): AsyncIterable<Store> => {
+            mockLDESinLDP.readPage.mockImplementation((id): AsyncIterable<Store> => {
                 async function* test() {
                 }
                 return test()

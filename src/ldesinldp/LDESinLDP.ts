@@ -7,8 +7,8 @@
 import {ILDESinLDP} from "./ILDESinLDP";
 import {Communication} from "../ldp/Communication";
 import {LDESinLDPConfig} from "./LDESinLDPConfig";
-import {DataFactory, Literal, Store} from "n3";
-import {Readable, Transform} from "stream";
+import {DataFactory, Store} from "n3";
+import {Readable} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {
@@ -20,18 +20,29 @@ import {
 } from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {Logger} from "../logging/Logger";
-import namedNode = DataFactory.namedNode;
-import {extractLdesMetadata} from "../util/LdesUtil";
+import {extractLDESIdentifier, extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
 import {filterRelation} from "../versionawarelil/Util";
+import namedNode = DataFactory.namedNode;
+import literal = DataFactory.literal;
 
 export class LDESinLDP implements ILDESinLDP {
     private readonly _LDESinLDPIdentifier: string;
     private readonly communication: Communication;
     private readonly logger: Logger = new Logger(this);
+    private metadata: LDESMetadata;
 
     public constructor(LDESinLDPIdentifier: string, communication: Communication) {
         this._LDESinLDPIdentifier = LDESinLDPIdentifier;
         this.communication = communication;
+        this.metadata = { //TODO fill in and rewrite code a bit
+            deletedType: LDES.DeletedLDPResource,
+            inbox: "",
+            ldesEventStreamIdentifier: LDESinLDPIdentifier,
+            timestampPath: DCT.created,
+            versionOfPath: DCT.isVersionOf,
+            views: []
+
+        }
         if (!isContainerIdentifier(LDESinLDPIdentifier)) {
             throw Error(`${LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }
@@ -39,6 +50,10 @@ export class LDESinLDP implements ILDESinLDP {
 
     get LDESinLDPIdentifier(): string {
         return this._LDESinLDPIdentifier;
+    }
+
+    private get fragmentSize(): number | undefined {
+        return this.metadata.fragmentSize
     }
 
     public async initialise(config: LDESinLDPConfig, date?: Date): Promise<void> {
@@ -64,6 +79,13 @@ export class LDESinLDP implements ILDESinLDP {
         // add inbox
         store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
 
+        // add fragmentation state -> saved in tree:viewDescription
+        if (!!config.pageSize) {
+            // Note: Should be maybe in a tree:viewDescription
+            // TODO: discuss with Arthur about https://github.com/Informatievlaanderen/OSLOthema-ldes/issues/4
+            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDES.pageSize), literal(config.pageSize))
+        }
+
         // send request to server to create base of the LDES in LDP
         await createContainer(config.LDESinLDPIdentifier, this.communication)
         const response = await this.communication.patch(config.LDESinLDPIdentifier + '.meta', // Note: currently meta hardcoded
@@ -75,13 +97,20 @@ export class LDESinLDP implements ILDESinLDP {
         }
         // create first relation container
         await createContainer(relationIdentifier, this.communication)
+
+        // update ldes metadata
+        this.metadata = extractLdesMetadata(store, extractLDESIdentifier(store))
     }
 
-    public async create(store: Store): Promise<string> {
-        const location = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication);
-        const response = await this.communication.post(location, storeToString(store))
+    public async append(store: Store): Promise<string> {
+        const inboxURL = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication);
+        // update metadata if write location is different from current inboxURL based on metadata
+        await this.updateMetadata(inboxURL)
+        await this.maybeNewFragment();
+
+        const response = await this.communication.post(this.metadata.inbox, storeToString(store))
         if (response.status !== 201) {
-            throw Error(`The resource was not be created at ${location} 
+            throw Error(`The resource was not be created at ${this.metadata.inbox} 
             | status code: ${response.status}`)
         }
         const resourceLocation = response.headers.get('Location')
@@ -105,14 +134,6 @@ export class LDESinLDP implements ILDESinLDP {
         return await turtleStringToStore(text, resourceIdentifier)
     }
 
-    public async update(store: Store): Promise<string> {
-        return await this.create(store)
-    }
-
-    public async delete(store: Store): Promise<string> {
-        return await this.create(store)
-    }
-
     public async newFragment(date?: Date) {
         date = date ?? new Date()
         const relationIdentifier = this._LDESinLDPIdentifier + date.getTime() + '/'
@@ -122,9 +143,8 @@ export class LDESinLDP implements ILDESinLDP {
 
         // get tree path from other relations
         // Assumptions: one view and at least one relation (all relations GTE)
-        const metadataStore = await this.readMetadata()
-        const eventStreamURI = metadataStore.getQuads(null, RDF.type, LDES.EventStream, null)[0].subject.value
-        const metadata = extractLdesMetadata(metadataStore, eventStreamURI)
+        // TODO: extract treePath from viewDescription (https://github.com/ajuvercr/sds-processors/blob/master/bucketizeStrategy.ttl) -> meeting Arthur
+        const metadata = await this.extractLdesMetadata()
         const treePath = metadata.views[0].relations[0].path
 
         // create new relation
@@ -132,6 +152,7 @@ export class LDESinLDP implements ILDESinLDP {
         addRelationToNode(relationStore, {date, nodeIdentifier: this._LDESinLDPIdentifier, treePath: treePath})
 
         // update metadata: both the relation and the inbox
+        // TODO: only update inbox if the new date is bigger than the current!!
         const currentInbox = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication)
         const sparqlUpdateQuery = `DELETE DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};
 INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .
@@ -141,10 +162,12 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
             const deleteContainerResponse = await this.communication.delete(relationIdentifier)
             console.log(`Removing container ${relationIdentifier} | status code ${deleteContainerResponse.status}`)
             console.log(await response.text())
-            throw Error(`The LDES metadata ${eventStreamURI} was not updated for the new relation ${relationIdentifier} | status code: ${response.status}`)
+            throw Error(`The LDES metadata ${metadata.ldesEventStreamIdentifier} was not updated for the new relation ${relationIdentifier} | status code: ${response.status}`)
         }
-    }
 
+        // update local metadata -> not Relation also must be added to metadata
+        this.metadata.inbox = relationIdentifier
+    }
 
     public async readMetadata(): Promise<Store> {
         const rootStore = await this.read(this._LDESinLDPIdentifier)
@@ -194,7 +217,7 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
             }
         })
         for (const relation of relations) {
-            const resources = comm.readChildren(relation.node)
+            const resources = comm.readPage(relation.node)
             for await (const resource of resources) {
                 const memberId = resource.getSubjects(DCT.isVersionOf, null, null)[0].value
                 memberStream.push({
@@ -207,13 +230,53 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
         return memberStream
     }
 
-    public async* readChildren(containerURL: string): AsyncIterable<Store> {
+    /**
+     * Return all the resources (members) of a container as an Iterable.
+     * @param containerURL
+     */
+    public async* readPage(containerURL: string): AsyncIterable<Store> {
         if (isContainerIdentifier(containerURL)) {
             const store = await this.read(containerURL)
             const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
             for (const childURL of children) {
                 const resourceStore = await this.read(childURL)
                 yield resourceStore
+            }
+        }
+    }
+
+    /**
+     * Extract some basic LDES metadata
+     *
+     * @returns {Promise<LDESMetadata>}
+     */
+    private async extractLdesMetadata(): Promise<LDESMetadata> {
+        const metadataStore = await this.readMetadata()
+        return extractLdesMetadata(metadataStore, extractLDESIdentifier(metadataStore))
+    }
+
+    /**
+     * Update the metadata based on the inbox? TODO check if makes sense
+     * @param inboxURL
+     * @returns {Promise<void>}
+     */
+    private async updateMetadata(inboxURL: string): Promise<void> {
+        if (this.metadata.inbox !== inboxURL) {
+            this.metadata = await this.extractLdesMetadata()
+        }
+    }
+
+    /**
+     * Create new fragment based on fragment size
+     * @returns {Promise<void>}
+     */
+    private async maybeNewFragment(): Promise<void> {
+        if (this.fragmentSize) {
+            const fragmentStore = await this.read(this.metadata.inbox)
+            const numberChildren = fragmentStore.countQuads(this.metadata.inbox, LDP.contains, null, null)
+
+            if (numberChildren >= this.fragmentSize) {
+                await this.newFragment()
             }
         }
     }

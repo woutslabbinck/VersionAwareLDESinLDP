@@ -118,13 +118,13 @@ export const RDF = createUriAndTermNamespace('http://www.w3.org/1999/02/22-rdf-s
     'type');
 
 export const TREE = createUriAndTermNamespace('https://w3id.org/tree#',
-    'Node',
     'Collection',
     'GreaterThanOrEqualToRelation',
+    'Node',
     'member',
     'node',
-    'relation',
     'path',
+    'relation',
     'shape',
     'value',
     'view');

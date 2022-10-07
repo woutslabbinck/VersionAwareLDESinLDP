@@ -20,42 +20,30 @@ export interface ILDESinLDP {
     initialise: (config: LDESinLDPConfig) => Promise<void>
 
     /**
-     * Creates a new resource in the LDESinLDP.
-     * Uses the LDESinLDP protocol to find the location.
+     * Appends a member to the LDES.
+     * Translated to LDES in LDP, this means creating a new ldp:resource to the write location.
+     * The LDESinLDP protocol is used to find the location.
      * Returns the URL of the created resource.
      * @param store first state of the resource
      */
-    create: (store: Store) => Promise<string>
+    append: (store: Store) => Promise<string>
 
     /**
-     * Reads the resource in the LDESinLDP.
+     * Reads the member (ldp:resource) in the LDESinLDP.
      * @param resourceIdentifier
      */
     read: (resourceIdentifier: string) => Promise<Store>
 
     /**
-     * Updates a resource in the LDESinLDP.
-     * Uses the create operation to add the updated version of the resource to the LDESinLDP.
-     * Returns the URL of the updated resource.
-     * @param store updated version of the resource
-     */
-    update: (store: Store) => Promise<string>
-
-    /**
-     * Marks the resource in the LDESinLDP as deleted.
-     * Returns the URL of the deleted resource.
-     * @param store previous version of the resource
-     */
-    delete: (store: Store) => Promise<string>
-
-    /**
-     * Create a new GTE relation (fragment) in the LDESinLDP
+     * Create a new GTE relation (fragment) in the LDES in LDP
+     *
+     * TODO: rewrite -> Also updates inbox
      * @param date
      */
     newFragment: (date?: Date) => Promise<void>
 
     /**
-     * Reads all the metadata of the LDESinLDP.
+     * Reads all the metadata of the LDESinLDP and returns that as an N3 Store.
      * Metadata includes the tree:relations, tree:path, ldes:timestampPath, ldes:versionOfPath, base of the LDESinLDP and optionally the tree:shape.
      * Throws an error when an obligated property is missing from the base.
      */
@@ -69,8 +57,8 @@ export interface ILDESinLDP {
     readAllMembers: (from?: Date, until?: Date) => Promise<Readable>
 
     /**
-     * Return all the resources (members) of a container as an Iterable.
-     * @param containerURL
+     * Return all the members (resources) of a fragment (container) as an Iterable.
+     * @param pageUrl
      */
-    readChildren: (containerURL: string) => AsyncIterable<Store>
+    readPage: (pageUrl: string) => AsyncIterable<Store>
 }

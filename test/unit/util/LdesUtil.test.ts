@@ -1,7 +1,9 @@
 import {turtleStringToStore} from "../../../src/util/Conversion";
-import {extractLdesMetadata} from "../../../src/util/LdesUtil";
-import {Store} from "n3";
+import {extractLDESIdentifier, extractLdesMetadata} from "../../../src/util/LdesUtil";
+import {DataFactory, Store} from "n3";
 import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
+import {RDF} from "@solid/community-server";
+import namedNode = DataFactory.namedNode;
 
 describe('An LdesUtil', () => {
     describe('for extracting metadata from a versioned LDES in LDP.', () => {
@@ -19,7 +21,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 <http://example.org/ldesinldp/#EventStream> <https://w3id.org/tree#view> <http://example.org/ldesinldp/> .
 `
         let store: Store
-        const ldesIdentifier ='http://example.org/ldesinldp/#EventStream'
+        const ldesIdentifier = 'http://example.org/ldesinldp/#EventStream'
         beforeAll(async () => {
             store = await turtleStringToStore(lilString)
 
@@ -40,7 +42,22 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('errors when the store does not contain all the information for the versioned LDES in LDP.', () => {
-            expect(() => extractLdesMetadata(new Store(),ldesIdentifier)).toThrow(Error)
+            expect(() => extractLdesMetadata(new Store(), ldesIdentifier)).toThrow(Error)
+        });
+    });
+    describe('for extracting an LDES identifier', () => {
+
+
+        it('succeeds when there are one or more LDESes.', () => {
+            const store = new Store()
+            const ldesIdentifier = 'ex:LDES'
+            store.addQuad(namedNode(ldesIdentifier), namedNode(RDF.type), namedNode(LDES.EventStream))
+            expect(extractLDESIdentifier(store)).toBe(ldesIdentifier)
+        });
+
+        it('fails when there are none.', () => {
+            expect(() => extractLDESIdentifier(new Store)).toThrow(Error)
+
         });
     });
 });

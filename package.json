@@ -1,6 +1,6 @@
 {
     "name": "@treecg/versionawareldesinldp",
-    "version": "0.0.1-alpha.0",
+    "version": "0.0.1",
     "description": "Client package for interacting with an LDES in LDP (version-aware approach)",
     "main": "./dist/Index.js",
     "types": "./dist/Index.d.ts",
@@ -45,7 +45,6 @@
         "loglevel": "^1.8.0",
         "loglevel-plugin-prefix": "^0.8.4",
         "n3": "^1.14.0",
-        "node-fetch": "^3.2.9",
         "rdf-store-stream": "^1.3.0",
         "streamify-string": "^1.0.1",
         "typescript": "^4.6.2",
@@ -62,6 +61,7 @@
         "jest": "^27.5.1",
         "node-mocks-http": "^1.11.0",
         "ts-jest": "^27.1.3",
-        "ts-node": "^10.6.0"
+        "ts-node": "^10.6.0",
+        "@dexagod/rdf-retrieval": "1.0.2"
     }
 }

@@ -2,7 +2,7 @@ import {baseUrl} from "../../util/solidHelper";
 import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {
     addRelationToNode,
-    addRootNodetoEventStream,
+    addRootNodeToEventStream,
     addShapeToEventStream, createContainer, createVersionedEventStream,
     retrieveWriteLocation
 } from "../../../src/ldesinldp/Util";
@@ -91,7 +91,7 @@ describe('A LDES in LDP Util', () => {
 
         it('adds a root node.', () => {
             const store = new Store()
-            addRootNodetoEventStream(store, {
+            addRootNodeToEventStream(store, {
                 date,
                 eventStreamIdentifier,
                 nodeIdentifier,

@@ -7,7 +7,7 @@
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
 import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
-import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
+import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
@@ -15,12 +15,12 @@ import {extractLdesMetadata, LDESMetadata, Relation} from "../util/LdesUtil";
 import {
     addDeletedTriple,
     addVersionSpecificTriples,
+    filterRelation,
     isDeleted,
-    removeVersionSpecificTriples,
-    filterRelation
+    removeVersionSpecificTriples
 } from "./Util";
-import namedNode = DataFactory.namedNode;
 import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
+import namedNode = DataFactory.namedNode;
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;
@@ -76,7 +76,7 @@ export class VersionAwareLDESinLDP {
         addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.create(store)
+        await this.LDESinLDP.append(store)
     }
 
     /**
@@ -179,7 +179,6 @@ export class VersionAwareLDESinLDP {
     /**
      * Creates a new resource in the LDES in LDP using the protocol.
      * Also adds the timestamp and version triples.
-     * Throws an error if the identifier already exists in the LDES in LDP
      *
      * Note: the memberID must correspond to the main subject in the graph
      * @param versionIdentifier The identifier of the version object
@@ -188,20 +187,13 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<any>}
      */
     public async update(versionIdentifier: string, store: Store, memberIdentifier?: string): Promise<void> {
-        // check whether it exists already
-        try {
-            await this.read(versionIdentifier)
-        } catch (e) {
-            throw Error(`Could not update ${versionIdentifier} as it does not exist already.`)
-        }
-
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
         memberIdentifier = memberIdentifier ? memberIdentifier : "#resource";
         addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.update(store)
+        await this.LDESinLDP.append(store)
     }
 
     /**
@@ -242,7 +234,7 @@ export class VersionAwareLDESinLDP {
         addDeletedTriple(store, versionSpecificIdentifier, metadata)
 
         // store in the ldes in ldp
-        await this.LDESinLDP.delete(store)
+        await this.LDESinLDP.append(store)
     }
 
     /**
@@ -277,7 +269,7 @@ export class VersionAwareLDESinLDP {
 
         const datedMembers: MemberDate [] = []
         for (const relation of filteredRelations) {
-            const resources = this.LDESinLDP.readChildren(relation.node)
+            const resources = this.LDESinLDP.readPage(relation.node)
 
             for await (const resource of resources) {
                 const resourceVersionID = extractVersionId(resource, metadata.versionOfPath)
