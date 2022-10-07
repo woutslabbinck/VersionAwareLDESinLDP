@@ -7,7 +7,7 @@
 import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
 import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
-import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
+import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
@@ -15,12 +15,12 @@ import {extractLdesMetadata, LDESMetadata, Relation} from "../util/LdesUtil";
 import {
     addDeletedTriple,
     addVersionSpecificTriples,
+    filterRelation,
     isDeleted,
-    removeVersionSpecificTriples,
-    filterRelation
+    removeVersionSpecificTriples
 } from "./Util";
-import namedNode = DataFactory.namedNode;
 import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
+import namedNode = DataFactory.namedNode;
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDESinLDP;

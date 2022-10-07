@@ -7,8 +7,8 @@
 import {ILDESinLDP} from "./ILDESinLDP";
 import {Communication} from "../ldp/Communication";
 import {LDESinLDPConfig} from "./LDESinLDPConfig";
-import {DataFactory, Literal, Store} from "n3";
-import {Readable, Transform} from "stream";
+import {DataFactory, Store} from "n3";
+import {Readable} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {
@@ -20,11 +20,10 @@ import {
 } from "./Util";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {Logger} from "../logging/Logger";
-import namedNode = DataFactory.namedNode;
 import {extractLDESIdentifier, extractLdesMetadata, LDESMetadata} from "../util/LdesUtil";
 import {filterRelation} from "../versionawarelil/Util";
+import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
-import {app} from "../../abstractLDP";
 
 export class LDESinLDP implements ILDESinLDP {
     private readonly _LDESinLDPIdentifier: string;

@@ -5,12 +5,12 @@
  * Created on 23/03/2022
  *****************************************/
 import {Communication} from "../ldp/Communication";
-import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
+import {LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {DataFactory, Store} from "n3";
 import {LDESinLDPConfig} from "./LDESinLDPConfig";
 import {dateToLiteral} from "../util/TimestampUtil";
-import namedNode = DataFactory.namedNode;
 import {isContainerIdentifier} from "../util/IdentifierUtil";
+import namedNode = DataFactory.namedNode;
 
 const parse = require('parse-link-header');
 
