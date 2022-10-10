@@ -1,4 +1,4 @@
-import {ILDESinLDP} from "../../../src/ldesinldp/ILDESinLDP";
+import {ILDES} from "../../../src/ldes/ILDES";
 import {ReadOptions, VersionAwareLDESinLDP} from "../../../src/versionawarelil/VersionAwareLDESinLDP";
 import {
     storeAsMemberStream, storeToString,
@@ -14,10 +14,10 @@ import {RDF} from "@solid/community-server";
 import {baseUrl} from "../../util/solidHelper";
 import {Readable} from "stream";
 import quad = DataFactory.quad;
-import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldesinldp/Util";
+import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
 
 describe('A VersionAwareLDESinLDP', () => {
-    let mockLDESinLDP: jest.Mocked<ILDESinLDP>
+    let mockLDESinLDP: jest.Mocked<ILDES>
     let vAwareLDESinLDP: VersionAwareLDESinLDP
     const ldesinLDPIdentifier = "http://example.org/ldesinldp/"
 

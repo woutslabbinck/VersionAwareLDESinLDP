@@ -1,12 +1,12 @@
-import {LDESinLDP} from "../../../src/ldesinldp/LDESinLDP";
+import {LDESinLDP} from "../../../src/ldes/LDESinLDP";
 import {DCT, LDES, LDP} from "../../../src/util/Vocabularies";
 import {DataFactory, Store} from "n3";
 import {Communication} from "../../../src/ldp/Communication";
 import {extractLdesMetadata} from "../../../src/util/LdesUtil";
 import {memberStreamtoStore, storeToString,} from "../../../src/util/Conversion";
-import {LDESinLDPConfig} from "../../../src/ldesinldp/LDESinLDPConfig";
+import {LDESConfig} from "../../../src/ldes/LDESConfig";
 import mock = jest.mock;
-import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldesinldp/Util";
+import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 
@@ -23,7 +23,7 @@ describe('An LDESinLDP', () => {
     let readMetadataResponse: Response
     let textTurtleHeader: Headers
 
-    let config: LDESinLDPConfig
+    let config: LDESConfig
     const lilString = `
 <http://example.org/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Node> .
 <http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:genid1 .

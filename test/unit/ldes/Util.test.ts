@@ -5,7 +5,7 @@ import {
     addRootNodeToEventStream,
     addShapeToEventStream, createContainer, createVersionedEventStream,
     retrieveWriteLocation
-} from "../../../src/ldesinldp/Util";
+} from "../../../src/ldes/Util";
 import {Store} from "n3";
 import {RDF} from "@solid/community-server";
 import {dateToLiteral} from "../../../src/util/TimestampUtil";

@@ -1,9 +1,9 @@
 import {baseUrl} from "../util/solidHelper";
 import {DCT, LDP} from "../../src/util/Vocabularies";
-import {LDESinLDPConfig} from "../../src/ldesinldp/LDESinLDPConfig";
-import {retrieveWriteLocation} from "../../src/ldesinldp/Util";
+import {LDESConfig} from "../../src/ldes/LDESConfig";
+import {retrieveWriteLocation} from "../../src/ldes/Util";
 import {LDPCommunication} from "../../src/ldp/LDPCommunication";
-import {LDESinLDP} from "../../src/ldesinldp/LDESinLDP";
+import {LDESinLDP} from "../../src/ldes/LDESinLDP";
 
 describe('An LDESinLDP', () => {
     const lilIdentifier = baseUrl + 'ldesinldp_lil/'
@@ -17,7 +17,7 @@ describe('An LDESinLDP', () => {
         const treePath = DCT.created
         const versionOfPath = DCT.isVersionOf
 
-        const config: LDESinLDPConfig ={
+        const config: LDESConfig ={
             LDESinLDPIdentifier: lilIdentifier,
             treePath,
             versionOfPath

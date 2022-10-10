@@ -4,7 +4,7 @@
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 22/03/2022
  *****************************************/
-import {ILDESinLDP} from "../ldesinldp/ILDESinLDP";
+import {ILDES} from "../ldes/ILDES";
 import {DataFactory, Store} from "n3";
 import {SnapshotTransform} from "@treecg/ldes-snapshot";
 import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
@@ -23,9 +23,9 @@ import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes
 import namedNode = DataFactory.namedNode;
 
 export class VersionAwareLDESinLDP {
-    private readonly LDESinLDP: ILDESinLDP;
+    private readonly LDESinLDP: ILDES;
 
-    constructor(LDESinLDP: ILDESinLDP) {
+    constructor(LDESinLDP: ILDES) {
         this.LDESinLDP = LDESinLDP
     }
 

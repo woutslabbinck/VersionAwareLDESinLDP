@@ -7,7 +7,7 @@
 import {Communication} from "../ldp/Communication";
 import {LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {DataFactory, Store} from "n3";
-import {LDESinLDPConfig} from "./LDESinLDPConfig";
+import {LDESConfig} from "./LDESConfig";
 import {dateToLiteral} from "../util/TimestampUtil";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import namedNode = DataFactory.namedNode;
@@ -40,7 +40,7 @@ export async function retrieveWriteLocation(resourceIdentifier: string, communic
  * @param config
  * @param date
  */
-export function createVersionedEventStream(store: Store, config: LDESinLDPConfig, date: Date): void {
+export function createVersionedEventStream(store: Store, config: LDESConfig, date: Date): void {
     const eventStreamIdentifier = config.LDESinLDPIdentifier + '#EventStream'
     const eventStreamNode = namedNode(eventStreamIdentifier)
 

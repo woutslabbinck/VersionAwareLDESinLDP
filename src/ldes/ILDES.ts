@@ -1,14 +1,14 @@
 /***************************************
- * Title: ILDESinLDP
+ * Title: ILDES
  * Description: Interface for LDES in LDP
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 21/03/2022
  *****************************************/
-import {LDESinLDPConfig} from "./LDESinLDPConfig";
+import {LDESConfig} from "./LDESConfig";
 import {Store} from "n3";
 import {Readable} from "stream";
 
-export interface ILDESinLDP {
+export interface ILDES {
 
     LDESinLDPIdentifier: string;
 
@@ -17,7 +17,7 @@ export interface ILDESinLDP {
      * By default, ldes:versionOfPath is dct:isVersionOf, ldes:timestampPath is dc:created and tree:relation is tree:GreaterThanOrEqualToRelation.
      * @param config
      */
-    initialise: (config: LDESinLDPConfig) => Promise<void>
+    initialise: (config: LDESConfig) => Promise<void>
 
     /**
      * Appends a member to the LDES.

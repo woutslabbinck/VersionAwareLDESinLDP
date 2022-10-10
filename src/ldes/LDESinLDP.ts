@@ -4,9 +4,9 @@
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 21/03/2022
  *****************************************/
-import {ILDESinLDP} from "./ILDESinLDP";
+import {ILDES} from "./ILDES";
 import {Communication} from "../ldp/Communication";
-import {LDESinLDPConfig} from "./LDESinLDPConfig";
+import {LDESConfig} from "./LDESConfig";
 import {DataFactory, Store} from "n3";
 import {Readable} from "stream";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
@@ -25,7 +25,7 @@ import {filterRelation} from "../versionawarelil/Util";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 
-export class LDESinLDP implements ILDESinLDP {
+export class LDESinLDP implements ILDES {
     private readonly _LDESinLDPIdentifier: string;
     private readonly communication: Communication;
     private readonly logger: Logger = new Logger(this);
@@ -56,7 +56,7 @@ export class LDESinLDP implements ILDESinLDP {
         return this.metadata.fragmentSize
     }
 
-    public async initialise(config: LDESinLDPConfig, date?: Date): Promise<void> {
+    public async initialise(config: LDESConfig, date?: Date): Promise<void> {
         if (!isContainerIdentifier(config.LDESinLDPIdentifier)) {
             throw Error(`${config.LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }

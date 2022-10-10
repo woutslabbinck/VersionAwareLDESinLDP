@@ -1,10 +1,10 @@
 /***************************************
- * Title: LDESinLDPConfig
+ * Title: LDESConfig
  * Description: Interface for LDES in LDP configuration
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 21/03/2022
  *****************************************/
-export interface LDESinLDPConfig {
+export interface LDESConfig {
     /**
      * URL to the base of the LDES in LDP
      */
