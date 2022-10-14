@@ -14,7 +14,7 @@ import {Member} from '@treecg/types'
 import {extractLdesMetadata, LDESMetadata, Relation} from "../util/LdesUtil";
 import {
     addDeletedTriple,
-    addVersionSpecificTriples,
+    addVersionObjectTriples,
     filterRelation,
     isDeleted,
     removeVersionSpecificTriples
@@ -73,7 +73,7 @@ export class VersionAwareLDESinLDP {
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
         memberIdentifier = memberIdentifier ? memberIdentifier : "#resource";
-        addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
+        addVersionObjectTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
         await this.LDESinLDP.append(store)
@@ -190,7 +190,7 @@ export class VersionAwareLDESinLDP {
         // add version specific triples (defined in the LDES specification)
         const metadata = await this.extractLdesMetadata()
         memberIdentifier = memberIdentifier ? memberIdentifier : "#resource";
-        addVersionSpecificTriples(store, versionIdentifier, memberIdentifier, metadata)
+        addVersionObjectTriples(store, versionIdentifier, memberIdentifier, metadata)
 
         // store in the ldes in ldp
         await this.LDESinLDP.append(store)
@@ -212,7 +212,7 @@ export class VersionAwareLDESinLDP {
             throw Error(`Could not delete ${versionIdentifier} as it does not exist already.`)
         }
 
-        const versionSpecificIdentifier = "#resource" // maybe change later with uuid or something?
+        const newMemberIdentifier = "#resource" // maybe change later with uuid or something?
         const store = new Store()
 
         // copy latest version of the resource
@@ -221,7 +221,7 @@ export class VersionAwareLDESinLDP {
             // transform quads which are coming from versionIdentifier
             if (q.subject.value === versionIdentifier) {
                 // give new version specific identifier
-                store.addQuad(namedNode(versionSpecificIdentifier), q.predicate, q.object)
+                store.addQuad(namedNode(newMemberIdentifier), q.predicate, q.object)
             } else {
                 // copy all others
                 store.addQuad(q)
@@ -230,8 +230,8 @@ export class VersionAwareLDESinLDP {
 
         // add version specific triples and deleted triple
         const metadata = await this.extractLdesMetadata()
-        addVersionSpecificTriples(store, versionIdentifier, versionSpecificIdentifier, metadata)
-        addDeletedTriple(store, versionSpecificIdentifier, metadata)
+        addVersionObjectTriples(store, versionIdentifier, newMemberIdentifier, metadata)
+        addDeletedTriple(store, newMemberIdentifier, metadata)
 
         // store in the ldes in ldp
         await this.LDESinLDP.append(store)

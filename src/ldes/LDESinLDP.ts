@@ -14,7 +14,7 @@ import {DCT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {
     addRelationToNode,
     createContainer,
-    createVersionedEventStream,
+    createVersionedEventStream, extractMembers,
     getRelationIdentifier,
     retrieveWriteLocation
 } from "./Util";
@@ -118,6 +118,9 @@ export class LDESinLDP implements ILDES {
             throw Error("Did not receive the location of the created resource.")
         }
         this.logger.info(`LDP Resource created at: ${resourceLocation}`)
+        if (store.countQuads(this.metadata.ldesEventStreamIdentifier, TREE.member, null, null) === 0) {
+            this.logger.info(`No tree:member triple in resource ${resourceLocation}`)
+        }
         return resourceLocation
     }
 
@@ -220,6 +223,9 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
             const resources = comm.readPage(relation.node)
             for await (const resource of resources) {
                 const memberId = resource.getSubjects(DCT.isVersionOf, null, null)[0].value
+
+                // remove containment triple if present (<ldesIdentifer> <tree:member> memberId.)
+                resource.removeQuads(resource.getQuads(ldesIdentifier, TREE.member, null, null))
                 memberStream.push({
                     id: namedNode(memberId),
                     quads: resource.getQuads(null, null, null, null)
@@ -240,7 +246,16 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
             const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
             for (const childURL of children) {
                 const resourceStore = await this.read(childURL)
-                yield resourceStore
+
+                if (resourceStore.countQuads(this.LDESinLDPIdentifier, TREE.member, null, null) === 0) {
+                    yield resourceStore
+                } else {
+                    // extract members
+                    const members = extractMembers(resourceStore, this.LDESinLDPIdentifier)
+                    for (const member of members) {
+                        yield member
+                    }
+                }
             }
         }
     }

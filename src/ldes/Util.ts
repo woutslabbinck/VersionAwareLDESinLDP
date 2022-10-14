@@ -143,3 +143,41 @@ export async function createContainer(resourceIdentifier: string, communication:
 export function getRelationIdentifier(ldesinLDPIdentifier: string, date: Date): string {
     return ldesinLDPIdentifier + date.getTime() + '/'
 }
+
+export function extractMembers(store: Store, ldesIdentifier: string): Store[] {
+    const memberSubjects = store.getObjects(ldesIdentifier, TREE.member, null)
+    const members = memberSubjects.map(memberSubject => store.getQuads(memberSubject, null, null, null))
+
+    // extract every member based on the subject
+    const mainSubjects = new Set(memberSubjects.map(subj => subj.id));
+
+    for (const member of members) {
+        // to avoid issues with data referencing themselves in a circle,
+        // duplicates are filtered out as well
+        // the initial subject (there should only be one still) is added
+        // as an initial to-be-ignored object
+        const existingObjects = new Set<string>(member[0].subject.id);
+        for (const quad of member) {
+            if (existingObjects.has(quad.object.id)) {
+                continue;
+            }
+            existingObjects.add(quad.object.id);
+            // all quads with subjects equal to its object representation
+            // gets added to this resource entry, so the original subjects'
+            // data is completely present inside this single resource
+            // this approach already works recursively, as push adds new elements
+            // to the end, making them appear as subjects in further
+            // iterations
+            // quads having another main resource (that is not the current resource)
+            // as object are getting filtered out as well, as they cannot be further
+            // defined within this single resource
+            member.push(
+                ...store.getQuads(quad.object, null, null, null).filter((obj) => {
+                    return obj.object.id === member[0].subject.id || !((mainSubjects as Set<string>).has(obj.object.id))
+                })
+            );
+        }
+    }
+
+    return members.map(member => new Store(member))
+}
