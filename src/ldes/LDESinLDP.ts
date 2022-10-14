@@ -63,7 +63,12 @@ export class LDESinLDP implements ILDES {
         // maybe extra check to see whether it exists already?
         const containerResponse = await this.communication.head(config.LDESinLDPIdentifier)
         if (containerResponse.status === 200) {
-            this.logger.info(`LDES in LDP ${config.LDESinLDPIdentifier} already exists.`)
+            try {
+                this.metadata = await this.extractLdesMetadata()
+                this.logger.info(`LDES in LDP ${config.LDESinLDPIdentifier} already exists.`)
+            } catch (e) {
+                this.logger.info(`Container (but not an LDES in LDP) already exists at ${config.LDESinLDPIdentifier}.`)
+            }
             return
         }
         date = date ?? new Date()
@@ -246,12 +251,11 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
             const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
             for (const childURL of children) {
                 const resourceStore = await this.read(childURL)
-
-                if (resourceStore.countQuads(this.LDESinLDPIdentifier, TREE.member, null, null) === 0) {
+                if (resourceStore.countQuads(this.metadata.ldesEventStreamIdentifier, TREE.member, null, null) === 0) {
                     yield resourceStore
                 } else {
                     // extract members
-                    const members = extractMembers(resourceStore, this.LDESinLDPIdentifier)
+                    const members = extractMembers(resourceStore, this.metadata.ldesEventStreamIdentifier)
                     for (const member of members) {
                         yield member
                     }

@@ -65,7 +65,7 @@ export function extractLdesMetadata(store: Store, ldesIdentifier: string): LDESM
     }
     return {
         deletedType: LDES.DeletedLDPResource,
-        ldesEventStreamIdentifier: ldesIdentifier,
+        ldesEventStreamIdentifier: extractLDESIdentifier(store),
         views: views,
         timestampPath: snapshotOptions.timestampPath!,
         versionOfPath: snapshotOptions.versionOfPath!,
