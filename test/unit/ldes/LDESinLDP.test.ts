@@ -9,6 +9,7 @@ import mock = jest.mock;
 import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
+import {addSimpleMember} from "../../util/LdesTestUtility";
 
 describe('An LDESinLDP', () => {
     const resourceStore = new Store()
@@ -187,7 +188,10 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
             const fragmentStore = new Store()
             fragmentStore.addQuad(namedNode(getRelationIdentifier(lilBase, date)), namedNode(LDP.contains), namedNode('childURL'))
-            const fragmentResponse = new Response(storeToString(fragmentStore), {status: 200, headers: textTurtleHeader})
+            const fragmentResponse = new Response(storeToString(fragmentStore), {
+                status: 200,
+                headers: textTurtleHeader
+            })
             mockCommunication.get.mockResolvedValueOnce(fragmentResponse)
             // mock container created -> for new fragment
             mockCommunication.put.mockResolvedValue(new Response(null, {status: 201}))
@@ -367,4 +371,65 @@ _:b0 <https://w3id.org/tree#value> "${dateNewFragment.toISOString()}"^^<http://w
 
         });
     });
+    describe('when reading a fragment', () => {
+        let containerStore: Store
+        let containerURL = lilBase + 'container/'
+        let resourceURL = containerURL + 'resource1'
+        let resourceStore: Store
+
+        let containerResponse: Response
+
+        beforeEach(() => {
+            containerStore = new Store()
+            resourceStore = new Store()
+            containerStore.addQuad(namedNode(containerURL), namedNode(LDP.contains), namedNode(resourceURL))
+            resourceStore.addQuad(namedNode(resourceURL), namedNode(DCT.title), literal("title"))
+
+            containerResponse = new Response(storeToString(containerStore), {status: 200, headers: textTurtleHeader})
+        });
+
+        it('returns nothing when uri is not a containerURI', async () => {
+            const resources = await ldesinldp.readPage('containerURL')
+            expect((await resources[Symbol.asyncIterator]().next()).done).toBe(true)
+            expect(mockCommunication.get).toBeCalledTimes(0)
+
+        })
+
+        it('returns the resource when no containment triple is present.', async () => {
+            mockCommunication.get.mockResolvedValue(new Response(storeToString(resourceStore), {
+                status: 200,
+                headers: textTurtleHeader
+            }))
+
+            mockCommunication.get.mockResolvedValueOnce(containerResponse)
+
+            const resources = ldesinldp.readPage(containerURL)
+            for await (const resource of resources) {
+                expect(resource).toEqual(resourceStore)
+            }
+
+            expect(mockCommunication.get).toBeCalledTimes(2)
+        });
+
+        it('returns the members when containment triples are present.', async () => {
+            const memberStore = new Store()
+            addSimpleMember(memberStore, resourceURL, lilBase)
+            addSimpleMember(memberStore, containerURL + 'resource2', lilBase)
+
+            mockCommunication.get.mockResolvedValue(new Response(storeToString(memberStore), {
+                status: 200,
+                headers: textTurtleHeader
+            }))
+
+            mockCommunication.get.mockResolvedValueOnce(containerResponse)
+
+            const resources = ldesinldp.readPage(containerURL)
+            let members = []
+            for await (const resource of resources) {
+                members.push(resource)
+            }
+            expect(members.length).toBe(2)
+            expect(mockCommunication.get).toBeCalledTimes(2)
+        });
+    })
 })
