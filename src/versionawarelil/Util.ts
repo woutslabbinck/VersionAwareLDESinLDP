@@ -7,7 +7,7 @@
 import {Member} from "@treecg/types";
 import {LDESMetadata, Relation} from "../util/LdesUtil";
 import {DataFactory, Store} from "n3";
-import {DCT, RDF} from "../util/Vocabularies";
+import {DCT, RDF, TREE} from "../util/Vocabularies";
 import {dateToLiteral} from "../util/TimestampUtil";
 import namedNode = DataFactory.namedNode;
 
@@ -23,14 +23,18 @@ export function isDeleted(member: Member, metadata: LDESMetadata): boolean {
 }
 
 /**
- * Adds version specific triples (timestamp and version) to the quads of the member
+ * Adds version object triples (timestamp and version) to the quads of the member.
+ * Also add member triple to the store
  * @param store
  * @param versionIdentifier
  * @param memberIdentifier
  * @param metadata
  */
-export function addVersionSpecificTriples(store: Store, versionIdentifier: string, memberIdentifier: string, metadata: LDESMetadata): void {
+export function addVersionObjectTriples(store: Store, versionIdentifier: string, memberIdentifier: string, metadata: LDESMetadata): void {
     const id = namedNode(memberIdentifier)
+    // add member triple
+    store.addQuad(namedNode(metadata.ldesEventStreamIdentifier), namedNode(TREE.member), id)
+    // add version object triples
     store.addQuad(id, namedNode(metadata.versionOfPath), namedNode(versionIdentifier))
     store.addQuad(id, namedNode(metadata.timestampPath), dateToLiteral(new Date()))
 }

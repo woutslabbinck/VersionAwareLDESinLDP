@@ -3,13 +3,16 @@ import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {
     addRelationToNode,
     addRootNodeToEventStream,
-    addShapeToEventStream, createContainer, createVersionedEventStream,
+    addShapeToEventStream, createContainer, createVersionedEventStream, extractMembers,
     retrieveWriteLocation
 } from "../../../src/ldes/Util";
-import {Store} from "n3";
+import {DataFactory, Store} from "n3";
 import {RDF} from "@solid/community-server";
 import {dateToLiteral} from "../../../src/util/TimestampUtil";
 import {Communication} from "../../../src/ldp/Communication";
+import namedNode = DataFactory.namedNode;
+import literal = DataFactory.literal;
+import {addSimpleMember} from "../../util/LdesTestUtility";
 
 describe('A LDES in LDP Util', () => {
 
@@ -150,5 +153,63 @@ describe('A LDES in LDP Util', () => {
             }))
             await expect(() => createContainer(mockedBaseUrl, mockCommunication)).rejects.toThrow(Error)
         });
+    });
+
+    describe('for extracting members from an N3 store', () => {
+        const ldesIdentifier = baseUrl + 'lil/#EventStream'
+
+        let memberStore: Store
+
+        beforeEach(() => {
+            memberStore = new Store()
+
+        });
+
+        it('returns nothing when there are no members.', () => {
+            memberStore = new Store()
+            expect(extractMembers(memberStore, ldesIdentifier)).toStrictEqual([])
+        });
+
+        it('returns basic members.', () => {
+            addSimpleMember(memberStore, baseUrl + 'resource1', ldesIdentifier)
+            addSimpleMember(memberStore, baseUrl + 'resource2', ldesIdentifier)
+
+            const members = extractMembers(memberStore, ldesIdentifier)
+
+            expect(members.length).toBe(2)
+            expect(members[0].getQuads(null, null, null, null).length).toBe(1)
+            expect(members[1].getQuads(null, null, null, null).length).toBe(1)
+        });
+
+        it('returns a member by following the links in the member.', () => {
+            const memberURI = baseUrl + 'resource1'
+            const object = baseUrl + 'object'
+            addSimpleMember(memberStore, memberURI, ldesIdentifier)
+            memberStore.addQuad(namedNode(memberURI), namedNode('b'), namedNode(object))
+            memberStore.addQuad(namedNode(object), namedNode('p'), literal('c'))
+
+            const members = extractMembers(memberStore, ldesIdentifier)
+            expect(members.length).toBe(1)
+
+            const member = members[0]
+            expect(member.getQuads(null, null, null, null).length).toBe(3)
+            expect(member.getQuads(object, null,null,null).length).toBe(1)
+        })
+
+        it('does not run into an infinite loop.', () => {
+            const memberURI = baseUrl + 'resource1'
+            const object = baseUrl + 'object'
+            addSimpleMember(memberStore, memberURI, ldesIdentifier)
+            memberStore.addQuad(namedNode(memberURI), namedNode('b'), namedNode(object))
+            memberStore.addQuad(namedNode(object), namedNode('p'), literal('c'))
+            memberStore.addQuad(namedNode(object), namedNode('reverse'), namedNode(memberURI))
+
+            const members = extractMembers(memberStore, ldesIdentifier)
+            expect(members.length).toBe(1)
+
+            const member = members[0]
+            expect(member.getQuads(null, null, null, null).length).toBe(4)
+            expect(member.getQuads(object, null,null,null).length).toBe(2)
+        })
     });
 })
