@@ -31,10 +31,10 @@ However, adding the version triple and time triple to append a member to the LDE
 
 ### Set up
 
-First install the packages.
+First install the package
 
 ```bash
-# install packages
+# install package
 npm i @treecg/versionawareldesinldp
 # (Optionally) set up a solid server
 npx @solid/community-server -p 3000 -f ./data -c "@css:config/file-no-setup.json"
@@ -57,7 +57,7 @@ await versionAware.initialise(ldesinldpIdentifier)
 
 From this point, this initialised LDES in LDP will be used through `versionAware`  in the next code examples unless stated otherwise.
 
-### What is created?
+#### What is created?
 
 <details>
 <summary>Click here</summary>
@@ -178,7 +178,7 @@ for (const resource of resources) {
 }
 ```
 
-In the output, the three different stages can clearly be seen:
+In the output, the three different version objects can clearly be seen:
 
 1. We created a resource with a title: "Title"
 2. Later, this resource its contents are completely rewritten with as result that it now has a title: "Fancy Title"
@@ -199,7 +199,7 @@ In the output, the three different stages can clearly be seen:
 <http://localhost:3000/ldesinldp/1664457810373/4bc6fa4d-7b99-41aa-a289-ba3823223045#resource> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/ldes#DeletedLDPResource> .
 ```
 
-### Authenticated LDES in LDP
+## Authenticated LDES in LDP
 
 A private LDES in LDP can be created by using `SolidCommunication` and a `Session` (from [solid-client-authn-js](https://github.com/inrupt/solid-client-authn-js) ).
 
@@ -212,7 +212,7 @@ const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
 const versionAware = new VersionAwareLDESinLDP(ldesinldp);
 ```
 
-#### Getting a Session
+### Getting a Session
 
 The following code can be used to retrieve a Session if you are working with javascript node.
 
