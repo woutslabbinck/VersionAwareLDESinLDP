@@ -1,15 +1,14 @@
 import {LDESinLDP} from "../../../src/ldes/LDESinLDP";
-import {DCT, LDES, LDP} from "../../../src/util/Vocabularies";
+import {DCT, LDES, LDP, RDF} from "../../../src/util/Vocabularies";
 import {DataFactory, Store} from "n3";
 import {Communication} from "../../../src/ldp/Communication";
 import {extractLdesMetadata} from "../../../src/util/LdesUtil";
 import {memberStreamtoStore, storeToString,} from "../../../src/util/Conversion";
 import {LDESConfig} from "../../../src/ldes/LDESConfig";
-import mock = jest.mock;
 import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
+import {addSimpleMember} from "../../util/LdesTestUtility";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
-import {addSimpleMember} from "../../util/LdesTestUtility";
 
 describe('An LDESinLDP', () => {
     const resourceStore = new Store()
@@ -286,21 +285,22 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
     })
 
     describe('when reading all the members of an LDES in LDP', () => {
+        let getMetadataResponse: Response
+        let getNodeResponse: Response;
+        let getResourceResponse: Response;
         beforeEach(() => {
-            const getMetadataResponse = new Response(lilString, {
+            getMetadataResponse = new Response(lilString, {
                 status: 200,
                 headers: new Headers({'Content-type': 'text/turtle'})
             })
-            mockCommunication.get.mockResolvedValueOnce(getMetadataResponse)
 
-            const getNodeResponse = new Response(
+            getNodeResponse = new Response(
                 `<http://example.org/ldesinldp/timestamppath/> <${LDP.contains}> <http://example.org/ldesinldp/timestamppath/resource1>.`,
                 {
                     status: 200,
                     headers: new Headers({'Content-type': 'text/turtle'})
                 })
-            mockCommunication.get.mockResolvedValueOnce(getNodeResponse)
-            const getResourceResponse = new Response(
+            getResourceResponse = new Response(
                 `<#resource> <${DCT.title}> "test".
 <#resource> <${DCT.created}> "${date.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime>.
 <#resource> <${DCT.isVersionOf}>  <http://example.org/resource1>.`,
@@ -308,16 +308,55 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
                     status: 200,
                     headers: new Headers({'Content-type': 'text/turtle'})
                 })
-            mockCommunication.get.mockResolvedValueOnce(getResourceResponse)
         });
 
         it('returns the members in the LDES in LDP.', async () => {
+            mockCommunication.get.mockResolvedValueOnce(getMetadataResponse)
+            mockCommunication.get.mockResolvedValueOnce(getNodeResponse)
+            mockCommunication.get.mockResolvedValueOnce(getResourceResponse)
             const memberStream = await ldesinldp.readAllMembers()
             const members = await memberStreamtoStore(memberStream)
             expect(members.size).toBe(3)
             expect(members.getObjects(null, DCT.title, null)[0].value).toBe("test")
             expect(members.getObjects(null, DCT.isVersionOf, null)[0].value).toBe("http://example.org/resource1")
         });
+
+        it('also works when ldes:versionOfPath is not the default.', async () => {
+            const metadata = `
+<http://example.org/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Node> .
+<http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:genid1 .
+<http://example.org/ldesinldp/> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/timestamppath/> .
+_:genid1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
+_:genid1 <https://w3id.org/tree#node> <http://example.org/ldesinldp/timestamppath/> .
+_:genid1 <https://w3id.org/tree#path> <http://purl.org/dc/terms/created> .
+_:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://example.org/ldesinldp/#EventStream> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/ldes#EventStream> .
+<http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#versionOfPath> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> . #It is now rdf:type
+<http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#timestampPath> <http://purl.org/dc/terms/created> .
+<http://example.org/ldesinldp/#EventStream> <https://w3id.org/tree#view> <http://example.org/ldesinldp/> .
+`
+            const metadataResponse = new Response(metadata, {status: 200, headers: textTurtleHeader})
+            const getResourceResponse = new Response(
+                `<#resource> <${DCT.title}> "test".
+<#resource> <${DCT.created}> "${date.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime>.
+<#resource> <${RDF.type}>  <http://example.org/resource1>.`,
+                {
+                    status: 200,
+                    headers: new Headers({'Content-type': 'text/turtle'})
+                })
+
+            mockCommunication.get.mockResolvedValueOnce(metadataResponse)
+            mockCommunication.get.mockResolvedValueOnce(getNodeResponse)
+            mockCommunication.get.mockResolvedValueOnce(getResourceResponse)
+
+            const memberStream = await ldesinldp.readAllMembers()
+            const members = await memberStreamtoStore(memberStream)
+
+            console.log(storeToString(members))
+            expect(members.size).toBe(3)
+            expect(members.getObjects(null, DCT.title, null)[0].value).toBe("test")
+            expect(members.getObjects(null, RDF.type, null)[0].value).toBe("http://example.org/resource1")
+        })
     })
 
 

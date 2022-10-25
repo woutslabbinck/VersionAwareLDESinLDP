@@ -227,7 +227,7 @@ INSERT DATA { <${this._LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifie
         for (const relation of relations) {
             const resources = comm.readPage(relation.node)
             for await (const resource of resources) {
-                const memberId = resource.getSubjects(DCT.isVersionOf, null, null)[0].value
+                const memberId = resource.getSubjects(ldesMetadata.versionOfPath, null, null)[0].value
 
                 // remove containment triple if present (<ldesIdentifer> <tree:member> memberId.)
                 resource.removeQuads(resource.getQuads(ldesIdentifier, TREE.member, null, null))
