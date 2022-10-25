@@ -1,6 +1,9 @@
 # VersionAwareLDESinLDP
 
 [![npm](https://img.shields.io/npm/v/@treecg/versionawareldesinldp)](https://www.npmjs.com/package/@treecg/versionawareldesinldp)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7234294.svg)](https://doi.org/10.5281/zenodo.7234294)
+
+
 
 The goal of this repository is to interact with an [LDES in LDP](https://woutslabbinck.github.io/LDESinLDP/index.html) with simple CRUD (Create, Read, Update and Read) operations.
 
