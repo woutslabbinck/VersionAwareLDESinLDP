@@ -91,16 +91,23 @@ export const DCT = createUriAndTermNamespace('http://purl.org/dc/terms/',
     'title');
 
 export const LDES = createUriAndTermNamespace('https://w3id.org/ldes#',
-    'EventStream',
     'BucketizerConfiguration',
-    'configuration',
-    'pageSize',
+    'BucketizeStrategy',
+    'DeletedLDPResource',
+    'EventStream',
+    'LDESinLDPClient',
+    'bucketType',
+    'bucketizeStrategy',
     'bucketizer',
-    'versionOfPath',
+    'configuration',
+    'managedBy',
+    'pageSize',
+    'timestampFragmentation',
     'timestampPath',
-    'versionMaterializationUntil',
     'versionMaterializationOf',
-    'DeletedLDPResource');
+    'versionMaterializationUntil',
+    'versionOfPath',
+);
 
 export const LDP = createUriAndTermNamespace('http://www.w3.org/ns/ldp#',
     'contains',
@@ -121,13 +128,15 @@ export const TREE = createUriAndTermNamespace('https://w3id.org/tree#',
     'Collection',
     'GreaterThanOrEqualToRelation',
     'Node',
+    'ViewDescription',
     'member',
     'node',
     'path',
     'relation',
     'shape',
     'value',
-    'view');
+    'view',
+    'viewDescription');
 
 export const VOID = createUriAndTermNamespace('http://rdfs.org/ns/void#',
     'subset');
