@@ -4,16 +4,16 @@
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 29/03/2022
  *****************************************/
-import {DataFactory, Store} from "n3";
+import {DataFactory, Literal, Store} from "n3";
 import {extractSnapshotOptions} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 import {DCAT, DCT, LDES, LDP, RDF, TREE} from "./Vocabularies";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {storeToString} from "./Conversion";
 import {dateToLiteral} from "./TimestampUtil";
 import {getRelationIdentifier} from "../ldes/Util";
+import type * as Rdf from '@rdfjs/types';
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
-import * as path from "path";
 
 export interface Relation {
     type: string
@@ -31,17 +31,15 @@ export interface IRelation {
     getStore: () => Store
 }
 
-// TODO make classes for everything that can also create a graph
-//  internally only save properties!!!
 export interface ILDESinLDPMetadata {
     eventStreamIdentifier: string
     view: INode
     inbox: string
     shape?: string
 
-    rootNodeIdentifier: () => string // view identifier TODO: GET method ?
+    rootNodeIdentifier: string // view identifier
+    fragmentSize: number // Infinity if not present
     getStore: () => Store
-    fragmentSize: () => number // TODO: GET method -> Infinity if not present
 }
 
 export interface IVersionedLDESinLDPMetadata extends ILDESinLDPMetadata {
@@ -53,7 +51,7 @@ export interface IVersionedLDESinLDPMetadata extends ILDESinLDPMetadata {
 export interface INode {
     id: string
     relations: Relation[]
-    viewDescription: IViewDescription
+    viewDescription?: IViewDescription
 
     getStore: () => Store
 }
@@ -114,7 +112,10 @@ class LDESinLDPMetadata implements ILDESinLDPMetadata {
         return this._shape;
     }
 
-    fragmentSize(): number {
+    get fragmentSize(): number {
+        if (!this.view.viewDescription) {
+            return Infinity
+        }
         return this.view.viewDescription.managedBy.bucketizeStrategy.pageSize ?? Infinity;
     }
 
@@ -129,7 +130,7 @@ class LDESinLDPMetadata implements ILDESinLDPMetadata {
         return store;
     }
 
-    rootNodeIdentifier(): string {
+    get rootNodeIdentifier(): string {
         return this.view.id
     }
 }
@@ -157,10 +158,10 @@ class versionedLDESinLDPMetadata extends LDESinLDPMetadata implements IVersioned
 class Node implements INode {
     private _id: string
     private _relations: IRelation[]
-    private _viewDescription: IViewDescription
+    private _viewDescription?: IViewDescription
 
 
-    constructor(id: string, relations: IRelation[], viewDescription: IViewDescription) {
+    constructor(id: string, relations: IRelation[], viewDescription?: IViewDescription) {
         this._id = id;
         this._relations = relations;
         this._viewDescription = viewDescription;
@@ -175,7 +176,7 @@ class Node implements INode {
         return this._relations;
     }
 
-    get viewDescription(): IViewDescription {
+    get viewDescription(): IViewDescription | undefined {
         return this._viewDescription;
     }
 
@@ -192,9 +193,10 @@ class Node implements INode {
             store.addQuad(namedNode(this.id), namedNode(TREE.relation), relationId)
             store.addQuads(relationStore.getQuads(null, null, null, null))
         }
-
-        store.addQuad(namedNode(this.id), namedNode(TREE.viewDescription), namedNode(this.viewDescription.id))
-        store.addQuads(this.viewDescription.getStore().getQuads(null, null, null, null))
+        if (this.viewDescription) {
+            store.addQuad(namedNode(this.id), namedNode(TREE.viewDescription), namedNode(this.viewDescription.id))
+            store.addQuads(this.viewDescription.getStore().getQuads(null, null, null, null))
+        }
         return store;
     }
 }
@@ -235,6 +237,7 @@ class ViewDescription implements IViewDescription {
         store.addQuad(namedNode(this.id), namedNode(DCAT.endpointURL), namedNode(this.endpointURL))
 
         store.addQuad(namedNode(this.id), namedNode(LDES.managedBy), namedNode(this.managedBy.id))
+        store.addQuads(this.managedBy.getStore().getQuads(null, null, null, null))
         return store
     }
 
@@ -351,11 +354,13 @@ class GreaterThanOrEqualToRelation implements IRelation {
     }
 }
 
+// TODO: createVersionedLILMetadata and parse VersionedLILMetadata
 export class LILMetadataInitializer {
-    static createLDESinLDPMetadata(lilURL: string, args?: {
+    public static createLDESinLDPMetadata(lilURL: string, args?: {
         lilConfig?: { treePath: string, shape?: string, pageSize?: number },
         date?: Date
-    }): ILDESinLDPMetadata {
+    }): ILDESinLDPMetadata
+    {
         args = args ?? {}
 
         const date = args.date ?? new Date()
@@ -391,12 +396,81 @@ export class LILMetadataInitializer {
 }
 
 export class LILMetadataParser {
-    // TODO use this to parse whichever I need
-}
+    public static extractLDESinLDPMetadata(store: Store): ILDESinLDPMetadata {
+        if (store.getSubjects(RDF.type, LDES.EventStream, null).length !== 1) {
+            throw Error(`Expected only one Event Stream. ${store.getSubjects(RDF.type, LDES.EventStream, null).length} are present.`)
+        }
+        const eventStreamIdentifier = store.getSubjects(RDF.type, LDES.EventStream, null)[0].value
 
-/*function createLDESinLDPMetadata(store: Store): ILDESinLDPMetadata {
-    // TODO
-}*/
+        if (store.getObjects(eventStreamIdentifier, TREE.node, null).length !== 1) {
+            throw Error(`Expected only one view. ${store.getObjects(eventStreamIdentifier, TREE.node, null).length} are present.`)
+        }
+
+        const rootNodeIdentifier = store.getObjects(eventStreamIdentifier, TREE.node, null)[0].value
+
+        const relationNodes = store.getObjects(rootNodeIdentifier, TREE.relation, null)
+        const relations: IRelation[] = []
+
+        for (const relationNode of relationNodes) {
+            relations.push(this.parseRelation(store, relationNode))
+        }
+        let viewDescription: IViewDescription | undefined // viewDescription is not Recommended
+        if (store.getObjects(rootNodeIdentifier, TREE.viewDescription, null).length === 1) {
+            const viewDescriptionNode = store.getObjects(rootNodeIdentifier, TREE.viewDescription, null)[0]
+            viewDescription = this.parseViewDescription(store, viewDescriptionNode)
+
+            if (viewDescription.endpointURL !== rootNodeIdentifier) {
+                throw Error(`dcatendpointURL (${viewDescription.endpointURL}) does not match the view Identifier of the LDES in LDP: ${rootNodeIdentifier}`)
+            }
+            if (viewDescription.servesDataset !== eventStreamIdentifier) {
+                throw Error(`dcatendpointURL (${viewDescription.servesDataset}) does not match the view Identifier of the LDES in LDP: ${eventStreamIdentifier}`)
+            }
+
+            if (store.getObjects(eventStreamIdentifier, LDP.inbox, null).length !== 1) {
+                throw Error(`Expected only one inbox. ${store.getObjects(eventStreamIdentifier, LDP.inbox, null).length} are present.`)
+            }
+        }
+// TODO: inbox error handling
+        const inboxIdentifier = store.getObjects(eventStreamIdentifier, LDP.inbox, null)[0].value
+
+        const rootNode = new Node(rootNodeIdentifier, relations, viewDescription)
+        return new LDESinLDPMetadata(eventStreamIdentifier, rootNode, inboxIdentifier)
+    }
+
+    public static parseRelation(store: Store, relationNode: Rdf.Term): IRelation {
+        // TODO error handling
+
+        const node = store.getObjects(relationNode, TREE.node, null)[0].value
+        const path = store.getObjects(relationNode, TREE.path, null)[0].value
+        const value = store.getObjects(relationNode, TREE.value, null)[0].value
+        return new GreaterThanOrEqualToRelation(node, path, value)
+    }
+
+    public static parseViewDescription(store: Store, viewDescriptionNode: Rdf.Term): IViewDescription {
+        // TODO error handling
+
+        const eventStreamIdentifier = store.getObjects(viewDescriptionNode, DCAT.servesDataset, null)[0].value
+        const rootNodeIdentifier = store.getObjects(viewDescriptionNode, DCAT.endpointURL, null)[0].value
+
+        const managedByNode = store.getObjects(viewDescriptionNode, LDES.managedBy, null)[0]
+
+        const bucketizeStrategyNode = store.getObjects(managedByNode, LDES.bucketizeStrategy, null)[0]
+
+        const bucketType = store.getObjects(bucketizeStrategyNode, LDES.bucketType, null)[0].value
+        const path = store.getObjects(bucketizeStrategyNode, TREE.path, null)[0].value // TODO: must be same as all tree paths!!
+        let pageSize: number | undefined
+        if (store.getObjects(bucketizeStrategyNode, LDES.pageSize, null).length === 1) {
+            const pageSizeLiteral = (store.getObjects(bucketizeStrategyNode, LDES.pageSize, null)[0] as Literal)
+            const pageSize = parseInt(pageSizeLiteral.value, 10)
+        }
+
+        const bucketizeStrategy = new BucketizeStrategy(bucketizeStrategyNode.value, bucketType, path, pageSize)
+
+        const lilClient = new LDESinLDPClient(managedByNode.value, bucketizeStrategy)
+
+        return new ViewDescription(viewDescriptionNode.value, lilClient, eventStreamIdentifier, rootNodeIdentifier)
+    }
+}
 
 export interface LDESMetadata {
     ldesEventStreamIdentifier: string
