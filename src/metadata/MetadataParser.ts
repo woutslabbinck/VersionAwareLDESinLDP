@@ -1,5 +1,5 @@
 /***************************************
- * Title: LILMetadataParser
+ * Title: MetadataParser
  * Description: TODO
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
@@ -18,7 +18,7 @@ import {
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 import * as Rdf from "@rdfjs/types";
 
-export class LILMetadataParser {
+export class MetadataParser {
     public static extractLDESinLDPMetadata(store: Store): ILDESinLDPMetadata {
         if (store.getSubjects(RDF.type, LDES.EventStream, null).length !== 1) {
             throw Error(`Expected only one Event Stream. ${store.getSubjects(RDF.type, LDES.EventStream, null).length} are present.`)

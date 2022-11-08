@@ -1,5 +1,5 @@
 /***************************************
- * Title: LILMetadataInitializer
+ * Title: MetadataInitializer
  * Description: TODO
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
@@ -17,7 +17,7 @@ import {ILDESinLDPMetadata, LDESinLDPMetadata} from "./LDESinLDPMetadata";
 import {IRelation} from "./util/Interfaces";
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 
-export class LILMetadataInitializer {
+export class MetadataInitializer {
     public static createLDESinLDPMetadata(lilURL: string, args?: {
         lilConfig?: { treePath: string, shape?: string, pageSize?: number },
         date?: Date
