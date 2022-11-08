@@ -10,8 +10,8 @@ export * from './ldes/LDESConfig'
 // metadata
 export * from "./metadata/LDESinLDPMetadata";
 export * from "./metadata/LDESinLDPMetadata";
-export * from "./metadata/LILMetadataInitializer";
-export * from "./metadata/LILMetadataParser";
+export * from "./metadata/MetadataInitializer";
+export * from "./metadata/MetadataParser";
 export * from "./metadata/VersionedLDESinLDPMetadata";
 export * from "./metadata/util/Components";
 export * from "./metadata/util/Interfaces";

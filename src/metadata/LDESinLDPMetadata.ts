@@ -33,7 +33,6 @@ export class LDESinLDPMetadata implements ILDESinLDPMetadata {
         this._shape = shape
     }
 
-
     get eventStreamIdentifier(): string {
         return this._eventStreamIdentifier;
     }
