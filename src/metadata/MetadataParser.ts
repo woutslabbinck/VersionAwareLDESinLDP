@@ -37,7 +37,7 @@ export class MetadataParser {
         for (const relationNode of relationNodes) {
             relations.push(this.parseRelation(store, relationNode))
         }
-        let viewDescription: IViewDescription | undefined // viewDescription is not Recommended
+        let viewDescription: IViewDescription | undefined // viewDescription is recommended
         if (store.getObjects(rootNodeIdentifier, TREE.viewDescription, null).length === 1) {
             const viewDescriptionNode = store.getObjects(rootNodeIdentifier, TREE.viewDescription, null)[0]
             viewDescription = this.parseViewDescription(store, viewDescriptionNode)
