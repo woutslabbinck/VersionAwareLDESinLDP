@@ -45,8 +45,8 @@ export class MetadataInitializer {
     }): IVersionedLDESinLDPMetadata {
         args = args ?? {}
         const lilMetadata = this.createLDESinLDPMetadata(lilURL, args)
-        const versionOfPath = args.lilConfig ? args.lilConfig?.versionOfPath : undefined;
-        const timestampPath = args.lilConfig ? args.lilConfig?.treePath : undefined;
+        const versionOfPath = args.lilConfig ? args.lilConfig.versionOfPath : undefined;
+        const timestampPath = args.lilConfig ? args.lilConfig.treePath : undefined;
 
         return new VersionedLDESinLDPMetadata(lilMetadata.eventStreamIdentifier, lilMetadata.view, lilMetadata.inbox, {
             timestampPath,

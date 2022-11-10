@@ -44,6 +44,7 @@ export class VersionAwareLDESinLDP {
             treePath: timestampPath ?? DCT.created,
             versionOfPath: versionOfPath ?? DCT.isVersionOf
         })
+        // TODO add versionofPath and timestampPath
     }
 
     /**

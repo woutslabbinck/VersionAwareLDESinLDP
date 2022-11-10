@@ -6,7 +6,7 @@
  *****************************************/
 import {ILDESinLDPMetadata, LDESinLDPMetadata} from "./LDESinLDPMetadata";
 import {INode} from "./util/Interfaces";
-import {LDES} from "../util/Vocabularies";
+import {DCT, LDES} from "../util/Vocabularies";
 import {Store} from "n3";
 import {namedNode} from "@rdfjs/data-model";
 
@@ -26,8 +26,8 @@ export class VersionedLDESinLDPMetadata extends LDESinLDPMetadata implements IVe
         super(eventStreamIdentifier, view, inbox, shape);
         versionLDESArgs = versionLDESArgs ?? {}
         this._deletedType = versionLDESArgs.deletedType ?? LDES.DeletedLDPResource;
-        this._timestampPath = versionLDESArgs.timestampPath ?? LDES.timestampPath;
-        this._versionOfPath = versionLDESArgs.versionOfPath ?? LDES.versionOfPath;
+        this._timestampPath = versionLDESArgs.timestampPath ?? DCT.created;
+        this._versionOfPath = versionLDESArgs.versionOfPath ?? DCT.isVersionOf;
     }
 
     getStore(): Store {

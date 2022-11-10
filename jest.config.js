@@ -29,4 +29,5 @@ module.exports = {
     globalSetup: '<rootDir>/test/global-setup.ts',
     globalTeardown: '<rootDir>/test/global-teardown.ts',
     testTimeout: 60000,
+    setupFilesAfterEnv: ["jest-rdf"]
 }
