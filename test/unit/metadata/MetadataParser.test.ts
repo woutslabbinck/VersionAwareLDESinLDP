@@ -1,11 +1,15 @@
-import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
+import "jest-rdf"
+import {DCAT, DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {DataFactory, Store} from "n3";
-import {turtleStringToStore} from "../../../src/util/Conversion";
+import {storeToString, turtleStringToStore} from "../../../src/util/Conversion";
 import {MetadataParser} from "../../../src/metadata/MetadataParser";
 import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 import {RDF} from "@solid/community-server";
+import * as Rdf from "@rdfjs/types";
+import quad = DataFactory.quad;
+import {dateToLiteral} from "../../../src/util/TimestampUtil";
 
 function generateMetadata(lilURL: string, date?: Date): string {
     date = date ?? new Date()
@@ -36,12 +40,138 @@ describe('A MetadataParser', () => {
     const lilURL = "http://localhost:3000/lil/"
     const eventStreamIdentifier = lilURL + "#EventStream"
     const date = new Date()
+    const viewDescriptionIdentifier = lilURL + "#ViewDescription"
 
     beforeEach(async () => {
         store = await turtleStringToStore(generateMetadata(lilURL, date))
     });
-    describe('for an LDES in LDP', () => {
 
+    describe('parsing Relations.', () => {
+        let bn: Rdf.BlankNode
+        const randomNode = namedNode("random")
+        beforeEach(() => {
+            store = new Store()
+            bn = store.createBlankNode()
+            store.addQuad(bn, RDF.terms.type, TREE.terms.GreaterThanOrEqualToRelation)
+            store.addQuad(bn, TREE.terms.value, dateToLiteral(date))
+            store.addQuad(bn, TREE.terms.node, randomNode)
+            store.addQuad(bn, TREE.terms.path, randomNode)
+
+        });
+
+        it('succeeds when everything is present.', () => {
+            const relation = MetadataParser.parseRelation(store, bn)
+            expect(relation.getStore()).toBeRdfIsomorphic(store)
+        });
+
+        it('fails when a relation is present which is no type.', () => {
+            store.delete(quad(bn, RDF.terms.type, TREE.terms.GreaterThanOrEqualToRelation))
+            expect(() => MetadataParser.parseRelation(store, bn)).toThrow(Error)
+        });
+
+        it('fails when a relation is present which is not of type GTE.', () => {
+            store.delete(quad(bn, RDF.terms.type, TREE.terms.GreaterThanOrEqualToRelation))
+            store.addQuad(bn, RDF.terms.type, namedNode(TREE.namespace + "Relation"))
+            expect(() => MetadataParser.parseRelation(store, bn)).toThrow(Error)
+        });
+
+        it('fails when a relation is present with no node.', () => {
+            store.delete(quad(bn, TREE.terms.node, randomNode))
+            expect(() => MetadataParser.parseRelation(store, bn)).toThrow(Error)
+        });
+
+        it('fails when a relation is present with no value.', () => {
+            store.delete(quad(bn, TREE.terms.value, dateToLiteral(date)))
+            expect(() => MetadataParser.parseRelation(store, bn)).toThrow(Error)
+        });
+
+        it('fails when a relation is present with no path.', () => {
+            store.delete(quad(bn, TREE.terms.path, randomNode))
+            expect(() => MetadataParser.parseRelation(store, bn)).toThrow(Error)
+        });
+    });
+
+    describe('parsing a ViewDescription', () => {
+        let viewDescriptionNode: Rdf.NamedNode
+        let lilClientNode: Rdf.NamedNode
+        let bucketizeStrategyNode: Rdf.NamedNode
+        const randomNode = namedNode("random")
+        const pageSize = 10
+
+        beforeEach(() => {
+            store = new Store()
+            viewDescriptionNode = namedNode(viewDescriptionIdentifier)
+            lilClientNode = namedNode(lilURL + "#Client")
+            bucketizeStrategyNode = namedNode(lilURL + "#BucketizeStrategy")
+
+            store.addQuad(viewDescriptionNode, RDF.terms.type, TREE.terms.ViewDescription)
+            store.addQuad(viewDescriptionNode, DCAT.terms.servesDataset, namedNode(eventStreamIdentifier))
+            store.addQuad(viewDescriptionNode, DCAT.terms.endpointURL, namedNode(lilURL))
+            store.addQuad(viewDescriptionNode, LDES.terms.managedBy, lilClientNode)
+
+            store.addQuad(lilClientNode, RDF.terms.type, LDES.terms.LDESinLDPClient)
+            store.addQuad(lilClientNode, LDES.terms.bucketizeStrategy, bucketizeStrategyNode)
+
+            store.addQuad(bucketizeStrategyNode, RDF.terms.type, LDES.terms.BucketizeStrategy)
+            store.addQuad(bucketizeStrategyNode, LDES.terms.bucketType, randomNode)
+            store.addQuad(bucketizeStrategyNode, TREE.terms.path, randomNode)
+            store.addQuad(bucketizeStrategyNode, LDES.terms.pageSize, literal(pageSize))
+        });
+
+        it('succeeds when everything is present.', () => {
+            const viewDescription = MetadataParser.parseViewDescription(store, viewDescriptionNode)
+            expect(viewDescription.getStore()).toBeRdfIsomorphic(store)
+        });
+
+        it('fails when a view description is present without servesDataset.', () => {
+            store.delete(quad(viewDescriptionNode, DCAT.terms.servesDataset, namedNode(eventStreamIdentifier)))
+
+            expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+        });
+
+        it('fails when a view description is present without endpointURL.', () => {
+            store.delete(quad(viewDescriptionNode, DCAT.terms.endpointURL, namedNode(lilURL)))
+            expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+        });
+
+        it('fails when a view description is present without entity managing the LDES.', () => {
+            store.delete(quad(viewDescriptionNode, LDES.terms.managedBy, lilClientNode))
+            expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+        });
+
+        /*        it('fails when the entity managing the LIL is not an LDESinLDPClient.', () => {
+                    expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+
+                });*/
+
+        it('fails when no bucketizeStrategy is present in the entity managing the LIL', () => {
+            store.delete(quad(lilClientNode, LDES.terms.bucketizeStrategy, bucketizeStrategyNode))
+            expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+        });
+
+        it('fails when a bucketizeStrategy does not have a path.', () => {
+            store.delete(quad(bucketizeStrategyNode, TREE.terms.path, randomNode))
+            expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+        });
+
+        it('fails when a bucketizeStrategy does not have a bucket type.', () => {
+            store.delete(quad(bucketizeStrategyNode, LDES.terms.bucketType, randomNode))
+            expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+        });
+
+        /*        it('fails when a bucketizeStrategy its bucketType is not a timestampFragmentation.', () => {
+                    expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+
+                });*/
+
+        it('fails when pageSize cannot be parsed as a number.', () => {
+            store.delete(quad(bucketizeStrategyNode, LDES.terms.pageSize, literal(pageSize)))
+            store.addQuad(bucketizeStrategyNode, LDES.terms.pageSize, randomNode)
+            expect(() => MetadataParser.parseViewDescription(store, viewDescriptionNode)).toThrow(Error)
+        });
+    });
+
+    describe('parsing an LDES in LDP', () => {
         it('parses to metadata correctly.', async () => {
             const parsedMetadata = MetadataParser.extractLDESinLDPMetadata(store)
             const metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, {date})
@@ -78,7 +208,7 @@ _:b0 <https://w3id.org/tree#node> <${lilURL}${date.valueOf()}/> .
             expect(parsedMetadata.fragmentSize).toBe(10)
         })
 
-        it('fails when no inbox is present',async () => {
+        it('fails when no inbox is present', async () => {
             store = await turtleStringToStore(`
             <${lilURL}#EventStream> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/ldes#EventStream> .
 <${lilURL}#EventStream> <https://w3id.org/tree#view> <${lilURL}> .
@@ -115,9 +245,21 @@ _:b0 <https://w3id.org/tree#node> <${lilURL}${date.valueOf()}/> .
             store.addQuad(namedNode('a'), namedNode(TREE.view), namedNode('c'))
             expect(() => MetadataParser.extractLDESinLDPMetadata(store)).toThrow(Error)
         });
+
+        it('fails when servesDataset in the view description is not pointing to the LDES.', () => {
+            store.delete(quad(namedNode(viewDescriptionIdentifier), namedNode(DCAT.servesDataset), namedNode(eventStreamIdentifier)))
+            store.addQuad(namedNode(viewDescriptionIdentifier), namedNode(DCAT.servesDataset), namedNode("random"))
+            expect(() => MetadataParser.extractLDESinLDPMetadata(store)).toThrow(Error)
+        });
+
+        it('fails when endpointURL in the view description is not pointing to the LIL view.', () => {
+            store.delete(quad(namedNode(viewDescriptionIdentifier), namedNode(DCAT.endpointURL), namedNode(lilURL)))
+            store.addQuad(namedNode(viewDescriptionIdentifier), namedNode(DCAT.endpointURL), namedNode("random"))
+            expect(() => MetadataParser.extractLDESinLDPMetadata(store)).toThrow(Error)
+        });
     });
 
-    describe('for a Versioned LDES in LDP', () => {
+    describe('parsing a Versioned LDES in LDP', () => {
         it('fails when no timestamppath and versionofpath is present.', async () => {
             expect(() => MetadataParser.extractVersionedLDESinLDPMetadata(store)).toThrow(Error)
         });
