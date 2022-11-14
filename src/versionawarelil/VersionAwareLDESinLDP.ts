@@ -11,16 +11,19 @@ import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
-import {extractLdesMetadata, LDESMetadata, Relation} from "../util/LdesUtil";
+import {extractLdesMetadata, filterRelation, LDESMetadata, Relation} from "../util/LdesUtil";
 import {
     addDeletedTriple,
     addVersionObjectTriples,
-    filterRelation,
     isDeleted,
     removeVersionSpecificTriples
 } from "./Util";
 import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 import namedNode = DataFactory.namedNode;
+import {VLILConfig} from "../metadata/VLILConfig";
+import {MetadataParser} from "../metadata/MetadataParser";
+import {LILConfig} from "../metadata/LILConfig";
+import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDES;
@@ -31,20 +34,28 @@ export class VersionAwareLDESinLDP {
 
     /**
      * Initialises an LDES in LDP at the base using as tree:path dc:created and optionally the shape URL as tree:shape.
-     * @param ldpContainerIdentifier base URL where the LDES in LDP will reside
-     * @param shape shape URL
-     * @param timestampPath
-     * @param versionOfPath
+     * @param config
      * @returns {Promise<any>}
      */
-    public async initialise(ldpContainerIdentifier: string, shape?: string, timestampPath?: string, versionOfPath?:string): Promise<void> {
-        await this.LDESinLDP.initialise({
-            LDESinLDPIdentifier: ldpContainerIdentifier,
-            shape: shape,
-            treePath: timestampPath ?? DCT.created,
-            versionOfPath: versionOfPath ?? DCT.isVersionOf
-        })
-        // TODO add versionofPath and timestampPath
+    public async initialise(config?: VLILConfig): Promise<void> {
+        // check if LIL exists | TODO: Do properly
+        const resp = await this.LDESinLDP.communication.head(this.LDESinLDP.LDESinLDPIdentifier)
+        if (resp.status !== 200) {
+            config = config ?? {treePath: DCT.created, versionOfPath: DCT.isVersionOf}
+            // init normal LIL
+            await this.LDESinLDP.initialise(config)
+            // add version triples
+            const lilMetadata = MetadataParser.extractLDESinLDPMetadata(await this.LDESinLDP.readMetadata())
+            const ldesIdentifier = lilMetadata.eventStreamIdentifier
+
+            // maybe in lil? It uses the communication already
+            const response = await this.LDESinLDP.communication.patch(this.LDESinLDP.LDESinLDPIdentifier + ".meta", // Note: currently meta hardcoded
+                `INSERT DATA { <${ldesIdentifier}> <${LDES.timestampPath}> <${config.treePath}> .
+<${ldesIdentifier}> <${LDES.versionOfPath}> <${config.versionOfPath}> .}`)
+            if (response.status > 299 || response.status < 200) {
+                throw Error(`Failed to add version specific triples to ${this.LDESinLDP.LDESinLDPIdentifier} | status code: ${response.status}`)
+            }
+        }
     }
 
     /**
@@ -108,7 +119,7 @@ export class VersionAwareLDESinLDP {
         const ldesMetadata = await this.extractLdesMetadata()
         const snapshotOptions: ISnapshotOptions = {
             date: date,
-            ldesIdentifier: ldesMetadata.ldesEventStreamIdentifier,
+            ldesIdentifier: ldesMetadata.eventStreamIdentifier,
             materialized: materialized,
             snapshotIdentifier: this.LDESinLDP.LDESinLDPIdentifier, // is this right? The snapshot is derived from the original LDES in LDP
             timestampPath: ldesMetadata.timestampPath,
@@ -243,12 +254,10 @@ export class VersionAwareLDESinLDP {
      *
      * @returns {Promise<LDESMetadata>}
      */
-    private async extractLdesMetadata(): Promise<LDESMetadata> {
+    private async extractLdesMetadata(): Promise<IVersionedLDESinLDPMetadata> {
         const metadataStore = await this.LDESinLDP.readMetadata() // can fail (what if configuration is wrong)
-        const ldesIdentifier = metadataStore.getSubjects(RDF.type, LDES.EventStream, null)[0].value
-        // maybe check if this.LDESinLDP.LDESinLDPIdentifier is in ldesIdentifier
 
-        return extractLdesMetadata(metadataStore, ldesIdentifier)
+        return MetadataParser.extractVersionedLDESinLDPMetadata(metadataStore)
     }
 
     public async extractVersions(versionIdentifier: string, extractOptions: ExtractOptions = {
@@ -289,14 +298,14 @@ export class VersionAwareLDESinLDP {
             }
         }
 
-        datedMembers.sort((a,b) => {
+        datedMembers.sort((a, b) => {
             return a.date.getTime() - b.date.getTime()
         })
 
-        if (!extractOptions.chronologically){
+        if (!extractOptions.chronologically) {
             datedMembers.reverse()
         }
-        return datedMembers.slice(0,extractOptions.amount)
+        return datedMembers.slice(0, extractOptions.amount)
     }
 }
 

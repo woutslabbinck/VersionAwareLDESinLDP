@@ -1,6 +1,5 @@
 import {baseUrl} from "../util/solidHelper";
 import {DCT, LDP} from "../../src/util/Vocabularies";
-import {LDESConfig} from "../../src/ldes/LDESConfig";
 import {retrieveWriteLocation} from "../../src/ldes/Util";
 import {LDPCommunication} from "../../src/ldp/LDPCommunication";
 import {LDESinLDP} from "../../src/ldes/LDESinLDP";

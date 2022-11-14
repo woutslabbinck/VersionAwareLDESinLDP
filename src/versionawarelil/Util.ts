@@ -10,6 +10,7 @@ import {DataFactory, Store} from "n3";
 import {DCT, RDF, TREE} from "../util/Vocabularies";
 import {dateToLiteral} from "../util/TimestampUtil";
 import namedNode = DataFactory.namedNode;
+import {IVersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
 
 /**
  * Verifies whether a member is marked as deleted
@@ -17,7 +18,7 @@ import namedNode = DataFactory.namedNode;
  * @param metadata
  * @returns {boolean}
  */
-export function isDeleted(member: Member, metadata: LDESMetadata): boolean {
+export function isDeleted(member: Member, metadata: IVersionedLDESinLDPMetadata): boolean {
     const store = new Store(member.quads)
     return store.getQuads(member.id, namedNode(RDF.type), namedNode(metadata.deletedType), null).length > 0
 }
@@ -30,10 +31,10 @@ export function isDeleted(member: Member, metadata: LDESMetadata): boolean {
  * @param memberIdentifier
  * @param metadata
  */
-export function addVersionObjectTriples(store: Store, versionIdentifier: string, memberIdentifier: string, metadata: LDESMetadata): void {
+export function addVersionObjectTriples(store: Store, versionIdentifier: string, memberIdentifier: string, metadata: IVersionedLDESinLDPMetadata): void {
     const id = namedNode(memberIdentifier)
     // add member triple
-    store.addQuad(namedNode(metadata.ldesEventStreamIdentifier), namedNode(TREE.member), id)
+    store.addQuad(namedNode(metadata.eventStreamIdentifier), namedNode(TREE.member), id)
     // add version object triples
     store.addQuad(id, namedNode(metadata.versionOfPath), namedNode(versionIdentifier))
     store.addQuad(id, namedNode(metadata.timestampPath), dateToLiteral(new Date()))
@@ -45,7 +46,7 @@ export function addVersionObjectTriples(store: Store, versionIdentifier: string,
  * @param versionSpecificIdentifier
  * @param metadata
  */
-export function addDeletedTriple(store: Store, versionSpecificIdentifier: string, metadata: LDESMetadata): void {
+export function addDeletedTriple(store: Store, versionSpecificIdentifier: string, metadata: IVersionedLDESinLDPMetadata): void {
     const id = namedNode(versionSpecificIdentifier)
     store.addQuad(id, namedNode(RDF.type), namedNode(metadata.deletedType))
 }
@@ -55,7 +56,7 @@ export function addDeletedTriple(store: Store, versionSpecificIdentifier: string
  * @param member
  * @param metadata
  */
-export function removeVersionSpecificTriples(member: Member, metadata: LDESMetadata): void {
+export function removeVersionSpecificTriples(member: Member, metadata: IVersionedLDESinLDPMetadata): void {
     const store = new Store(member.quads)
     store.removeQuads(store.getQuads(member.id, namedNode(metadata.timestampPath), null, null))
     store.removeQuads(store.getQuads(member.id, namedNode(metadata.versionOfPath), null, null))

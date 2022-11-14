@@ -23,14 +23,14 @@ import namedNode = DataFactory.namedNode;
  *****************************************/
 export class LDESinLDP implements ILDES {
     private readonly _LDESinLDPIdentifier: string;
-    private readonly communication: Communication;
+    private readonly _communication: Communication;
     private readonly logger: Logger = new Logger(this);
     private metadata: ILDESinLDPMetadata;
 
 
     constructor(LDESinLDPIdentifier: string, communication: Communication) {
         this._LDESinLDPIdentifier = LDESinLDPIdentifier;
-        this.communication = communication;
+        this._communication = communication;
         this.metadata = MetadataInitializer.createLDESinLDPMetadata(LDESinLDPIdentifier)
 
         if (!isContainerIdentifier(LDESinLDPIdentifier)) {
@@ -40,6 +40,10 @@ export class LDESinLDP implements ILDES {
 
     get LDESinLDPIdentifier(): string {
         return this._LDESinLDPIdentifier;
+    }
+
+    get communication(): Communication {
+        return this._communication;
     }
 
     private get fragmentSize(): number {
