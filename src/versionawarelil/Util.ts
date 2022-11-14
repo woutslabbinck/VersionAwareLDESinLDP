@@ -5,12 +5,11 @@
  * Created on 01/04/2022
  *****************************************/
 import {Member} from "@treecg/types";
-import {LDESMetadata, Relation} from "../util/LdesUtil";
 import {DataFactory, Store} from "n3";
 import {DCT, RDF, TREE} from "../util/Vocabularies";
 import {dateToLiteral} from "../util/TimestampUtil";
-import namedNode = DataFactory.namedNode;
 import {IVersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
+import namedNode = DataFactory.namedNode;
 
 /**
  * Verifies whether a member is marked as deleted

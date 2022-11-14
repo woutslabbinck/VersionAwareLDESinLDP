@@ -179,7 +179,7 @@ INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier
             const resources = comm.readPage(relation.node)
             for await (const resource of resources) {
                 // member ID is based on tree:path
-                let memberId = resource.getSubjects(relation.value, null, null)[0].value
+                let memberId = resource.getSubjects(relation.path, null, null)[0].value
                 if (resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null).length === 1) { // TODO check if this ever happens and if useful
                     memberId = resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null)[0].object.value
                 }

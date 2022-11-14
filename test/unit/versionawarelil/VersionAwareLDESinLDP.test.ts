@@ -9,10 +9,10 @@ import {RDF} from "@solid/community-server";
 import {baseUrl} from "../../util/solidHelper";
 import {Readable} from "stream";
 import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
+import {Communication} from "../../../src/ldp/Communication";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 import quad = DataFactory.quad;
-import {Communication} from "../../../src/ldp/Communication";
 
 describe('A VersionAwareLDESinLDP', () => {
     let mockLDESinLDP: jest.Mocked<ILDES>
