@@ -1,15 +1,15 @@
 import "jest-rdf"
 import {DCAT, DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {DataFactory, Store} from "n3";
-import {storeToString, turtleStringToStore} from "../../../src/util/Conversion";
+import {turtleStringToStore} from "../../../src/util/Conversion";
 import {MetadataParser} from "../../../src/metadata/MetadataParser";
 import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
-import namedNode = DataFactory.namedNode;
-import literal = DataFactory.literal;
 import {RDF} from "@solid/community-server";
 import * as Rdf from "@rdfjs/types";
-import quad = DataFactory.quad;
 import {dateToLiteral} from "../../../src/util/TimestampUtil";
+import namedNode = DataFactory.namedNode;
+import literal = DataFactory.literal;
+import quad = DataFactory.quad;
 
 function generateMetadata(lilURL: string, date?: Date): string {
     date = date ?? new Date()

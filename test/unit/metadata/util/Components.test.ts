@@ -1,11 +1,11 @@
 import "jest-rdf"
 import {DataFactory, Store} from "n3";
-import namedNode = DataFactory.namedNode;
 import {LDES, RDF, TREE} from "../../../../src/util/Vocabularies";
-import literal = DataFactory.literal;
 import {BucketizeStrategy, GreaterThanOrEqualToRelation, Node} from "../../../../src/metadata/util/Components";
 import {dateToLiteral} from "../../../../src/util/TimestampUtil";
 import {IRelation} from "../../../../src/metadata/util/Interfaces";
+import namedNode = DataFactory.namedNode;
+import literal = DataFactory.literal;
 
 describe('The following component for LIL metadata:', () => {
     const lilURL = "http://localhost:3000/lil/"

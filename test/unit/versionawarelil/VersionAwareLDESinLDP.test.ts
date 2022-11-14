@@ -1,20 +1,17 @@
 import {ILDES} from "../../../src/ldes/ILDES";
 import {ReadOptions, VersionAwareLDESinLDP} from "../../../src/versionawarelil/VersionAwareLDESinLDP";
-import {
-    storeAsMemberStream, storeToString,
-    turtleStringToStore
-} from "../../../src/util/Conversion";
+import {storeAsMemberStream, turtleStringToStore} from "../../../src/util/Conversion";
 import {DataFactory, Quad, Store} from "n3";
-import namedNode = DataFactory.namedNode;
 import {DCT, LDES, LDP, TREE} from "../../../src/util/Vocabularies";
-import literal = DataFactory.literal;
 import {dateToLiteral} from "../../../src/util/TimestampUtil";
 
 import {RDF} from "@solid/community-server";
 import {baseUrl} from "../../util/solidHelper";
 import {Readable} from "stream";
-import quad = DataFactory.quad;
 import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
+import namedNode = DataFactory.namedNode;
+import literal = DataFactory.literal;
+import quad = DataFactory.quad;
 
 describe('A VersionAwareLDESinLDP', () => {
     let mockLDESinLDP: jest.Mocked<ILDES>
