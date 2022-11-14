@@ -4,20 +4,22 @@
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 21/03/2022
  *****************************************/
-import {LDESConfig} from "./LDESConfig";
 import {Store} from "n3";
 import {Readable} from "stream";
+import {LILConfig} from "../metadata/LILConfig";
+import {Communication} from "../ldp/Communication";
 
 export interface ILDES {
 
     LDESinLDPIdentifier: string;
+    communication: Communication;
 
     /**
      * Initialises an LDES in LDP using from the config the base, possibly a shape and the treePath.
      * By default, ldes:versionOfPath is dct:isVersionOf, ldes:timestampPath is dc:created and tree:relation is tree:GreaterThanOrEqualToRelation.
      * @param config
      */
-    initialise: (config: LDESConfig) => Promise<void>
+    initialise: (config: LILConfig) => Promise<void>
 
     /**
      * Appends a member to the LDES.

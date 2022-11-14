@@ -12,9 +12,11 @@ import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ld
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 import quad = DataFactory.quad;
+import {Communication} from "../../../src/ldp/Communication";
 
 describe('A VersionAwareLDESinLDP', () => {
     let mockLDESinLDP: jest.Mocked<ILDES>
+    let mockCommunication: jest.Mocked<Communication>
     let vAwareLDESinLDP: VersionAwareLDESinLDP
     const ldesinLDPIdentifier = "http://example.org/ldesinldp/"
 
@@ -46,7 +48,17 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
     const resource2 = resourceBase + 'resource2'
 
     beforeEach(async () => {
+
+        mockCommunication = {
+            delete: jest.fn(),
+            head: jest.fn(),
+            get: jest.fn(),
+            patch: jest.fn(),
+            post: jest.fn(),
+            put: jest.fn()
+        }
         mockLDESinLDP = {
+            communication: mockCommunication,
             newFragment: jest.fn(),
             readPage: jest.fn(),
             LDESinLDPIdentifier: ldesinLDPIdentifier,
@@ -54,7 +66,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             initialise: jest.fn(),
             read: jest.fn(),
             readAllMembers: jest.fn(),
-            readMetadata: jest.fn(),
+            readMetadata: jest.fn()
         }
 
         const memberStore = new Store()
@@ -75,14 +87,15 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
     describe('when initialising a version aware LDES in LDP', () => {
         beforeEach(() => {
             mockLDESinLDP.initialise.mockResolvedValue(undefined)
+            mockCommunication.head.mockResolvedValue(new Response(ldesinLDPIdentifier, {status: 200}))
         });
 
-        it('succeeds with a shape.', async () => {
-            await expect(await vAwareLDESinLDP.initialise(mockLDESinLDP.LDESinLDPIdentifier)).toBeUndefined()
+        it('succeeds with default config.', async () => {
+            await expect(await vAwareLDESinLDP.initialise()).toBeUndefined()
         });
 
-        it('succeeds without a shape.', async () => {
-            await expect(await vAwareLDESinLDP.initialise(mockLDESinLDP.LDESinLDPIdentifier, 'http;//example.org/shape')).toBeUndefined()
+        it('succeeds with VLIL config.', async () => {
+            await expect(await vAwareLDESinLDP.initialise({versionOfPath: "vers", treePath:"lol"})).toBeUndefined()
         });
     });
 
@@ -360,6 +373,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             mockLDESinLDP.readPage.mockImplementation((id): AsyncIterable<Store> => {
                 async function* test() {
                 }
+
                 return test()
             })
             const versions = await vAwareLDESinLDP.extractVersions(resource1)
