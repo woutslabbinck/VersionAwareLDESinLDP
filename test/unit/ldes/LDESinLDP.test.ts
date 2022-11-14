@@ -1,11 +1,11 @@
 import {LDESinLDP} from "../../../src/ldes/LDESinLDP";
-import {DCT, LDES, LDP, RDF} from "../../../src/util/Vocabularies";
+import {DCT, LDP, RDF} from "../../../src/util/Vocabularies";
 import {DataFactory, Store} from "n3";
 import {Communication} from "../../../src/ldp/Communication";
 import {extractLdesMetadata} from "../../../src/util/LdesUtil";
 import {memberStreamtoStore, storeToString,} from "../../../src/util/Conversion";
 import {LDESConfig} from "../../../src/ldes/LDESConfig";
-import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
+import {getRelationIdentifier} from "../../../src/ldes/Util";
 import {addSimpleMember} from "../../util/LdesTestUtility";
 import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import namedNode = DataFactory.namedNode;

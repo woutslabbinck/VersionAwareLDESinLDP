@@ -1,18 +1,12 @@
 import {turtleStringToStore} from "../../../src/util/Conversion";
-import {
-    extractLDESIdentifier,
-    extractLdesMetadata,
-    filterRelation,
-    LDESMetadata,
-    Relation
-} from "../../../src/util/LdesUtil";
+import {extractLDESIdentifier, extractLdesMetadata, filterRelation, Relation} from "../../../src/util/LdesUtil";
 import {DataFactory, Store} from "n3";
 import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {RDF} from "@solid/community-server";
-import namedNode = DataFactory.namedNode;
 import {ILDESinLDPMetadata} from "../../../src/metadata/LDESinLDPMetadata";
 import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import {IRelation} from "../../../src/metadata/util/Interfaces";
+import namedNode = DataFactory.namedNode;
 
 describe('An LdesUtil', () => {
     describe('for extracting metadata from a versioned LDES in LDP.', () => {

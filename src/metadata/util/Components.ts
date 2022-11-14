@@ -8,8 +8,8 @@ import {DataFactory, Store} from "n3";
 import {DCAT, LDES, RDF, TREE} from "../../util/Vocabularies";
 import {dateToLiteral} from "../../util/TimestampUtil";
 import {namedNode} from "@rdfjs/data-model";
-import literal = DataFactory.literal;
 import {IBucketizeStrategy, ILDESinLDPClient, INode, IRelation, IViewDescription} from "./Interfaces";
+import literal = DataFactory.literal;
 
 export class Node implements INode {
     private _id: string
