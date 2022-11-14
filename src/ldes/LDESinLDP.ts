@@ -1,7 +1,7 @@
 import {ILDES} from "./ILDES";
 import {Communication} from "../ldp/Communication";
 import {Logger} from "../logging/Logger";
-import {filterRelation, LDESMetadata} from "../util/LdesUtil";
+import {filterRelation} from "../util/LdesUtil";
 import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
 import {DataFactory, Store} from "n3";
 import {Readable} from "stream";
@@ -236,7 +236,7 @@ INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier
     /**
      * Extract some basic LDES metadata
      *
-     * @returns {Promise<LDESMetadata>}
+     * @returns {Promise<ILDESinLDPMetadata>}
      */
     private async extractLdesMetadata(): Promise<ILDESinLDPMetadata> {
         const metadataStore = await this.readMetadata()

@@ -11,12 +11,13 @@ import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
-import {filterRelation, LDESMetadata, Relation} from "../util/LdesUtil";
+import {filterRelation} from "../util/LdesUtil";
 import {addDeletedTriple, addVersionObjectTriples, isDeleted, removeVersionSpecificTriples} from "./Util";
 import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 import {VLILConfig} from "../metadata/VLILConfig";
 import {MetadataParser} from "../metadata/MetadataParser";
 import {IVersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
+import {IRelation} from "../metadata/util/Interfaces";
 import namedNode = DataFactory.namedNode;
 
 export class VersionAwareLDESinLDP {
@@ -32,7 +33,7 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<any>}
      */
     public async initialise(config?: VLILConfig): Promise<void> {
-        // check if LIL exists | TODO: Do properly
+        // check if LIL exists | TODO: Do properly -> https://github.com/woutslabbinck/VersionAwareLDESinLDP/issues/16
         const resp = await this.LDESinLDP.communication.head(this.LDESinLDP.LDESinLDPIdentifier)
         if (resp.status !== 200) {
             config = config ?? {treePath: DCT.created, versionOfPath: DCT.isVersionOf}
@@ -246,7 +247,7 @@ export class VersionAwareLDESinLDP {
     /**
      * Extract some basic LDES metadata
      *
-     * @returns {Promise<LDESMetadata>}
+     * @returns {Promise<IVersionedLDESinLDPMetadata>}
      */
     private async extractLdesMetadata(): Promise<IVersionedLDESinLDPMetadata> {
         const metadataStore = await this.LDESinLDP.readMetadata() // can fail (what if configuration is wrong)
@@ -264,7 +265,7 @@ export class VersionAwareLDESinLDP {
 
         // 1. filter out relations from TREE metadata that may contain versions
         const metadata = await this.extractLdesMetadata();
-        const filteredRelations: Relation[] = filterRelation(metadata, startDate, endDate)
+        const filteredRelations: IRelation[] = filterRelation(metadata, startDate, endDate)
 
         // 2. filter out different versions for the versionIdentifier (contained in the time window)
         if (!extractOptions.chronologically) {

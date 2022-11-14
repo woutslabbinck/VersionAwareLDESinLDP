@@ -1,6 +1,6 @@
 /***************************************
  * Title: Components
- * Description: TODO
+ * Description: Contains classes that model tree:Node, tree:ViewDescription, tree:GreaterThanOrEqualToRelation and tree:BucketizeStrategy
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
  *****************************************/
