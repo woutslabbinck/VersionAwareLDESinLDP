@@ -1,5 +1,5 @@
 import "jest-rdf"
-import {storeToString, turtleStringToStore} from "../../../src/util/Conversion";
+import {turtleStringToStore} from "../../../src/util/Conversion";
 import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {namedNode} from "@rdfjs/data-model";

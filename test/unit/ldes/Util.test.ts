@@ -3,16 +3,19 @@ import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {
     addRelationToNode,
     addRootNodeToEventStream,
-    addShapeToEventStream, createContainer, createVersionedEventStream, extractMembers,
+    addShapeToEventStream,
+    createContainer,
+    createVersionedEventStream,
+    extractMembers,
     retrieveWriteLocation
 } from "../../../src/ldes/Util";
 import {DataFactory, Store} from "n3";
 import {RDF} from "@solid/community-server";
 import {dateToLiteral} from "../../../src/util/TimestampUtil";
 import {Communication} from "../../../src/ldp/Communication";
+import {addSimpleMember} from "../../util/LdesTestUtility";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
-import {addSimpleMember} from "../../util/LdesTestUtility";
 
 describe('A LDES in LDP Util', () => {
 

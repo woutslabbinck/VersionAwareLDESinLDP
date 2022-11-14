@@ -3,7 +3,7 @@ import {AppRunner} from "@solid/community-server";
 import {readFileSync} from "fs";
 import {Store} from "n3";
 import {stringToStore} from "../../src/util/Conversion";
-import {login, isLoggedin, sleep, RegistrationType} from "../../src/util/Login";
+import {isLoggedin, login, RegistrationType, sleep} from "../../src/util/Login";
 
 /***************************************
  * Title: solidHelper.ts

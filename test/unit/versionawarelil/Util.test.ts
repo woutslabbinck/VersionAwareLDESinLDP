@@ -1,7 +1,6 @@
-import {LDESMetadata} from "../../../src/util/LdesUtil";
+import {extractLdesMetadata, LDESMetadata} from "../../../src/util/LdesUtil";
 import {Store} from "n3";
 import {turtleStringToStore} from "../../../src/util/Conversion";
-import {extractLdesMetadata} from "../../../src/util/LdesUtil";
 import {filterRelation} from "../../../src/versionawarelil/Util";
 import {Relation} from "../../../dist/util/LdesUtil";
 import {DCT, TREE} from "../../../dist/util/Vocabularies";
