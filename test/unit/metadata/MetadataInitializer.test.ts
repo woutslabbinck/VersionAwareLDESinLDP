@@ -45,13 +45,13 @@ describe('A MetadataInitializer', () => {
             let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL)
             let generatedDate = new Date(metadata.getStore().getObjects(null, TREE.value, null)[0].value)
             let store = await turtleStringToStore(generateMetadata(lilURL, {date: generatedDate}))
-            expect(metadata.getStore().getQuads(null, null, null, null)).toBeRdfIsomorphic(store.getQuads(null, null, null, null))
+            expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
 
         it('generates the metadata given a date.', async () => {
             let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, args)
             let store = await turtleStringToStore(generateMetadata(lilURL, args))
-            expect(metadata.getStore().getQuads(null, null, null, null)).toBeRdfIsomorphic(store.getQuads(null, null, null, null))
+            expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
 
         it('generates the metadata given a treePath.', async () => {
@@ -59,7 +59,7 @@ describe('A MetadataInitializer', () => {
             args = {lilConfig: {treePath: path}, date}
             let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, args)
             let store = await turtleStringToStore(generateMetadata(lilURL, args))
-            expect(metadata.getStore().getQuads(null, null, null, null)).toBeRdfIsomorphic(store.getQuads(null, null, null, null))
+            expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
 
         it('generates the metadata given a shape.', async () => {
@@ -69,7 +69,7 @@ describe('A MetadataInitializer', () => {
             let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, args)
             let store = await turtleStringToStore(generateMetadata(lilURL, args))
             store.addQuad(namedNode(eventStreamIdentifier), namedNode(TREE.shape), namedNode(shapeURL))
-            expect(metadata.getStore().getQuads(null, null, null, null)).toBeRdfIsomorphic(store.getQuads(null, null, null, null))
+            expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
     })
 
@@ -78,6 +78,9 @@ describe('A MetadataInitializer', () => {
             let metadata = MetadataInitializer.createVersionedLDESinLDPMetadata(lilURL)
             expect(metadata.getStore().getQuads(eventStreamIdentifier, LDES.timestampPath,null,null).length).toBe(1)
             expect(metadata.getStore().getQuads(eventStreamIdentifier, LDES.versionOfPath,null,null).length).toBe(1)
+            expect(metadata.timestampPath).toBe(DCT.created)
+            expect(metadata.versionOfPath).toBe(DCT.isVersionOf)
+            expect(metadata.deletedType).toBe(LDES.DeletedLDPResource)
         });
     });
 });

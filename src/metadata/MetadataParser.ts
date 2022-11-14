@@ -46,7 +46,7 @@ export class MetadataParser {
                 throw Error(`dcatendpointURL (${viewDescription.endpointURL}) does not match the view Identifier of the LDES in LDP: ${rootNodeIdentifier}`)
             }
             if (viewDescription.servesDataset !== eventStreamIdentifier) {
-                throw Error(`dcatendpointURL (${viewDescription.servesDataset}) does not match the view Identifier of the LDES in LDP: ${eventStreamIdentifier}`)
+                throw Error(`serves dataset property (${viewDescription.servesDataset}) does not match the EventStream Identifier of the LDES in LDP: ${eventStreamIdentifier}`)
             }
 
         }
@@ -82,30 +82,79 @@ export class MetadataParser {
     }
 
     public static parseRelation(store: Store, relationNode: Rdf.Term): IRelation {
-        // TODO error handling
+        const types = store.getQuads(relationNode, RDF.type, null, null)
+        const nodes = store.getQuads(relationNode, TREE.node, null, null)
+        const treePaths = store.getQuads(relationNode, TREE.path, null, null)
+        const values = store.getQuads(relationNode, TREE.value, null, null)
+        if (nodes.length !== 1) {
+            throw new Error(`Could not parse relation as the expected amount of tree nodes is 1 | received: ${nodes.length}`)
+        }
+        if (treePaths.length !== 1) {
+            throw new Error(`Could not parse relation as the expected amount of tree paths is 1 | received: ${treePaths.length}`)
+        }
+        if (values.length !== 1) {
+            throw new Error(`Could not parse relation as the expected amount of tree values is 1 | received: ${values.length}`)
+        }
+        if (types.length !== 1) {
+            throw new Error(`Could not parse relation as the expected amount of types is 1 | received: ${values.length}`)
+        }
+        if (types[0].object.value !== TREE.GreaterThanOrEqualToRelation) {
+            throw new Error(`LDES in LDP expects GreaterThanOrEqualToRelation as type } received: ${types[0].object.value}`)
+        }
 
-        const node = store.getObjects(relationNode, TREE.node, null)[0].value
-        const path = store.getObjects(relationNode, TREE.path, null)[0].value
-        const value = store.getObjects(relationNode, TREE.value, null)[0].value
+        const node = nodes[0].object.value
+        const path = treePaths[0].object.value
+        const value = values[0].object.value
+
         return new GreaterThanOrEqualToRelation(node, path, value)
     }
 
     public static parseViewDescription(store: Store, viewDescriptionNode: Rdf.Term): IViewDescription {
-        // TODO error handling
+        const esIds = store.getObjects(viewDescriptionNode, DCAT.servesDataset, null)
+        const rootNodeIds = store.getObjects(viewDescriptionNode, DCAT.endpointURL, null)
+        const managedByIds = store.getObjects(viewDescriptionNode, LDES.managedBy, null)
 
-        const eventStreamIdentifier = store.getObjects(viewDescriptionNode, DCAT.servesDataset, null)[0].value
-        const rootNodeIdentifier = store.getObjects(viewDescriptionNode, DCAT.endpointURL, null)[0].value
+        if (esIds.length !== 1) {
+            throw new Error(`Could not parse view description as the expected amount of serve dataset identifiers is 1 | received: ${esIds.length}`)
+        }
+        if (rootNodeIds.length !== 1) {
+            throw new Error(`Could not parse view description as the expected amount of endpoint URLs is 1 | received: ${rootNodeIds.length}`)
+        }
+        if (managedByIds.length !== 1) {
+            throw new Error(`Could not parse view description as the expected amount of managed by identifiers is 1 | received: ${managedByIds.length}`)
+        }
 
-        const managedByNode = store.getObjects(viewDescriptionNode, LDES.managedBy, null)[0]
+        const eventStreamIdentifier = esIds[0].value
+        const rootNodeIdentifier = rootNodeIds[0].value
 
-        const bucketizeStrategyNode = store.getObjects(managedByNode, LDES.bucketizeStrategy, null)[0]
+        const managedByNode = managedByIds[0]
 
-        const bucketType = store.getObjects(bucketizeStrategyNode, LDES.bucketType, null)[0].value
-        const path = store.getObjects(bucketizeStrategyNode, TREE.path, null)[0].value // TODO: must be same as all tree paths!!
+        const bucketizers = store.getObjects(managedByNode, LDES.bucketizeStrategy, null)
+        if (bucketizers.length !== 1) {
+            throw new Error(`Could not parse view description as the expected amount of bucketizers is 1 | received: ${bucketizers.length}`)
+        }
+
+        const bucketizeStrategyNode = bucketizers[0]
+
+        const bucketTypes = store.getObjects(bucketizeStrategyNode, LDES.bucketType, null)
+        const treePaths = store.getObjects(bucketizeStrategyNode, TREE.path, null)
+
+        if (bucketTypes.length !== 1) {
+            throw new Error(`Could not parse bucketizer in view description as the expected amount of bucket types is 1 | received: ${bucketTypes.length}`)
+        }
+        if (treePaths.length !== 1) {
+            throw new Error(`Could not parse bucketizer in view description as the expected amount of pathss is 1 | received: ${treePaths.length}`)
+        }
+        const bucketType = bucketTypes[0].value
+        const path = treePaths[0].value // NOTE: must be same as all tree paths in each Relation!!
+
         let pageSize: number | undefined
         if (store.getObjects(bucketizeStrategyNode, LDES.pageSize, null).length === 1) {
-            const pageSizeLiteral = (store.getObjects(bucketizeStrategyNode, LDES.pageSize, null)[0] as Literal)
+            const pageSizeLiteral = store.getObjects(bucketizeStrategyNode, LDES.pageSize, null)[0] as Literal
             pageSize = parseInt(pageSizeLiteral.value, 10)
+            if (isNaN(pageSize)) {
+                throw Error("Could not parse bucketizer in view description as the page size is not a number.")
+            }
         }
 
         const bucketizeStrategy = new BucketizeStrategy(bucketizeStrategyNode.value, bucketType, path, pageSize)
