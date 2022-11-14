@@ -1,18 +1,20 @@
+// ldes in ldp
+export * from './ldes/ILDES'
+export * from './ldes/LDESConfig'
+export * from './ldes/LDESinLDP'
+export * from './ldes/Util'
+
 // ldp
 export * from "./ldp/LDPCommunication";
 export * from "./ldp/Communication";
 
-// ldes in ldp
-export * from './ldes/LDESinLDP'
-export * from './ldes/ILDES'
-export * from './ldes/LDESConfig'
-
 // metadata
 export * from "./metadata/LDESinLDPMetadata";
-export * from "./metadata/LDESinLDPMetadata";
+export * from "./metadata/LILConfig";
 export * from "./metadata/MetadataInitializer";
 export * from "./metadata/MetadataParser";
 export * from "./metadata/VersionedLDESinLDPMetadata";
+export * from "./metadata/VLILConfig";
 export * from "./metadata/util/Components";
 export * from "./metadata/util/Interfaces";
 
@@ -30,6 +32,4 @@ export * from './solid/SolidCommunication'
 // version aware
 export * from './versionawarelil/VersionAwareLDESinLDP'
 
-// test
-export * from './Runner'
 

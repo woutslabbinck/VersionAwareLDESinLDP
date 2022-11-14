@@ -39,7 +39,6 @@ export interface ILDES {
     /**
      * Create a new GTE relation (fragment) in the LDES in LDP
      *
-     * TODO: rewrite -> Also updates inbox
      * @param date
      */
     newFragment: (date?: Date) => Promise<void>
