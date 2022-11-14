@@ -55,7 +55,8 @@ export class LDESinLDP implements ILDES {
         // update metadata if write location is different from current inboxURL based on metadata
         await this.updateMetadata(inboxURL)
         await this.maybeNewFragment();
-        this.logger.info("page size"+ this.metadata.fragmentSize)
+
+        this.logger.debug("page size" + this.metadata.fragmentSize)
         const response = await this.communication.post(this.metadata.inbox, storeToString(store))
         if (response.status !== 201) {
             throw Error(`The resource was not be created at ${this.metadata.inbox} 
@@ -177,10 +178,9 @@ INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier
         for (const relation of relations) {
             const resources = comm.readPage(relation.node)
             for await (const resource of resources) {
-                // member ID is either first subject in the graph or based on tree member containment
-                let memberId = resource.getSubjects(null, null, null)[0].value
-                if (resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null).length === 1) {
-                    // TODO check if this ever happens
+                // member ID is based on tree:path
+                let memberId = resource.getSubjects(relation.value, null, null)[0].value
+                if (resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null).length === 1) { // TODO check if this ever happens and if useful
                     memberId = resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null)[0].object.value
                 }
 

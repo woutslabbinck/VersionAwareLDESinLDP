@@ -55,7 +55,7 @@ const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
 const versionAware = new VersionAwareLDESinLDP(ldesinldp);
 
 // initialise
-await versionAware.initialise(ldesinldpIdentifier)
+await versionAware.initialise()
 ```
 
 From this point, this initialised LDES in LDP will be used through `versionAware`  in the next code examples unless stated otherwise.
@@ -80,11 +80,12 @@ curl http://localhost:3000/ldesinldp/
 
 ```turtle
 @prefix dc: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix ldp: <http://www.w3.org/ns/ldp#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix tree: <https://w3id.org/tree#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix ldes: <http://w3id.org/ldes#>.
+
 
 <http://localhost:3000/ldesinldp/> dc:modified "2022-09-29T13:23:30.000Z"^^xsd:dateTime ;
     rdf:type ldp:BasicContainer , ldp:Container , ldp:Resource , tree:Node ;
@@ -96,11 +97,24 @@ curl http://localhost:3000/ldesinldp/
         tree:path dc:created ;
         tree:value "2022-09-29T13:23:30.373Z"^^xsd:dateTime
     ] .
+    tree:viewDescription <http://localhost:3000/ldesinldp/#ViewDescription> .
 
-<http://localhost:3000/ldesinldp/#EventStream> rdf:type ldes:EventStream ;
+<http://localhost:3000/ldesinldp/#EventStream> rdf:type <https://w3id.org/ldes#EventStream> ;
     ldes:timestampPath dc:created ;
     ldes:versionOfPath dc:isVersionOf ;
     tree:view <http://localhost:3000/ldesinldp/> .
+    
+<http://localhost:3000/ldesinldp/#ViewDescription> rdf:type tree:ViewDescription ;
+    dcat:endpointURL <http://localhost:3000/ldesinldp/> ;
+    dcat:servesDataset <http://localhost:3000/ldesinldp/#EventStream> ;
+    ldes:managedBy <http://localhost:3000/ldesinldp/#LDESinLDPClient> .
+
+<http://localhost:3000/ldesinldp/#LDESinLDPClient> rdf:type ldes:LDESinLDPClient ;
+    ldes:bucketizeStrategy <http://localhost:3000/ldesinldp/#BucketizeStrategy> .
+    
+<http://localhost:3000/ldesinldp/#BucketizeStrategy> rdf:type ldes:BucketizeStrategy ;
+    ldes:bucketType ldes:timestampFragmentation ;
+    tree:path dc:created .
 ```
 </details>
 
@@ -208,7 +222,7 @@ A private LDES in LDP can be created by using `SolidCommunication` and a `Sessio
 
 ```javascript
 const {SolidCommunication, LDESinLDP, VersionAwareLDESinLDP} = require('@treecg/versionawareldesinldp');
-const session = ...; // Get a login session (@inrupt/solid-client-authn-node or @inrupt/solid-client-authn-browser)
+let session: Session; // Get a login session (@inrupt/solid-client-authn-node or @inrupt/solid-client-authn-browser)
 const ldesinldpIdentifier = 'http://localhost:3000/ldesinldp/'; // Base URL of the LDES in LDP 
 const communication = new SolidCommunication(session);
 const ldesinldp = new LDESinLDP(ldesinldpIdentifier, communication);
