@@ -1,5 +1,5 @@
 import {turtleStringToStore} from "../../../src/util/Conversion";
-import {extractLDESIdentifier, extractLdesMetadata, filterRelation, Relation} from "../../../src/util/LdesUtil";
+import {extractLDESIdentifier, extractLdesMetadata, filterRelation} from "../../../src/util/LdesUtil";
 import {DataFactory, Store} from "n3";
 import {DCT, LDES, TREE} from "../../../src/util/Vocabularies";
 import {RDF} from "@solid/community-server";
@@ -67,23 +67,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
     describe('For filtering the relations within an LDES', () => {
         let lilURL = 'http://example.org/ldesinldp/'
-        const lilID = `http://example.org/ldesinldp/#EventStream`
-        const lilString = `
-<http://example.org/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Node> .
-<http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:genid1 .
-<http://example.org/ldesinldp/> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/1646092800000/> .
-_:genid1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
-_:genid1 <https://w3id.org/tree#node> <http://example.org/ldesinldp/1646092800000/> .
-_:genid1 <https://w3id.org/tree#path> <http://purl.org/dc/terms/created> .
-_:genid1 <https://w3id.org/tree#value> "2022-03-01T00:00:00.000Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
-<http://example.org/ldesinldp/#EventStream> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/ldes#EventStream> .
-<http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#versionOfPath> <http://purl.org/dc/terms/isVersionOf> .
-<http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#timestampPath> <http://purl.org/dc/terms/created> .
-<http://example.org/ldesinldp/#EventStream> <https://w3id.org/tree#view> <http://example.org/ldesinldp/> .
-`
-        let ldesStore: Store;
         let ldesMetadata: ILDESinLDPMetadata
-        let relations: Relation[];
+        let relations: IRelation[];
 
         const t0 = new Date(0)
         const t1 = new Date("2022-01-01")

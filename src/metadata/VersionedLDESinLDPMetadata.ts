@@ -1,6 +1,6 @@
 /***************************************
  * Title: VersionedLDESinLDPMetadata.ts
- * Description: TODO
+ * Description: Contains the interface and implementation for the metadata of a versioned LDES in LDP
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
  *****************************************/

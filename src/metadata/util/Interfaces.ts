@@ -1,16 +1,15 @@
 /***************************************
  * Title: Interfaces
- * Description: TODO
+ * Description: Contains interfaces that model tree:node, tree:ViewDescription, tree:Relation and tree:BucketizeStrategy
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
  *****************************************/
 
 import {Store} from "n3";
-import {Relation} from "../../util/LdesUtil";
 
 export interface INode {
     id: string
-    relations: Relation[]
+    relations: IRelation[]
     viewDescription?: IViewDescription
 
     getStore: () => Store

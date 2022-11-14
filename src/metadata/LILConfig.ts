@@ -1,6 +1,6 @@
 /***************************************
  * Title: LILConfig
- * Description: TODO
+ * Description: Interface used for LDES in LDP initialisation
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
  *****************************************/

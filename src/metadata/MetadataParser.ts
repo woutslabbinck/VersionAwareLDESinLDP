@@ -1,6 +1,6 @@
 /***************************************
  * Title: MetadataParser
- * Description: TODO
+ * Description: A class that parses metadata for an LDES in LDP or a versioned LDES in LDP
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
  *****************************************/
@@ -18,6 +18,7 @@ import {
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 import * as Rdf from "@rdfjs/types";
 
+// TODO: proper documentation -> together with each method
 export class MetadataParser {
     public static extractLDESinLDPMetadata(store: Store): ILDESinLDPMetadata {
         if (store.getSubjects(RDF.type, LDES.EventStream, null).length !== 1) {

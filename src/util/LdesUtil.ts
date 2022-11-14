@@ -10,6 +10,7 @@ import {LDES, LDP, RDF, TREE} from "./Vocabularies";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {storeToString} from "./Conversion";
 import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
+import {IRelation} from "../metadata/util/Interfaces";
 
 export interface Relation {
     type: string
@@ -89,9 +90,9 @@ export function extractLDESIdentifier(store: Store) {
  * @param metadata The LDES metadata
  * @param startDate The start time of the time window (Date object)
  * @param endDate The end time of the time window (Date object)
- * @returns {Relation[]}
+ * @returns {IRelation[]}
  */
-export function filterRelation(metadata: ILDESinLDPMetadata, startDate: Date, endDate: Date): Relation[]{
+export function filterRelation(metadata: ILDESinLDPMetadata, startDate: Date, endDate: Date): IRelation[]{
     // relations chronologically sorted
     const metadataRelations = metadata.view.relations.sort((a, b) => {
         // assumption: value is valid xsd:DateTime
@@ -102,7 +103,7 @@ export function filterRelation(metadata: ILDESinLDPMetadata, startDate: Date, en
 
     if (metadataRelations.length === 0) return []
 
-    const filteredRelations: Relation[] = []
+    const filteredRelations: IRelation[] = []
 
     for (let i = 0; i < metadataRelations.length - 1; i++) {
         const relation = metadataRelations[i]

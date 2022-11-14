@@ -1,6 +1,6 @@
 /***************************************
  * Title: LDESinLDPMetadata
- * Description: TODO
+ * Description: Contains the interface and implementation for the metadata of an LDES in LDP
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
  *****************************************/

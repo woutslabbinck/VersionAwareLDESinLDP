@@ -1,6 +1,6 @@
 /***************************************
  * Title: MetadataInitializer
- * Description: TODO
+ * Description: A class that generates metadata for an LDES in LDP or a versioned LDES in LDP
  * Author: Wout Slabbinck (wout.slabbinck@ugent.be)
  * Created on 08/11/2022
  *****************************************/
@@ -17,9 +17,10 @@ import {ILDESinLDPMetadata, LDESinLDPMetadata} from "./LDESinLDPMetadata";
 import {IRelation} from "./util/Interfaces";
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 
+// TODO: proper documentation -> together with each method
 export class MetadataInitializer {
     public static createLDESinLDPMetadata(lilURL: string, args?: {
-        lilConfig?: { treePath: string, shape?: string, pageSize?: number }, //todo refactor, lilconfig already has date
+        lilConfig?: { treePath: string, shape?: string, pageSize?: number },
         date?: Date
     }): ILDESinLDPMetadata {
         args = args ?? {}
@@ -41,13 +42,13 @@ export class MetadataInitializer {
     }
 
     public static createVersionedLDESinLDPMetadata(lilURL: string, args?: {
-        lilConfig?: { treePath: string, shape?: string, pageSize?: number, versionOfPath?: string },
+        vlilConfig?: { treePath: string, shape?: string, pageSize?: number, versionOfPath?: string },
         date?: Date
     }): IVersionedLDESinLDPMetadata {
         args = args ?? {}
         const lilMetadata = this.createLDESinLDPMetadata(lilURL, args)
-        const versionOfPath = args.lilConfig ? args.lilConfig.versionOfPath : undefined;
-        const timestampPath = args.lilConfig ? args.lilConfig.treePath : undefined;
+        const versionOfPath = args.vlilConfig ? args.vlilConfig.versionOfPath : undefined;
+        const timestampPath = args.vlilConfig ? args.vlilConfig.treePath : undefined;
 
         return new VersionedLDESinLDPMetadata(lilMetadata.eventStreamIdentifier, lilMetadata.view, lilMetadata.inbox, {
             timestampPath,
