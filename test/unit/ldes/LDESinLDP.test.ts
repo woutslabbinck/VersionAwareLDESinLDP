@@ -7,6 +7,7 @@ import {memberStreamtoStore, storeToString,} from "../../../src/util/Conversion"
 import {LDESConfig} from "../../../src/ldes/LDESConfig";
 import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
 import {addSimpleMember} from "../../util/LdesTestUtility";
+import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 
@@ -85,8 +86,10 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         let relationIdentifier: string
 
         beforeEach(() => {
-            store = new Store()
-            createVersionedEventStream(store, config, date)
+            store = MetadataInitializer.createLDESinLDPMetadata(lilBase, {
+                lilConfig: config,
+                date: date
+            }).getStore()
             relationIdentifier = getRelationIdentifier(lilBase, date)
             store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
         });
@@ -97,8 +100,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 500}))
 
             const patchQuery = `INSERT DATA {${storeToString(store)}}`
-
-            await ldesinldp.initialise(config, date)
+            const lilConfig = {...config, date}
+            await ldesinldp.initialise(lilConfig)
             expect(mockCommunication.patch).toBeCalledWith(lilBase + '.meta', patchQuery)
             expect(mockCommunication.patch).toBeCalledTimes(1)
             expect(mockCommunication.put).toBeCalledTimes(2)
@@ -112,12 +115,15 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 500}))
 
             const pageSize = 10
-            config.pageSize = pageSize
+            const lilConfig = {...config, date, pageSize}
 
-            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDES.pageSize), literal(config.pageSize))
+            store = MetadataInitializer.createLDESinLDPMetadata(lilBase, {
+                lilConfig: lilConfig,
+                date: date
+            }).getStore()
             const patchQuery = `INSERT DATA {${storeToString(store)}}`
 
-            await ldesinldp.initialise(config, date)
+            await ldesinldp.initialise(lilConfig)
             expect(mockCommunication.patch).toBeCalledWith(lilBase + '.meta', patchQuery)
         })
 
@@ -142,13 +148,10 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             mockCommunication.get.mockResolvedValue(readMetadataResponse)
 
             // metadata with pageSize store
-            store = new Store()
-            createVersionedEventStream(store, config, date)
             config.pageSize = pageSize
+            store = MetadataInitializer.createLDESinLDPMetadata(lilBase, {lilConfig: config, date}).getStore()
 
             const relationIdentifier = getRelationIdentifier(lilBase, date)
-            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDP.inbox), namedNode(relationIdentifier))
-            store.addQuad(namedNode(config.LDESinLDPIdentifier), namedNode(LDES.pageSize), literal(config.pageSize))
 
             const locationHeader = new Headers({'Location': createdURL})
             postResponse = new Response(null, {status: 201, headers: locationHeader})
@@ -316,6 +319,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             mockCommunication.get.mockResolvedValueOnce(getResourceResponse)
             const memberStream = await ldesinldp.readAllMembers()
             const members = await memberStreamtoStore(memberStream)
+            expect(mockCommunication.get).toBeCalledTimes(3)
             expect(members.size).toBe(3)
             expect(members.getObjects(null, DCT.title, null)[0].value).toBe("test")
             expect(members.getObjects(null, DCT.isVersionOf, null)[0].value).toBe("http://example.org/resource1")
@@ -391,9 +395,9 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(mockCommunication.patch).lastCalledWith(lilBase + '.meta', `DELETE DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <${inboxContainerURL}> .};
 INSERT DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/1664841600000/> .
  _:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
-_:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
 _:b0 <https://w3id.org/tree#path> <http://purl.org/dc/terms/created> .
 _:b0 <https://w3id.org/tree#value> "${dateNewFragment.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+_:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
 <http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:b0 .
  }`)
         });
@@ -452,8 +456,8 @@ _:b0 <https://w3id.org/tree#value> "${dateNewFragment.toISOString()}"^^<http://w
 
         it('returns the members when containment triples are present.', async () => {
             const memberStore = new Store()
-            addSimpleMember(memberStore, resourceURL, lilBase)
-            addSimpleMember(memberStore, containerURL + 'resource2', lilBase)
+            addSimpleMember(memberStore, resourceURL, lilBase + "#EventStream")
+            addSimpleMember(memberStore, containerURL + 'resource2', lilBase + "#EventStream")
 
             mockCommunication.get.mockResolvedValue(new Response(storeToString(memberStore), {
                 status: 200,

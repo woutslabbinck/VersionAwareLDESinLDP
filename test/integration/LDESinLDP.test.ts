@@ -4,31 +4,25 @@ import {LDESConfig} from "../../src/ldes/LDESConfig";
 import {retrieveWriteLocation} from "../../src/ldes/Util";
 import {LDPCommunication} from "../../src/ldp/LDPCommunication";
 import {LDESinLDP} from "../../src/ldes/LDESinLDP";
+import {LILConfig} from "../../src/metadata/LILConfig";
 
 describe('An LDESinLDP', () => {
-    const lilIdentifier = baseUrl + 'ldesinldp_lil/'
-
     const communication = new LDPCommunication()
-    const ldesinldp = new LDESinLDP(lilIdentifier, communication)
 
 
     describe('when initialising an LDES in LDP', () => {
         const lilIdentifier = baseUrl + 'ldesinldp_init/'
-        const treePath = DCT.created
-        const versionOfPath = DCT.isVersionOf
+        const ldesinldp = new LDESinLDP(lilIdentifier, communication)
 
-        const config: LDESConfig ={
-            LDESinLDPIdentifier: lilIdentifier,
-            treePath,
-            versionOfPath
+        const treePath = DCT.created
+
+        const config: LILConfig = {
+            treePath
         }
 
-        it('fails when the given LDESinLDPIdentifier is not a container.', async () => {
-            await expect(ldesinldp.initialise({
-                LDESinLDPIdentifier: 'http://example.org',
-                treePath,
-                versionOfPath
-            })).rejects.toThrow(Error)
+        it('fails when the given LDESinLDPIdentifier is not a container.', () => {
+            const lilIdentifier = baseUrl + 'lol'
+            expect(() => new LDESinLDP(lilIdentifier, communication)).toThrow(Error)
         })
 
         it('succeeds, given a proper configuration.', async () => {
@@ -43,7 +37,9 @@ describe('An LDESinLDP', () => {
         });
 
         it('does nothing when it was already initialised', async () => {
-            config.LDESinLDPIdentifier = baseUrl + 'lil_init_v2/'
+            const lilIdentifier = baseUrl + 'ldesinldp_init_v2/'
+            const ldesinldp = new LDESinLDP(lilIdentifier, communication)
+
             await ldesinldp.initialise(config)
 
             await expect(ldesinldp.initialise(config)).resolves.toBeUndefined()

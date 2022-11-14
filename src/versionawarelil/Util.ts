@@ -66,6 +66,7 @@ export function removeVersionSpecificTriples(member: Member, metadata: LDESMetad
 
 }
 
+// todo remove here
 /**
  * Filters out the relations from a time-based LDES (all TREE GTE relations) that have members within the given time window [startDate, endDate].
  * @param metadata The LDES metadata
