@@ -19,7 +19,7 @@ import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./Version
 
 export class MetadataInitializer {
     public static createLDESinLDPMetadata(lilURL: string, args?: {
-        lilConfig?: { treePath: string, shape?: string, pageSize?: number },
+        lilConfig?: { treePath: string, shape?: string, pageSize?: number }, //todo refactor, lilconfig already has date
         date?: Date
     }): ILDESinLDPMetadata {
         args = args ?? {}
