@@ -11,19 +11,13 @@ import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
-import {extractLdesMetadata, filterRelation, LDESMetadata, Relation} from "../util/LdesUtil";
-import {
-    addDeletedTriple,
-    addVersionObjectTriples,
-    isDeleted,
-    removeVersionSpecificTriples
-} from "./Util";
+import {filterRelation, LDESMetadata, Relation} from "../util/LdesUtil";
+import {addDeletedTriple, addVersionObjectTriples, isDeleted, removeVersionSpecificTriples} from "./Util";
 import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
-import namedNode = DataFactory.namedNode;
 import {VLILConfig} from "../metadata/VLILConfig";
 import {MetadataParser} from "../metadata/MetadataParser";
-import {LILConfig} from "../metadata/LILConfig";
-import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
+import {IVersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
+import namedNode = DataFactory.namedNode;
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDES;

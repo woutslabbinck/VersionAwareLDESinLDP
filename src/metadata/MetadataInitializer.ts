@@ -32,7 +32,8 @@ export class MetadataInitializer {
 
         const eventStreamIdentifier = `${lilURL}#EventStream`
 
-        const relation = this.createRelation(lilURL, treePath, date)
+        const relationIdentifier = getRelationIdentifier(lilURL, date)
+        const relation = this.createRelation(relationIdentifier, treePath, date)
         const viewDescription = this.createViewDescription(eventStreamIdentifier, lilURL, pageSize, treePath)
 
         const node = new Node(lilURL, [relation], viewDescription)
@@ -54,12 +55,11 @@ export class MetadataInitializer {
         }, lilMetadata.shape)
     }
 
-    public static createRelation(rootNodeURL: string, path?: string, date?: Date): IRelation {
+    public static createRelation(nodeURL: string, path?: string, date?: Date): IRelation {
         date = date ?? new Date()
         path = path ?? DCT.created
 
-        const relationURL = getRelationIdentifier(rootNodeURL, date)
-        return new GreaterThanOrEqualToRelation(relationURL, path, date.toISOString())
+        return new GreaterThanOrEqualToRelation(nodeURL, path, date.toISOString())
     }
 
     protected static createViewDescription(eventStreamIdentifier: string, rootNodeIdentifier: string, pageSize?: number, path?: string): ViewDescription {
