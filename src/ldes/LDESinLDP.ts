@@ -31,7 +31,7 @@ export class LDESinLDP implements ILDES {
     constructor(LDESinLDPIdentifier: string, communication: Communication) {
         this._LDESinLDPIdentifier = LDESinLDPIdentifier;
         this._communication = communication;
-        this.metadata = MetadataInitializer.createLDESinLDPMetadata(LDESinLDPIdentifier)
+        this.metadata = MetadataInitializer.generateLDESinLDPMetadata(LDESinLDPIdentifier)
 
         if (!isContainerIdentifier(LDESinLDPIdentifier)) {
             throw Error(`${LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
@@ -86,7 +86,7 @@ export class LDESinLDP implements ILDES {
         }
         const date = config.date ?? new Date()
 
-        const metadata = MetadataInitializer.createLDESinLDPMetadata(this.LDESinLDPIdentifier, {
+        const metadata = MetadataInitializer.generateLDESinLDPMetadata(this.LDESinLDPIdentifier, {
             lilConfig: config,
             date: date
         })

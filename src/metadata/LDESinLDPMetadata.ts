@@ -7,9 +7,12 @@
 import {Store} from "n3";
 import {LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {namedNode} from "@rdfjs/data-model";
-import {INode} from "./util/Interfaces";
+import {INode, N3Support} from "./util/Interfaces";
 
-export interface ILDESinLDPMetadata {
+/**
+ * Holds the properties of an LDES in LDP (LDES in LDP Protocol §2).
+ */
+export interface ILDESinLDPMetadata extends N3Support{
     eventStreamIdentifier: string
     view: INode
     inbox: string
@@ -17,7 +20,6 @@ export interface ILDESinLDPMetadata {
 
     rootNodeIdentifier: string // view identifier
     fragmentSize: number // Infinity if not present
-    getStore: () => Store
 }
 
 export class LDESinLDPMetadata implements ILDESinLDPMetadata {

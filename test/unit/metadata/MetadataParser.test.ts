@@ -174,7 +174,7 @@ describe('A MetadataParser', () => {
     describe('parsing an LDES in LDP', () => {
         it('parses to metadata correctly.', async () => {
             const parsedMetadata = MetadataParser.extractLDESinLDPMetadata(store)
-            const metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, {date})
+            const metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, {date})
             expect(parsedMetadata).toEqual(metadata)
         });
 
@@ -198,7 +198,7 @@ _:b0 <https://w3id.org/tree#node> <${lilURL}${date.valueOf()}/> .
         it('parses pageSize correctly.', () => {
             store.addQuad(namedNode(`${lilURL}#BucketizeStrategy`), namedNode(LDES.pageSize), literal(10))
             const parsedMetadata = MetadataParser.extractLDESinLDPMetadata(store)
-            const metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, {
+            const metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, {
                 date, lilConfig: {
                     pageSize: 10,
                     treePath: DCT.created
@@ -278,7 +278,7 @@ _:b0 <https://w3id.org/tree#node> <${lilURL}${date.valueOf()}/> .
             store.addQuad(namedNode(eventStreamIdentifier), namedNode(LDES.versionOfPath), namedNode(DCT.isVersionOf))
             store.addQuad(namedNode(eventStreamIdentifier), namedNode(LDES.timestampPath), namedNode(DCT.created))
             const parsedMetadata = MetadataParser.extractVersionedLDESinLDPMetadata(store)
-            const metadata = MetadataInitializer.createVersionedLDESinLDPMetadata(lilURL, {date})
+            const metadata = MetadataInitializer.generateVersionedLDESinLDPMetadata(lilURL, {date})
             expect(parsedMetadata).toEqual(metadata)
         });
     })

@@ -103,7 +103,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
 
         beforeEach(() => {
-            ldesMetadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, {date: relationDate})
+            ldesMetadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, {date: relationDate})
             relations = [createRelation(relationDate)]
         });
 
