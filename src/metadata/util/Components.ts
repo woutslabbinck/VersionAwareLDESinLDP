@@ -170,6 +170,12 @@ export class BucketizeStrategy implements IBucketizeStrategy {
     }
 }
 
+/**
+ * Class for the `tree:GreaterThanOrEqualToRelation` (TREE hypermedia specification §6.1.3)
+ *
+ * Each member that can be found by following the node has a value that is GTE than the value of the relation.
+ * The value of a member is calculated by following the `tree:path` on each member.
+ */
 export class GreaterThanOrEqualToRelation implements IRelation {
     private _node: string;
     private _path: string;

@@ -17,10 +17,25 @@ import {ILDESinLDPMetadata, LDESinLDPMetadata} from "./LDESinLDPMetadata";
 import {IRelation} from "./util/Interfaces";
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 
-// TODO: proper documentation -> together with each method
+/**
+ * The {@link MetadataInitializer} contains static methods to generate metadata
+ * for (parts of and) a complete (versioned) LDESs in LDP.
+ */
 export class MetadataInitializer {
-    public static createLDESinLDPMetadata(lilURL: string, args?: {
-        lilConfig?: { treePath: string, shape?: string, pageSize?: number },
+    /**
+     * Generates new LDES in LDP metadata following the {@link ILDESinLDPMetadata} Interface.
+     * It will always create a View Description (which is an extension mentioned in the spec § 5.2. View Description).
+     *
+     * The metadata will either be generated with the LDES in LDP Identifier with a default `tree:path` property (dct:created).
+     * Or can be configured based on the args.
+     * Furthermore, when a date parameter in args is passed, the generated GTE relation will have this date as `tree:value`.
+     *
+     * @param lilURL the LDES in LDP identifier.
+     * @param args parameters to persist in the metadata.
+     * @returns {ILDESinLDPMetadata}
+     */
+    public static generateLDESinLDPMetadata(lilURL: string, args?: {
+        lilConfig?: { treePath?: string, shape?: string, pageSize?: number },
         date?: Date
     }): ILDESinLDPMetadata {
         args = args ?? {}
@@ -41,12 +56,22 @@ export class MetadataInitializer {
         return new LDESinLDPMetadata(eventStreamIdentifier, node, relation.node, shape)
     }
 
-    public static createVersionedLDESinLDPMetadata(lilURL: string, args?: {
-        vlilConfig?: { treePath: string, shape?: string, pageSize?: number, versionOfPath?: string },
+    /**
+     * Generates new versioned LDES in LDP metadata following the {@link IVersionedLDESinLDPMetadata} Interface.
+     * It extends on the functionality of {@link generateLDESinLDPMetadata}.
+     * It allows to define the properties of `ldes:versionOfPath` and `ldes:timestampPath` through respectively
+     * versionOfPath and treePath.
+     *
+     * @param lilURL the LDES in LDP identifier.
+     * @param args parameters to persist in the metadata.
+     * @returns {IVersionedLDESinLDPMetadata}
+     */
+    public static generateVersionedLDESinLDPMetadata(lilURL: string, args?: {
+        vlilConfig?: { treePath?: string, shape?: string, pageSize?: number, versionOfPath?: string },
         date?: Date
     }): IVersionedLDESinLDPMetadata {
         args = args ?? {}
-        const lilMetadata = this.createLDESinLDPMetadata(lilURL, args)
+        const lilMetadata = this.generateLDESinLDPMetadata(lilURL, args)
         const versionOfPath = args.vlilConfig ? args.vlilConfig.versionOfPath : undefined;
         const timestampPath = args.vlilConfig ? args.vlilConfig.treePath : undefined;
 
@@ -56,6 +81,14 @@ export class MetadataInitializer {
         }, lilMetadata.shape)
     }
 
+    /**
+     * Generates a GreaterThanOrEqualTo (GTE) relation to point to a given `tree:Node`.
+     *
+     * @param nodeURL the URL to the tree:Node.
+     * @param path the `tree:path` of the relation (default `dct:created`).
+     * @param date the date that will be used as `tree:value` (default current Date).
+     * @returns {GreaterThanOrEqualToRelation}
+     */
     public static createRelation(nodeURL: string, path?: string, date?: Date): IRelation {
         date = date ?? new Date()
         path = path ?? DCT.created
@@ -63,6 +96,17 @@ export class MetadataInitializer {
         return new GreaterThanOrEqualToRelation(nodeURL, path, date.toISOString())
     }
 
+    /**
+     * Generates a View Description {@link IViewDescription} for an LDES in LDP View. (§ 5.2. View Description)
+     * This description states that the view is managed by a client {@link ILDESinLDPClient} that follows the LDES in LDP protocol
+     * following a specific {@link IBucketizeStrategy}.
+     *
+     * @param eventStreamIdentifier URI of the Event Stream.
+     * @param rootNodeIdentifier URI of the view (the root node) of the Event Stream.
+     * @param pageSize The number of members a given page can have.
+     * @param path
+     * @returns {ViewDescription}
+     */
     protected static createViewDescription(eventStreamIdentifier: string, rootNodeIdentifier: string, pageSize?: number, path?: string): ViewDescription {
         path = path ?? DCT.created
 

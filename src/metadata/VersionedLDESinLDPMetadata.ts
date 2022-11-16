@@ -9,7 +9,9 @@ import {INode} from "./util/Interfaces";
 import {DCT, LDES} from "../util/Vocabularies";
 import {Store} from "n3";
 import {namedNode} from "@rdfjs/data-model";
-
+/**
+ * Holds the properties of a versioned LDES in LDP (LDES in LDP Protocol §2).
+ */
 export interface IVersionedLDESinLDPMetadata extends ILDESinLDPMetadata {
     timestampPath: string
     versionOfPath: string

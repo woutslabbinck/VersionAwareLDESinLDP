@@ -18,8 +18,17 @@ import {
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 import * as Rdf from "@rdfjs/types";
 
-// TODO: proper documentation -> together with each method
+/**
+ * The {@link MetadataParser} contains static methods to parse (versioned) LDES in LDP metadata (or parts from it).
+ */
 export class MetadataParser {
+    /**
+     * Parses an N3 Store to {@link ILDESinLDPMetadata}.
+     * Parsing will throw an Error when the metadata graph can not be parsed as an LDES in LDP.
+     *
+     * @param store the N3 store containing the LIL metadata
+     * @returns {ILDESinLDPMetadata}
+     */
     public static extractLDESinLDPMetadata(store: Store): ILDESinLDPMetadata {
         if (store.getSubjects(RDF.type, LDES.EventStream, null).length !== 1) {
             throw Error(`Expected only one Event Stream. ${store.getSubjects(RDF.type, LDES.EventStream, null).length} are present.`)
@@ -62,6 +71,13 @@ export class MetadataParser {
         return new LDESinLDPMetadata(eventStreamIdentifier, rootNode, inboxIdentifier)
     }
 
+    /**
+     * Parses an N3 Store to {@link IVersionedLDESinLDPMetadata}.
+     * Parsing will throw an Error when the metadata graph can not be parsed as an LDES in LDP.
+     *
+     * @param store the N3 store containing the versioned LIL metadata
+     * @returns {IVersionedLDESinLDPMetadata}
+     */
     public static extractVersionedLDESinLDPMetadata(store: Store): IVersionedLDESinLDPMetadata {
         const lilMetadata = this.extractLDESinLDPMetadata(store)
 
@@ -82,7 +98,14 @@ export class MetadataParser {
         }, lilMetadata.shape)
     }
 
-    public static parseRelation(store: Store, relationNode: Rdf.Term): IRelation {
+    /**
+     * Parses a selection of an N3 Store to a {@link GreaterThanOrEqualToRelation}
+     *
+     * @param store An N3 Store
+     * @param relationNode The subject of the Relation in the store
+     * @returns {GreaterThanOrEqualToRelation}
+     */
+    public static parseRelation(store: Store, relationNode: Rdf.Term): GreaterThanOrEqualToRelation {
         const types = store.getQuads(relationNode, RDF.type, null, null)
         const nodes = store.getQuads(relationNode, TREE.node, null, null)
         const treePaths = store.getQuads(relationNode, TREE.path, null, null)
@@ -110,6 +133,13 @@ export class MetadataParser {
         return new GreaterThanOrEqualToRelation(node, path, value)
     }
 
+    /**
+     * Parses a selection of an N3 Store to a {@link IViewDescription}.
+     *
+     * @param store An N3 Store
+     * @param viewDescriptionNode The subject of the View Description in the store
+     * @returns {IViewDescription}
+     */
     public static parseViewDescription(store: Store, viewDescriptionNode: Rdf.Term): IViewDescription {
         const esIds = store.getObjects(viewDescriptionNode, DCAT.servesDataset, null)
         const rootNodeIds = store.getObjects(viewDescriptionNode, DCAT.endpointURL, null)

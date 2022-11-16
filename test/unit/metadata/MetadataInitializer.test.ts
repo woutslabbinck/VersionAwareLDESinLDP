@@ -42,14 +42,14 @@ describe('A MetadataInitializer', () => {
 
     describe('for an LDES in LDP', () => {
         it('generates the correct metadata.', async () => {
-            let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL)
+            let metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL)
             let generatedDate = new Date(metadata.getStore().getObjects(null, TREE.value, null)[0].value)
             let store = await turtleStringToStore(generateMetadata(lilURL, {date: generatedDate}))
             expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
 
         it('generates the metadata given a date.', async () => {
-            let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, args)
+            let metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, args)
             let store = await turtleStringToStore(generateMetadata(lilURL, args))
             expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
@@ -57,7 +57,7 @@ describe('A MetadataInitializer', () => {
         it('generates the metadata given a treePath.', async () => {
             const path = 'time'
             args = {lilConfig: {treePath: path}, date}
-            let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, args)
+            let metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, args)
             let store = await turtleStringToStore(generateMetadata(lilURL, args))
             expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
@@ -66,7 +66,7 @@ describe('A MetadataInitializer', () => {
             const path = 'time'
             const shapeURL = 'shapeurl'
             args = {lilConfig: {treePath: path, shape: shapeURL}, date}
-            let metadata = MetadataInitializer.createLDESinLDPMetadata(lilURL, args)
+            let metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, args)
             let store = await turtleStringToStore(generateMetadata(lilURL, args))
             store.addQuad(namedNode(eventStreamIdentifier), namedNode(TREE.shape), namedNode(shapeURL))
             expect(metadata.getStore()).toBeRdfIsomorphic(store)
@@ -75,7 +75,7 @@ describe('A MetadataInitializer', () => {
 
     describe('for a Versioned LDES in LDP', () => {
         it('generates the correct metadata.', async () => {
-            let metadata = MetadataInitializer.createVersionedLDESinLDPMetadata(lilURL)
+            let metadata = MetadataInitializer.generateVersionedLDESinLDPMetadata(lilURL)
             expect(metadata.getStore().getQuads(eventStreamIdentifier, LDES.timestampPath,null,null).length).toBe(1)
             expect(metadata.getStore().getQuads(eventStreamIdentifier, LDES.versionOfPath,null,null).length).toBe(1)
             expect(metadata.timestampPath).toBe(DCT.created)

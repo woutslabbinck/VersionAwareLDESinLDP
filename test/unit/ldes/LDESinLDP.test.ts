@@ -86,7 +86,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         let relationIdentifier: string
 
         beforeEach(() => {
-            store = MetadataInitializer.createLDESinLDPMetadata(lilBase, {
+            store = MetadataInitializer.generateLDESinLDPMetadata(lilBase, {
                 lilConfig: config,
                 date: date
             }).getStore()
@@ -117,7 +117,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const pageSize = 10
             const lilConfig = {...config, date, pageSize}
 
-            store = MetadataInitializer.createLDESinLDPMetadata(lilBase, {
+            store = MetadataInitializer.generateLDESinLDPMetadata(lilBase, {
                 lilConfig: lilConfig,
                 date: date
             }).getStore()
@@ -149,9 +149,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
             // metadata with pageSize store
             config.pageSize = pageSize
-            store = MetadataInitializer.createLDESinLDPMetadata(lilBase, {lilConfig: config, date}).getStore()
-
-            const relationIdentifier = getRelationIdentifier(lilBase, date)
+            store = MetadataInitializer.generateLDESinLDPMetadata(lilBase, {lilConfig: config, date}).getStore()
 
             const locationHeader = new Headers({'Location': createdURL})
             postResponse = new Response(null, {status: 201, headers: locationHeader})
