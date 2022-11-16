@@ -58,6 +58,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             put: jest.fn()
         }
         mockLDESinLDP = {
+            status: jest.fn(),
             communication: mockCommunication,
             newFragment: jest.fn(),
             readPage: jest.fn(),
@@ -95,7 +96,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('succeeds with VLIL config.', async () => {
-            await expect(await vAwareLDESinLDP.initialise({versionOfPath: "vers", treePath:"lol"})).toBeUndefined()
+            await expect(await vAwareLDESinLDP.initialise({versionOfPath: "vers", treePath: "lol"})).toBeUndefined()
         });
     });
 

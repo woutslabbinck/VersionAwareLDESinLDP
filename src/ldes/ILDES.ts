@@ -8,11 +8,17 @@ import {Store} from "n3";
 import {Readable} from "stream";
 import {LILConfig} from "../metadata/LILConfig";
 import {Communication} from "../ldp/Communication";
+import {Status} from "./Status";
 
 export interface ILDES {
 
     LDESinLDPIdentifier: string;
     communication: Communication;
+
+    /**
+     * Calculates and returns the {@link Status} of an LDES in LDP
+     */
+    status: () => Promise<Status>
 
     /**
      * Initialises an LDES in LDP using from the config the base, possibly a shape and the treePath.

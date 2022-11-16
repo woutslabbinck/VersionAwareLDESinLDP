@@ -13,6 +13,9 @@ import {storeToString, turtleStringToStore} from "../util/Conversion";
 import {LILConfig} from "../metadata/LILConfig";
 import {LDP, TREE} from "../util/Vocabularies";
 import {GreaterThanOrEqualToRelation} from "../metadata/util/Components";
+import {Status} from "./Status";
+// @ts-ignore
+import * as WacAllow from 'wac-allow';
 import namedNode = DataFactory.namedNode;
 
 /***************************************
@@ -50,37 +53,54 @@ export class LDESinLDP implements ILDES {
         return this.metadata.fragmentSize
     }
 
-    public async append(store: Store): Promise<string> {
-        const inboxURL = await retrieveWriteLocation(this.LDESinLDPIdentifier, this.communication);
-        // update metadata if write location is different from current inboxURL based on metadata
-        await this.updateMetadata(inboxURL)
-        await this.maybeNewFragment();
+    async status(): Promise<Status> {
+        const status: Status = {
+            empty: false, found: false, full: false, valid: false, writable: false
+        }
+        let foundResponse: Response | undefined
+        let metadata: ILDESinLDPMetadata | undefined
 
-        this.logger.debug("page size" + this.metadata.fragmentSize)
-        const response = await this.communication.post(this.metadata.inbox, storeToString(store))
-        if (response.status !== 201) {
-            throw Error(`The resource was not be created at ${this.metadata.inbox} 
-            | status code: ${response.status}`)
+        try {
+            foundResponse = await this.communication.head(this.LDESinLDPIdentifier)
+            if (foundResponse.status !== 200) {
+                return status
+            }
+            const store = await this.read(this.LDESinLDPIdentifier)
+            metadata = MetadataParser.extractLDESinLDPMetadata(store)
+        } catch (e) {
+
         }
-        const resourceLocation = response.headers.get('Location')
-        if (!resourceLocation) {
-            throw Error("Did not receive the location of the created resource.")
+        if (!foundResponse) {
+            return status
         }
-        this.logger.info(`LDP Resource created at: ${resourceLocation}`)
-        if (store.countQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null) === 0) {
-            this.logger.info(`No tree:member triple in resource ${resourceLocation}`)
+        status.found = true
+        if (!metadata) {
+            return status
         }
-        return resourceLocation
+        status.valid = true
+
+        const {user} = WacAllow.parse(foundResponse)
+        status.writable = user.has('write')
+
+        if (metadata.view.relations.length === 1) {
+            const nodeURL = metadata.view.relations[0].node
+            const relationResponse = await this.read(nodeURL)
+            status.empty = relationResponse.getQuads(nodeURL, LDP.contains, null, null).length === 0
+        }
+        // TODO: testing full of status requires RetentionPolicy in LIL Metadata
+        //  according to Pieter C: must be part of viewDescription -> backwards compatability -> just in tree:Node
+        return status;
     }
 
+
     public async initialise(config: LILConfig): Promise<void> {
-        const containerResponse = await this.communication.head(this.LDESinLDPIdentifier)
-        if (containerResponse.status === 200) {
-            try {
-                this.metadata = await this.extractLdesMetadata()
-                this.logger.info(`LDES in LDP ${this.LDESinLDPIdentifier} already exists.`)
-            } catch (e) {
+        const status = await this.status()
+        if (status.found) {
+            if (!status.valid) {
                 this.logger.info(`Container (but not an LDES in LDP) already exists at ${this.LDESinLDPIdentifier}.`)
+            } else {
+                this.logger.info(`LDES in LDP ${this.LDESinLDPIdentifier} already exists.`)
+                this.metadata = await this.extractLdesMetadata()
             }
             return
         }
@@ -106,6 +126,29 @@ export class LDESinLDP implements ILDES {
 
         // update ldes metadata
         this.metadata = MetadataParser.extractLDESinLDPMetadata(store)
+    }
+
+    public async append(store: Store): Promise<string> {
+        const inboxURL = await retrieveWriteLocation(this.LDESinLDPIdentifier, this.communication);
+        // update metadata if write location is different from current inboxURL based on metadata
+        await this.updateMetadata(inboxURL)
+        await this.maybeNewFragment();
+
+        this.logger.debug("page size" + this.metadata.fragmentSize)
+        const response = await this.communication.post(this.metadata.inbox, storeToString(store))
+        if (response.status !== 201) {
+            throw Error(`The resource was not be created at ${this.metadata.inbox} 
+            | status code: ${response.status}`)
+        }
+        const resourceLocation = response.headers.get('Location')
+        if (!resourceLocation) {
+            throw Error("Did not receive the location of the created resource.")
+        }
+        this.logger.info(`LDP Resource created at: ${resourceLocation}`)
+        if (store.countQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null) === 0) {
+            this.logger.info(`No tree:member triple in resource ${resourceLocation}`)
+        }
+        return resourceLocation
     }
 
     public async newFragment(date?: Date): Promise<void> {
