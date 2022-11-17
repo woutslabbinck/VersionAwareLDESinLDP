@@ -7,6 +7,7 @@ import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import {RDF} from "@solid/community-server";
 import * as Rdf from "@rdfjs/types";
 import {dateToLiteral} from "../../../src/util/TimestampUtil";
+import {getRelationIdentifier} from "../../../src/ldes/Util";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 import quad = DataFactory.quad;
@@ -256,6 +257,21 @@ _:b0 <https://w3id.org/tree#node> <${lilURL}${date.valueOf()}/> .
             store.delete(quad(namedNode(viewDescriptionIdentifier), namedNode(DCAT.endpointURL), namedNode(lilURL)))
             store.addQuad(namedNode(viewDescriptionIdentifier), namedNode(DCAT.endpointURL), namedNode("random"))
             expect(() => MetadataParser.extractLDESinLDPMetadata(store)).toThrow(Error)
+        });
+
+        it('correctly parses metadata with two relations.', () => {
+            const node1 = getRelationIdentifier(lilURL, date)
+            const date2 = new Date("2022-01-01")
+            const node2 = getRelationIdentifier(lilURL, date2)
+            const bn = store.createBlankNode()
+            store.addQuad(namedNode(lilURL), TREE.terms.relation, bn)
+            store.addQuad(bn, RDF.terms.type, TREE.terms.GreaterThanOrEqualToRelation)
+            store.addQuad(bn, TREE.terms.path, DCT.terms.created)
+            store.addQuad(bn, TREE.terms.value, dateToLiteral(date2))
+            store.addQuad(bn, TREE.terms.node, namedNode(node2))
+            const parsedMetadata = MetadataParser.extractLDESinLDPMetadata(store)
+            expect(parsedMetadata.getStore()).toBeRdfIsomorphic(store)
+
         });
     });
 

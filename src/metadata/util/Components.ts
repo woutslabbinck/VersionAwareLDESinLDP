@@ -47,8 +47,14 @@ export class Node implements INode {
             if (!relationId) {
                 throw Error("Incorrect relation N3 store.")
             }
-            store.addQuad(namedNode(this.id), namedNode(TREE.relation), relationId)
-            store.addQuads(relationStore.getQuads(null, null, null, null))
+
+            // make sure new identifier is made for each relation
+            let bn = store.createBlankNode()
+            store.addQuad(namedNode(this.id), namedNode(TREE.relation), bn)
+
+            relationStore.getQuads(null, null, null, null).forEach((quad) => {
+                store.addQuad(bn, quad.predicate, quad.object)
+            })
         }
 
         if (this.viewDescription) {

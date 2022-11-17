@@ -19,12 +19,42 @@ import {MetadataParser} from "../metadata/MetadataParser";
 import {IVersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
 import {IRelation} from "../metadata/util/Interfaces";
 import namedNode = DataFactory.namedNode;
+import {Status} from "../ldes/Status";
+import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
+import {Logger} from "../logging/Logger";
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDES;
+    private readonly logger: Logger = new Logger(this);
 
     constructor(LDESinLDP: ILDES) {
         this.LDESinLDP = LDESinLDP
+    }
+
+    private get LDESinLDPIdentifier(): string {
+        return this.LDESinLDP.LDESinLDPIdentifier
+    }
+
+    /**
+     * Checks the {@link Status} of the versioned LDES in LDP.
+     * Calls the {@link ILDES} status and when it is a valid {@link ILDESinLDPMetadata},
+     * it performs a check to validate whether it is a valid {@link IVersionedLDESinLDPMetadata}.
+     * @returns {Promise<Status>}
+     */
+    public async status(): Promise<Status> {
+        let metadata: ILDESinLDPMetadata | undefined
+        const status = await this.LDESinLDP.status()
+        if (status.valid) {
+            try {
+                metadata = MetadataParser.extractVersionedLDESinLDPMetadata(await this.LDESinLDP.readMetadata())
+            } catch (e) {
+
+            }
+            if (!metadata) {
+                status.valid = false
+            }
+        }
+        return status
     }
 
     /**
@@ -33,23 +63,28 @@ export class VersionAwareLDESinLDP {
      * @returns {Promise<any>}
      */
     public async initialise(config?: VLILConfig): Promise<void> {
-        // check if LIL exists | TODO: Do properly -> https://github.com/woutslabbinck/VersionAwareLDESinLDP/issues/16
-        const resp = await this.LDESinLDP.communication.head(this.LDESinLDP.LDESinLDPIdentifier)
-        if (resp.status !== 200) {
-            config = config ?? {treePath: DCT.created, versionOfPath: DCT.isVersionOf}
-            // init normal LIL
-            await this.LDESinLDP.initialise(config)
-            // add version triples
-            const lilMetadata = MetadataParser.extractLDESinLDPMetadata(await this.LDESinLDP.readMetadata())
-            const ldesIdentifier = lilMetadata.eventStreamIdentifier
-
-            // maybe in lil? It uses the communication already
-            const response = await this.LDESinLDP.communication.patch(this.LDESinLDP.LDESinLDPIdentifier + ".meta", // Note: currently meta hardcoded
-                `INSERT DATA { <${ldesIdentifier}> <${LDES.timestampPath}> <${config.treePath}> .
-<${ldesIdentifier}> <${LDES.versionOfPath}> <${config.versionOfPath}> .}`)
-            if (response.status > 299 || response.status < 200) {
-                throw Error(`Failed to add version specific triples to ${this.LDESinLDP.LDESinLDPIdentifier} | status code: ${response.status}`)
+        const status = await this.status()
+        if (status.found) {
+            if (!status.valid) {
+                this.logger.info(`Container (but not a versioned LDES in LDP) already exists at ${this.LDESinLDP.LDESinLDPIdentifier}.`)
+            } else {
+                this.logger.info(`Versioned LDES in LDP ${this.LDESinLDPIdentifier} already exists.`)
             }
+            return
+        }
+        config = config ?? {treePath: DCT.created, versionOfPath: DCT.isVersionOf}
+        // init normal LIL
+        await this.LDESinLDP.initialise(config)
+        // add version triples
+        const lilMetadata = MetadataParser.extractLDESinLDPMetadata(await this.LDESinLDP.readMetadata())
+        const ldesIdentifier = lilMetadata.eventStreamIdentifier
+
+        // maybe in lil? It uses the communication already
+        const response = await this.LDESinLDP.communication.patch(this.LDESinLDP.LDESinLDPIdentifier + ".meta", // Note: currently meta hardcoded
+            `INSERT DATA { <${ldesIdentifier}> <${LDES.timestampPath}> <${config.treePath}> .
+<${ldesIdentifier}> <${LDES.versionOfPath}> <${config.versionOfPath}> .}`)
+        if (response.status > 299 || response.status < 200) {
+            throw Error(`Failed to add version specific triples to ${this.LDESinLDP.LDESinLDPIdentifier} | status code: ${response.status}`)
         }
     }
 

@@ -73,7 +73,7 @@ export interface LDESinLDPRootNodeConfig {
 }
 
 /**
- * Adds a root tree:Node to the an LDES with a tree:GreaterThanOrEqualToRelation based on the date in a N3 Store
+ * Adds a root tree:Node to an LDES with a tree:GreaterThanOrEqualToRelation based on the date in a N3 Store
  * @param store
  * @param config
  */

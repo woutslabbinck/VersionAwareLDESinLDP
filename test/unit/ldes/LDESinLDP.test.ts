@@ -1,5 +1,5 @@
 import {LDESinLDP} from "../../../src/ldes/LDESinLDP";
-import {DCT, LDP, RDF} from "../../../src/util/Vocabularies";
+import {DCT, LDP} from "../../../src/util/Vocabularies";
 import {DataFactory, Store} from "n3";
 import {Communication} from "../../../src/ldp/Communication";
 import {extractLdesMetadata} from "../../../src/util/LdesUtil";
@@ -8,6 +8,8 @@ import {LDESConfig} from "../../../src/ldes/LDESConfig";
 import {getRelationIdentifier} from "../../../src/ldes/Util";
 import {addSimpleMember} from "../../util/LdesTestUtility";
 import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
+import {Status} from "../../../src/ldes/Status";
+import {ILDESinLDPMetadata} from "../../../src/metadata/LDESinLDPMetadata";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 
@@ -20,6 +22,7 @@ describe('An LDESinLDP', () => {
     const lilBase = 'http://example.org/ldesinldp/'
     const inboxContainerURL = 'http://example.org/ldesinldp/timestamppath/'
     const createdURL = 'http://example.org/ldesinldp/timestamp/created'
+    let lilMetadata: ILDESinLDPMetadata
 
     let readMetadataResponse: Response
     let textTurtleHeader: Headers
@@ -46,6 +49,16 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         }
     });
 
+    function turtleStringResponse(text?: string): Response {
+        text = text ?? ""
+        textTurtleHeader = new Headers(new Headers({'content-type': 'text/turtle'}))
+        return new Response(text, {status: 200, headers: textTurtleHeader})
+    }
+
+    function turtleStringResponseFromMetadata(metadata: ILDESinLDPMetadata): Response {
+        return turtleStringResponse(storeToString(metadata.getStore()))
+    }
+
     beforeEach(() => {
         mockCommunication = {
             delete: jest.fn(),
@@ -64,11 +77,106 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         textTurtleHeader = new Headers(new Headers({'content-type': 'text/turtle'}))
         readMetadataResponse = new Response(lilString, {status: 200, headers: textTurtleHeader})
         ldesinldp = new LDESinLDP(lilBase, mockCommunication)
+
+        lilMetadata = MetadataInitializer.generateLDESinLDPMetadata(lilBase, {lilConfig: config, date})
     });
 
     it('returns the LDESinLDPIdentifier when calling its get function.', () => {
         expect(ldesinldp.LDESinLDPIdentifier).toBe(lilBase)
     });
+
+    describe('when checking the states of an LDES in LDP', () => {
+        let status: Status
+
+        function createWacResponse(args?: { status: number, permissions: string[] }): Response {
+            args = args ?? {status: 200, permissions: ['read']}
+            const permissions = args.permissions.join(' ')
+            const wacHeader = new Headers({'WAC-Allow': `user="${permissions}", public="read"`})
+            return new Response(null, {status: args.status, headers: wacHeader})
+        }
+
+        beforeEach(() => {
+            // communication.head mock: always give proper location for current writable location
+            const headResponse = createWacResponse()
+            mockCommunication.head.mockResolvedValue(headResponse)
+            mockCommunication.get.mockResolvedValue(turtleStringResponseFromMetadata(lilMetadata))
+            status = {
+                empty: false, found: false, full: false, valid: false, writable: false
+            }
+        });
+
+        it('returns all false when connection cannot be established.', async () => {
+            mockCommunication.head.mockRejectedValue(Error)
+            expect(await ldesinldp.status()).toEqual(status)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+        });
+
+        it('returns all false when status code is not 200.', async () => {
+            mockCommunication.head.mockResolvedValue(createWacResponse({status: 401, permissions: []}))
+            expect(await ldesinldp.status()).toEqual(status)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+            expect(mockCommunication.get).toBeCalledTimes(0)
+        });
+
+        it('returns found, but not valid if metadata cannot be parsed.', async () => {
+            status.found = true
+            mockCommunication.get.mockResolvedValue(turtleStringResponse())
+            expect(await ldesinldp.status()).toEqual(status)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+            expect(mockCommunication.get).toBeCalledTimes(1)
+
+        });
+
+        it('returns found, valid and empty when metadata can be parsed correctly (and it has no members).', async () => {
+            status.found = true
+            status.valid = true
+            status.empty = true
+            mockCommunication.get.mockResolvedValueOnce(turtleStringResponseFromMetadata(lilMetadata))
+            mockCommunication.get.mockResolvedValueOnce(turtleStringResponse())
+            expect(await ldesinldp.status()).toEqual(status)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+            expect(mockCommunication.get).toBeCalledTimes(2)
+            expect(mockCommunication.get).toBeCalledWith(lilMetadata.view.relations[0].node)
+        });
+
+        it('returns found, valid and not empty when there are members.', async () => {
+            status.found = true
+            status.valid = true
+            let nodeUrl = lilMetadata.view.relations[0].node
+            mockCommunication.get.mockResolvedValueOnce(turtleStringResponseFromMetadata(lilMetadata))
+            mockCommunication.get.mockResolvedValueOnce(turtleStringResponse(
+                `<${nodeUrl}> <${LDP.contains}> <${nodeUrl}resource1>.`
+            ))
+            expect(await ldesinldp.status()).toEqual(status)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+            expect(mockCommunication.get).toBeCalledTimes(2)
+            expect(mockCommunication.get).toBeCalledWith(lilMetadata.view.relations[0].node)
+        });
+
+        it('returns found, valid and not empty when there are multiple relations.', async () => {
+            status.found = true
+            status.valid = true
+            lilMetadata.view.relations.push(MetadataInitializer.createRelation(lilBase + "lol"))
+            mockCommunication.get.mockResolvedValueOnce(turtleStringResponseFromMetadata(lilMetadata))
+
+            expect(await ldesinldp.status()).toEqual(status)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+            expect(mockCommunication.get).toBeCalledTimes(1)
+        });
+
+        it('returns found, valid and writable when there are write permissions to the root.', async () => {
+            status.found = true
+            status.valid = true
+            status.writable = true
+            status.empty = true // only 1 relation with no members
+            mockCommunication.get.mockResolvedValueOnce(turtleStringResponseFromMetadata(lilMetadata))
+            mockCommunication.head.mockResolvedValue(createWacResponse({status: 200, permissions: ['read', 'write']}))
+
+            expect(await ldesinldp.status()).toEqual(status)
+            expect(mockCommunication.head).toBeCalledTimes(1)
+            expect(mockCommunication.get).toBeCalledTimes(2)
+        });
+    })
 
     describe('when instantiating an LDES in LDP', () => {
         it('succeeds when a correct base LDESinLDPIdentifier is given.', () => {
@@ -323,30 +431,16 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(members.getObjects(null, DCT.isVersionOf, null)[0].value).toBe("http://example.org/resource1")
         });
 
-        it('also works when ldes:versionOfPath is not the default.', async () => {
-            const metadata = `
-<http://example.org/ldesinldp/> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Node> .
-<http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:genid1 .
-<http://example.org/ldesinldp/> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/timestamppath/> .
-_:genid1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
-_:genid1 <https://w3id.org/tree#node> <http://example.org/ldesinldp/timestamppath/> .
-_:genid1 <https://w3id.org/tree#path> <http://purl.org/dc/terms/created> .
-_:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
-<http://example.org/ldesinldp/#EventStream> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/ldes#EventStream> .
-<http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#versionOfPath> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> . #It is now rdf:type
-<http://example.org/ldesinldp/#EventStream> <https://w3id.org/ldes#timestampPath> <http://purl.org/dc/terms/created> .
-<http://example.org/ldesinldp/#EventStream> <https://w3id.org/tree#view> <http://example.org/ldesinldp/> .
-`
-            const metadataResponse = new Response(metadata, {status: 200, headers: textTurtleHeader})
-            const getResourceResponse = new Response(
-                `<#resource> <${DCT.title}> "test".
-<#resource> <${DCT.created}> "${date.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime>.
-<#resource> <${RDF.type}>  <http://example.org/resource1>.`,
-                {
-                    status: 200,
-                    headers: new Headers({'Content-type': 'text/turtle'})
-                })
+        it('also works when tree:path is not the default.', async () => {
+            const treePath = "http://purl.org/dc/terms/test"
+            const lilMetadata = MetadataInitializer.generateLDESinLDPMetadata(lilBase,
+                {lilConfig: {treePath}, date})
 
+            const metadataResponse = turtleStringResponseFromMetadata(lilMetadata)
+            const getResourceResponse = turtleStringResponse(`<#resource> <${DCT.title}> "test".
+<#resource> <${treePath}> "${date.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime>.`)
+            getNodeResponse = turtleStringResponse(
+                `<${getRelationIdentifier(lilBase, date)}> <${LDP.contains}> <http://example.org/ldesinldp/timestamppath/resource1>.`)
             mockCommunication.get.mockResolvedValueOnce(metadataResponse)
             mockCommunication.get.mockResolvedValueOnce(getNodeResponse)
             mockCommunication.get.mockResolvedValueOnce(getResourceResponse)
@@ -355,9 +449,9 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const members = await memberStreamtoStore(memberStream)
 
             console.log(storeToString(members))
-            expect(members.size).toBe(3)
+            expect(members.size).toBe(2)
             expect(members.getObjects(null, DCT.title, null)[0].value).toBe("test")
-            expect(members.getObjects(null, RDF.type, null)[0].value).toBe("http://example.org/resource1")
+            expect(members.getObjects(null, treePath, null)[0].value).toBe(date.toISOString())
         })
     })
 
