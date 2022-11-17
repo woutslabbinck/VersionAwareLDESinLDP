@@ -144,6 +144,12 @@ export function getRelationIdentifier(ldesinLDPIdentifier: string, date: Date): 
     return ldesinLDPIdentifier + date.getTime() + '/'
 }
 
+/**
+ * extract members without containment triple
+ * @param store
+ * @param ldesIdentifier
+ * @returns {Store<Quad, Quad, Quad, Quad>[]}
+ */
 export function extractMembers(store: Store, ldesIdentifier: string): Store[] {
     const memberSubjects = store.getObjects(ldesIdentifier, TREE.member, null)
     const members = memberSubjects.map(memberSubject => store.getQuads(memberSubject, null, null, null))

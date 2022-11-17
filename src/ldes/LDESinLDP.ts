@@ -3,7 +3,7 @@ import {Communication} from "../ldp/Communication";
 import {Logger} from "../logging/Logger";
 import {filterRelation} from "../util/LdesUtil";
 import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
-import {DataFactory, Store} from "n3";
+import {DataFactory, Literal, Store} from "n3";
 import {Readable} from "stream";
 import {MetadataParser} from "../metadata/MetadataParser";
 import {MetadataInitializer} from "../metadata/MetadataInitializer";
@@ -16,6 +16,7 @@ import {GreaterThanOrEqualToRelation} from "../metadata/util/Components";
 import {Status} from "./Status";
 // @ts-ignore
 import * as WacAllow from 'wac-allow';
+import {extractDateFromLiteral} from "../util/TimestampUtil";
 import namedNode = DataFactory.namedNode;
 
 /***************************************
@@ -223,16 +224,20 @@ INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier
             for await (const resource of resources) {
                 // member ID is based on tree:path
                 let memberId = resource.getSubjects(relation.path, null, null)[0].value
-                if (resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null).length === 1) { // TODO check if this ever happens and if useful
-                    memberId = resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null)[0].object.value
-                }
 
                 // remove containment triple if present (<ldesIdentifer> <tree:member> memberId.)
                 resource.removeQuads(resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null))
-                memberStream.push({
-                    id: namedNode(memberId),
-                    quads: resource.getQuads(null, null, null, null)
-                })
+
+                // member date
+                const dateLiteral = resource.getObjects(memberId, relation.path, null)[0] as Literal
+                const memberDateTime = extractDateFromLiteral(dateLiteral)
+                // add only members within window to stream
+                if (from <= memberDateTime && memberDateTime <= until) {
+                    memberStream.push({
+                        id: namedNode(memberId),
+                        quads: resource.getQuads(null, null, null, null)
+                    })
+                }
             }
         }
         memberStream.push(null)

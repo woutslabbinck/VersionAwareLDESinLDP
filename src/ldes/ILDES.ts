@@ -59,6 +59,7 @@ export interface ILDES {
     /**
      * Returns all the resources (members) of the LDESinLDP and returns them as a Member Stream
      * If a date is given, it stops early based on the relations and the ldes:timestampPath in the resource.
+     * Optionally a window [from, until], which results in a memberStream with only members within that window.
      * @param until
      */
     readAllMembers: (from?: Date, until?: Date) => Promise<Readable>
