@@ -94,8 +94,11 @@ export const LDES = createUriAndTermNamespace('https://w3id.org/ldes#',
     'BucketizerConfiguration',
     'BucketizeStrategy',
     'DeletedLDPResource',
+    'DurationAgoPolicy',
     'EventStream',
+    'LatestVersionSubset',
     'LDESinLDPClient',
+    'amount',
     'bucketType',
     'bucketizeStrategy',
     'bucketizer',
@@ -143,4 +146,6 @@ export const VOID = createUriAndTermNamespace('http://rdfs.org/ns/void#',
 
 export const XSD = createUriAndTermNamespace('http://www.w3.org/2001/XMLSchema#',
     'positiveInteger',
-    'dateTime');
+    'dateTime',
+    'duration'
+    );

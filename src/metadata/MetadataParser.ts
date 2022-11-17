@@ -164,7 +164,9 @@ export class MetadataParser {
         if (bucketizers.length !== 1) {
             throw new Error(`Could not parse view description as the expected amount of bucketizers is 1 | received: ${bucketizers.length}`)
         }
+        // TODO: parse retention policy here
 
+        // TODO for code clean up, parse bucketizestrategy in differen method
         const bucketizeStrategyNode = bucketizers[0]
 
         const bucketTypes = store.getObjects(bucketizeStrategyNode, LDES.bucketType, null)
@@ -174,7 +176,7 @@ export class MetadataParser {
             throw new Error(`Could not parse bucketizer in view description as the expected amount of bucket types is 1 | received: ${bucketTypes.length}`)
         }
         if (treePaths.length !== 1) {
-            throw new Error(`Could not parse bucketizer in view description as the expected amount of pathss is 1 | received: ${treePaths.length}`)
+            throw new Error(`Could not parse bucketizer in view description as the expected amount of paths is 1 | received: ${treePaths.length}`)
         }
         const bucketType = bucketTypes[0].value
         const path = treePaths[0].value // NOTE: must be same as all tree paths in each Relation!!

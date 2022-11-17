@@ -5,10 +5,21 @@
  * Created on 08/11/2022
  *****************************************/
 import {DataFactory, Store} from "n3";
-import {DCAT, LDES, RDF, TREE} from "../../util/Vocabularies";
+import {DCAT, LDES, RDF, TREE, XSD} from "../../util/Vocabularies";
 import {dateToLiteral} from "../../util/TimestampUtil";
 import {namedNode} from "@rdfjs/data-model";
-import {IBucketizeStrategy, ILDESinLDPClient, INode, IRelation, IViewDescription} from "./Interfaces";
+import {
+    IBucketizeStrategy,
+    IDurationAgoPolicy,
+    ILatestVersionSubset,
+    ILDESinLDPClient,
+    INode,
+    IRelation,
+    IRetentionPolicy,
+    IViewDescription
+} from "./Interfaces";
+import {parse} from 'tinyduration';
+import {NamedNode} from "rdf-js";
 import literal = DataFactory.literal;
 
 export class Node implements INode {
@@ -70,12 +81,14 @@ export class ViewDescription implements IViewDescription {
     private _managedBy: ILDESinLDPClient
     private _servesDataset: string
     private _endpointURL: string
+    private _retentionPolicies: IRetentionPolicy[]
 
-    constructor(id: string, managedBy: ILDESinLDPClient, eventStreamIdentifier: string, rootNodeIdentifier: string) {
+    constructor(id: string, managedBy: ILDESinLDPClient, eventStreamIdentifier: string, rootNodeIdentifier: string, retentionPolicies?: IRetentionPolicy[]) {
         this._id = id;
         this._managedBy = managedBy;
         this._servesDataset = eventStreamIdentifier;
         this._endpointURL = rootNodeIdentifier;
+        this._retentionPolicies = retentionPolicies ?? []
     }
 
     get id(): string {
@@ -84,6 +97,10 @@ export class ViewDescription implements IViewDescription {
 
     get managedBy(): ILDESinLDPClient {
         return this._managedBy;
+    }
+
+    get retentionPolicies(): IRetentionPolicy[] {
+        return this._retentionPolicies;
     }
 
     get servesDataset(): string {
@@ -102,6 +119,10 @@ export class ViewDescription implements IViewDescription {
 
         store.addQuad(namedNode(this.id), namedNode(LDES.managedBy), namedNode(this.managedBy.id))
         store.addQuads(this.managedBy.getStore().getQuads(null, null, null, null))
+
+        this.retentionPolicies.forEach(policy => {
+            store.addQuads(policy.getStore().getQuads(null, null, null, null))
+        })
         return store
     }
 
@@ -220,6 +241,88 @@ export class GreaterThanOrEqualToRelation implements IRelation {
         store.addQuad(bn, namedNode(TREE.path), namedNode(this.path))
         store.addQuad(bn, namedNode(TREE.value), dateToLiteral(new Date(this.value)))
         store.addQuad(bn, namedNode(TREE.node), namedNode(this.node))
+        return store;
+    }
+}
+
+export class DurationAgoPolicy implements IDurationAgoPolicy {
+    // https://www.twilio.com/blog/parse-iso8601-duration-javascript
+    private _type: NamedNode;
+    private _value: string;
+    private _id: string;
+
+    constructor(id: string, value: string) {
+        this._value = value;
+        this._id = id
+        this._type = LDES.terms.DurationAgoPolicy
+        parse(value)
+    }
+
+    get id(): string {
+        return this._id;
+    }
+
+    get type(): string {
+        return this._type.value;
+    }
+
+    get value(): string {
+        return this._value;
+    }
+
+    getStore(): Store {
+        const store = new Store()
+        store.addQuad(namedNode(this.id), RDF.terms.type, this._type)
+        store.addQuad(namedNode(this.id), TREE.terms.value, literal(this.value, XSD.terms.duration))
+        return store;
+    }
+}
+
+export class LatestVersionSubset implements ILatestVersionSubset {
+    private _amount: number;
+    private _id: string;
+    private _timestampPath?: string;
+    private _type: NamedNode;
+    private _versionOfPath?: string;
+
+    constructor(amount: number, id: string, opt?: { timestampPath?: string, versionOfPath?: string }) {
+        this._amount = amount;
+        this._id = id;
+        this._timestampPath = opt?.timestampPath
+        this._versionOfPath = opt?.versionOfPath
+        this._type = LDES.terms.LatestVersionSubset
+    }
+
+    get amount(): number {
+        return this._amount;
+    }
+
+    get id(): string {
+        return this._id;
+    }
+
+    get timestampPath(): string | undefined {
+        return this._timestampPath;
+    }
+
+    get type(): string {
+        return this._type.value;
+    }
+
+    get versionOfPath(): string | undefined {
+        return this._versionOfPath;
+    }
+
+    getStore(): Store {
+        const store = new Store()
+        store.addQuad(namedNode(this.id), RDF.terms.type, this._type)
+        store.addQuad(namedNode(this.id), LDES.terms.amount, literal(this.amount))
+        if (this.timestampPath) {
+            store.addQuad(namedNode(this.id), LDES.terms.timestampPath, namedNode(this.timestampPath))
+        }
+        if (this.versionOfPath) {
+            store.addQuad(namedNode(this.id), LDES.terms.versionOfPath, namedNode(this.versionOfPath))
+        }
         return store;
     }
 }
