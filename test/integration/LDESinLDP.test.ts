@@ -6,6 +6,13 @@ import {LDESinLDP} from "../../src/ldes/LDESinLDP";
 import {LILConfig} from "../../src/metadata/LILConfig";
 import {ILDES} from "../../src/ldes/ILDES";
 import {Status} from "../../src/ldes/Status";
+import {addSimpleMember} from "../util/LdesTestUtility";
+import {DataFactory, Store} from "n3";
+import {ILDESinLDPMetadata} from "../../src/metadata/LDESinLDPMetadata";
+import {dateToLiteral} from "../../src/util/TimestampUtil";
+import {memberStreamtoStore} from "../../src/util/Conversion";
+import {MetadataParser} from "../../src/metadata/MetadataParser";
+import namedNode = DataFactory.namedNode;
 
 describe('An LDESinLDP', () => {
     const communication = new LDPCommunication()
@@ -13,6 +20,7 @@ describe('An LDESinLDP', () => {
     let lil: ILDES
     let config: LILConfig
     let lilIdentifier = baseUrl + 'lil/'
+    let metadata: ILDESinLDPMetadata
 
     beforeAll(async () => {
         config = {
@@ -93,5 +101,49 @@ describe('An LDESinLDP', () => {
             await expect(lil.initialise(config)).resolves.toBeUndefined()
         })
     })
+
+    describe('when reading all members of an LDES in LDP.', () => {
+        const t1 = new Date("2022-01-01")
+        const t2 = new Date("2022-04-01")
+        const t3 = new Date("2022-06-01")
+
+        function createMember(date: Date): Store {
+            const store = new Store()
+            let memberURI = "#resource"
+            addSimpleMember(store, memberURI, metadata.eventStreamIdentifier)
+            store.addQuad(namedNode(memberURI), namedNode(treePath), dateToLiteral(date))
+            return store
+        }
+
+        beforeAll(async () => {
+            // add three members
+            lilIdentifier = baseUrl + 'lil_members/'
+            lil = new LDESinLDP(lilIdentifier, communication)
+            config.date = t1
+            await lil.initialise(config)
+
+            metadata = MetadataParser.extractLDESinLDPMetadata(await lil.readMetadata())
+            await lil.append(createMember(t1))
+            await lil.append(createMember(t2))
+            await lil.append(createMember(t3))
+        });
+
+        beforeEach(() => {
+            lilIdentifier = baseUrl + 'lil_members/'
+            lil = new LDESinLDP(lilIdentifier, communication)
+        });
+
+        it('returns all members when no window is given.', async () => {
+            const memberStream = await lil.readAllMembers()
+            const memberStore = await memberStreamtoStore(memberStream)
+            expect(memberStore.getQuads(null, DCT.title, null, null).length).toBe(3)
+        });
+
+        it('returns all members within given window.', async () => {
+            const memberStream = await lil.readAllMembers(new Date("2022-02-01"), new Date("2022-05-01"))
+            const memberStore = await memberStreamtoStore(memberStream)
+            expect(memberStore.getQuads(null, DCT.title, null, null).length).toBe(1)
+        });
+    });
 
 })
