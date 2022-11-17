@@ -13,6 +13,8 @@ import {Communication} from "../../../src/ldp/Communication";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 import quad = DataFactory.quad;
+import {Status} from "../../../src/ldes/Status";
+import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 
 describe('A VersionAwareLDESinLDP', () => {
     let mockLDESinLDP: jest.Mocked<ILDES>
@@ -85,18 +87,95 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
     });
 
-    describe('when initialising a version aware LDES in LDP', () => {
+    describe('when checking the status of a version aware LDES in LDP.', () => {
+        let status: Status
         beforeEach(() => {
+            mockLDESinLDP.status.mockResolvedValue({
+                empty: false,
+                found: false,
+                full: false,
+                valid: false,
+                writable: false
+            })
+            status = {empty: false, found: false, full: false, valid: false, writable: false}
+        });
+
+        it('returns all false when the LDES in LDP was not found.', async () => {
+            const vlilStatus = await vAwareLDESinLDP.status()
+            expect(vlilStatus).toEqual(status)
+            expect(mockLDESinLDP.readMetadata).toHaveBeenCalledTimes(0)
+        });
+
+        it('returns found when it is not a versioned LDES in LDP.', async () => {
+            mockLDESinLDP.status.mockResolvedValueOnce({
+                empty: false,
+                found: true,
+                full: false,
+                valid: true,
+                writable: false
+            })
+            const lilMetadata = MetadataInitializer.generateLDESinLDPMetadata(ldesinLDPIdentifier)
+            mockLDESinLDP.readMetadata.mockResolvedValue(lilMetadata.getStore())
+            const vlilStatus = await vAwareLDESinLDP.status()
+            status.found = true
+            expect(vlilStatus).toEqual(status)
+            expect(mockLDESinLDP.readMetadata).toHaveBeenCalledTimes(1)
+        });
+
+        it('returns found and valid when it is a versioned LDES in LDP.', async () => {
+            mockLDESinLDP.status.mockResolvedValueOnce({
+                empty: false,
+                found: true,
+                full: false,
+                valid: true,
+                writable: false
+            })
+            const vlilStatus = await vAwareLDESinLDP.status()
+            status.found = true
+            status.valid = true
+            expect(vlilStatus).toEqual(status)
+            expect(mockLDESinLDP.readMetadata).toHaveBeenCalledTimes(1)
+        });
+    });
+    describe('when initialising a version aware LDES in LDP', () => {
+        let status: Status
+        beforeEach(() => {
+            status = {empty: false, found: false, full: false, valid: false, writable: false}
             mockLDESinLDP.initialise.mockResolvedValue(undefined)
-            mockCommunication.head.mockResolvedValue(new Response(ldesinLDPIdentifier, {status: 200}))
+            mockLDESinLDP.status.mockResolvedValue(status)
+            mockCommunication.patch.mockResolvedValue(new Response(ldesinLDPIdentifier, {status: 200}))
         });
 
-        it('succeeds with default config.', async () => {
+        it('succeeds with default config when it was not initialised yet.', async () => {
             await expect(await vAwareLDESinLDP.initialise()).toBeUndefined()
+            expect(mockLDESinLDP.readMetadata).toHaveBeenCalledTimes(1)
+            expect(mockCommunication.patch).toHaveBeenCalledTimes(1)
         });
 
-        it('succeeds with VLIL config.', async () => {
+        it('does not initialise when there is a container found at lil Identifier.', async () => {
+            status.found = true
+            await expect(await vAwareLDESinLDP.initialise()).toBeUndefined()
+            expect(mockLDESinLDP.readMetadata).toHaveBeenCalledTimes(0)
+            expect(mockCommunication.patch).toHaveBeenCalledTimes(0)
+        });
+
+        it('does not initialise when there is a vlil found at lil Identifier.', async () => {
+            status.found = true
+            status.valid = true
+            await expect(await vAwareLDESinLDP.initialise()).toBeUndefined()
+            expect(mockLDESinLDP.readMetadata).toHaveBeenCalledTimes(1)
+            expect(mockCommunication.patch).toHaveBeenCalledTimes(0)
+        });
+
+        it('succeeds with VLIL config when it was not initialised yet.', async () => {
             await expect(await vAwareLDESinLDP.initialise({versionOfPath: "vers", treePath: "lol"})).toBeUndefined()
+            expect(mockLDESinLDP.readMetadata).toHaveBeenCalledTimes(1)
+            expect(mockCommunication.patch).toHaveBeenCalledTimes(1)
+        });
+
+        it('throws an error when version triples could not be updated.', async () => {
+            mockCommunication.patch.mockResolvedValue(new Response(ldesinLDPIdentifier, {status: 400}))
+            await expect(() => vAwareLDESinLDP.initialise()).rejects.toThrow(Error)
         });
     });
 
