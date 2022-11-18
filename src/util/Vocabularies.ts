@@ -105,6 +105,7 @@ export const LDES = createUriAndTermNamespace('https://w3id.org/ldes#',
     'configuration',
     'managedBy',
     'pageSize',
+    'retentionPolicy',
     'timestampFragmentation',
     'timestampPath',
     'versionMaterializationOf',
@@ -146,6 +147,7 @@ export const VOID = createUriAndTermNamespace('http://rdfs.org/ns/void#',
 
 export const XSD = createUriAndTermNamespace('http://www.w3.org/2001/XMLSchema#',
     'positiveInteger',
+    'integer',
     'dateTime',
     'duration'
     );

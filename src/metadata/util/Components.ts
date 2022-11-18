@@ -285,7 +285,7 @@ export class LatestVersionSubset implements ILatestVersionSubset {
     private _type: NamedNode;
     private _versionOfPath?: string;
 
-    constructor(amount: number, id: string, opt?: { timestampPath?: string, versionOfPath?: string }) {
+    constructor(id: string, amount: number, opt?: { timestampPath?: string, versionOfPath?: string }) {
         this._amount = amount;
         this._id = id;
         this._timestampPath = opt?.timestampPath

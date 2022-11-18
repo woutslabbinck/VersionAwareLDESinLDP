@@ -1,5 +1,5 @@
 import "jest-rdf"
-import {DCAT, DCT, LDES, TREE} from "../../../src/util/Vocabularies";
+import {DCAT, DCT, LDES, TREE, XSD} from "../../../src/util/Vocabularies";
 import {DataFactory, Store} from "n3";
 import {turtleStringToStore} from "../../../src/util/Conversion";
 import {MetadataParser} from "../../../src/metadata/MetadataParser";
@@ -172,6 +172,101 @@ describe('A MetadataParser', () => {
         });
     });
 
+    describe('parsing retention policies', () => {
+        let store: Store
+        let durationAgoPolicyNode = namedNode(lilURL + "#duration")
+        let latestVersionSubsetNode = namedNode(lilURL + "#lvs")
+
+        function generateDurationAgoPolicy(store: Store) {
+            store.addQuad(durationAgoPolicyNode, RDF.terms.type, LDES.terms.DurationAgoPolicy)
+            store.addQuad(durationAgoPolicyNode, TREE.terms.value, literal("P1Y", XSD.terms.duration))
+        }
+
+        function generateLatestVersionSubsetNode(store: Store) {
+            store.addQuad(latestVersionSubsetNode, RDF.terms.type, LDES.terms.LatestVersionSubset)
+            store.addQuad(latestVersionSubsetNode, LDES.terms.amount, literal("5", XSD.terms.integer))
+        }
+
+        beforeEach(() => {
+            store = new Store()
+        });
+
+        it('does not parse anything if it does not recognize the type.', () => {
+            store.addQuad(durationAgoPolicyNode, RDF.terms.type, namedNode("a"))
+            const policies = MetadataParser.parseRetentionPolicies(store, [durationAgoPolicyNode])
+            expect(policies.length).toBe(0)
+        })
+
+        it('does not parse anything when a policy has multiple types.', () => {
+            store.addQuad(durationAgoPolicyNode, RDF.terms.type, namedNode(LDES.namespace + "RetentionPolicy"))
+            generateDurationAgoPolicy(store)
+            const policies = MetadataParser.parseRetentionPolicies(store, [durationAgoPolicyNode])
+            expect(policies.length).toBe(0)
+        })
+
+        it('parses a single Duration Ago Policy correctly.', () => {
+            generateDurationAgoPolicy(store)
+            const policies = MetadataParser.parseRetentionPolicies(store, [durationAgoPolicyNode])
+            expect(policies.length).toBe(1)
+            expect(policies[0].getStore()).toBeRdfIsomorphic(store)
+        });
+
+        it('parses a single Latest Version Subset policy correctly.', () => {
+            generateLatestVersionSubsetNode(store)
+            const policies = MetadataParser.parseRetentionPolicies(store, [latestVersionSubsetNode])
+            expect(policies.length).toBe(1)
+            expect(policies[0].getStore()).toBeRdfIsomorphic(store)
+        });
+
+        it('parses a single Latest Version Subset policy correctly (with timestamp and version).', () => {
+            generateLatestVersionSubsetNode(store)
+            store.addQuad(latestVersionSubsetNode, LDES.terms.timestampPath, DCT.terms.created)
+            store.addQuad(latestVersionSubsetNode, LDES.terms.versionOfPath, DCT.terms.isVersionOf)
+            const policies = MetadataParser.parseRetentionPolicies(store, [latestVersionSubsetNode])
+            expect(policies.length).toBe(1)
+            expect(policies[0].getStore()).toBeRdfIsomorphic(store)
+        });
+
+        it('parses multiple policies when present.', () => {
+            generateLatestVersionSubsetNode(store)
+            generateDurationAgoPolicy(store)
+            const policies = MetadataParser.parseRetentionPolicies(store, [latestVersionSubsetNode, durationAgoPolicyNode])
+            expect(policies.length).toBe(2)
+        });
+
+        it('throws an error when a Duration Ago Policy has multiple values.', () => {
+            generateDurationAgoPolicy(store)
+            store.addQuad(durationAgoPolicyNode, TREE.terms.value, literal("P2Y", XSD.terms.duration))
+            expect(() => MetadataParser.parseRetentionPolicies(store, [durationAgoPolicyNode])).toThrow(Error)
+        });
+
+        it('throws an error when a Duration Ago Policy a non duration value.', () => {
+            // duration value itself
+            store.addQuad(durationAgoPolicyNode, RDF.terms.type, LDES.terms.DurationAgoPolicy)
+            store.addQuad(durationAgoPolicyNode, TREE.terms.value, literal("asdf", XSD.terms.duration))
+            expect(() => MetadataParser.parseRetentionPolicies(store, [durationAgoPolicyNode])).toThrow(Error)
+
+            // datatype of duration
+            const typeStore = new Store()
+            typeStore.addQuad(durationAgoPolicyNode, RDF.terms.type, LDES.terms.DurationAgoPolicy)
+            typeStore.addQuad(durationAgoPolicyNode, TREE.terms.value, literal("P2Y"))
+            expect(() => MetadataParser.parseRetentionPolicies(typeStore, [durationAgoPolicyNode])).toThrow(Error)
+        });
+
+        it('throws an error when a Latest Version Subset policy  has multiple values.', () => {
+            generateLatestVersionSubsetNode(store)
+            store.addQuad(latestVersionSubsetNode, LDES.terms.amount, literal("7"))
+            expect(() => MetadataParser.parseRetentionPolicies(store, [latestVersionSubsetNode])).toThrow(Error)
+        });
+
+        it('throws an error when a Latest Version Subset policy a wrong value for amount.', () => {
+            store.addQuad(latestVersionSubsetNode, RDF.terms.type, LDES.terms.LatestVersionSubset)
+            store.addQuad(latestVersionSubsetNode, LDES.terms.amount, literal("asdf"))
+            expect(() => MetadataParser.parseRetentionPolicies(store, [latestVersionSubsetNode])).toThrow(Error)
+        });
+
+
+    });
     describe('parsing an LDES in LDP', () => {
         it('parses to metadata correctly.', async () => {
             const parsedMetadata = MetadataParser.extractLDESinLDPMetadata(store)
