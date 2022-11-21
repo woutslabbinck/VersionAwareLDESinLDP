@@ -38,7 +38,7 @@ export class MetadataParser {
      *
      * Only Retention Policies that are in the View Description are parsed here.
      *
-     * @param store the N3 store containing the LIL metadata
+     * @param store the N3 store containing the LIL metadata.
      * @returns {ILDESinLDPMetadata}
      */
     public static extractLDESinLDPMetadata(store: Store): ILDESinLDPMetadata {
@@ -87,7 +87,7 @@ export class MetadataParser {
      * Parses an N3 Store to {@link IVersionedLDESinLDPMetadata}.
      * Parsing will throw an Error when the metadata graph can not be parsed as an LDES in LDP.
      *
-     * @param store the N3 store containing the versioned LIL metadata
+     * @param store the N3 store containing the versioned LIL metadata.
      * @returns {IVersionedLDESinLDPMetadata}
      */
     public static extractVersionedLDESinLDPMetadata(store: Store): IVersionedLDESinLDPMetadata {
@@ -117,10 +117,10 @@ export class MetadataParser {
     }
 
     /**
-     * Parses a selection of an N3 Store to a {@link GreaterThanOrEqualToRelation}
+     * Parses a selection of an N3 Store to a {@link GreaterThanOrEqualToRelation}.
      *
-     * @param store An N3 Store
-     * @param relationNode The subject of the Relation in the store
+     * @param store An N3 Store.
+     * @param relationNode The subject of the Relation in the store.
      * @returns {GreaterThanOrEqualToRelation}
      */
     public static parseRelation(store: Store, relationNode: Rdf.Term): GreaterThanOrEqualToRelation {
@@ -154,8 +154,8 @@ export class MetadataParser {
     /**
      * Parses a selection of an N3 Store to a {@link IViewDescription}.
      *
-     * @param store An N3 Store
-     * @param viewDescriptionNode The subject of the View Description in the store
+     * @param store An N3 Store.
+     * @param viewDescriptionNode The subject of the View Description in the store.
      * @returns {IViewDescription}
      */
     public static parseViewDescription(store: Store, viewDescriptionNode: Rdf.Term): IViewDescription {
@@ -218,6 +218,13 @@ export class MetadataParser {
         return new BucketizeStrategy(bucketizeStrategyNode.value, bucketType, path, pageSize)
     }
 
+    /**
+     * Parses a selection of an N3 Store to a collection of {@link IRetentionPolicy}.
+     *
+     * @param store An N3 Store.
+     * @param retentionPolicyNodes A list of retention policies that are present in the View Description.
+     * @returns {IRetentionPolicy[]}
+     */
     public static parseRetentionPolicies(store: Store, retentionPolicyNodes: Rdf.Term[]): IRetentionPolicy[] {
         const retentionPolicies: IRetentionPolicy[] = []
 
@@ -241,6 +248,13 @@ export class MetadataParser {
         return retentionPolicies
     }
 
+    /**
+     * Parses a selection of an N3 Store to a {@link IDurationAgoPolicy}.
+     *
+     * @param store An N3 Store.
+     * @param durationAgoPolicyNode The subject of a DurationAgoPolicy in the store.
+     * @returns {IDurationAgoPolicy}
+     */
     private static parseDurationAgoPolicy(store: Store, durationAgoPolicyNode: Rdf.Term): IDurationAgoPolicy {
         const durations = store.getObjects(durationAgoPolicyNode, TREE.value, null)
         if (durations.length !== 1) {
@@ -253,6 +267,13 @@ export class MetadataParser {
         return new DurationAgoPolicy(durationAgoPolicyNode.value, duration.value)
     }
 
+    /**
+     * Parses a selection of an N3 Store to a {@link ILatestVersionSubset}.
+     *
+     * @param store An N3 Store.
+     * @param latestVersionSubsetNode The subject of a LatestVersionSubset policy in the store.
+     * @returns {ILatestVersionSubset}
+     */
     private static parseLatestVersionSubset(store: Store, latestVersionSubsetNode: Rdf.Term): ILatestVersionSubset {
         const amountValues = store.getObjects(latestVersionSubsetNode, LDES.amount, null)
         if (amountValues.length !== 1) {
