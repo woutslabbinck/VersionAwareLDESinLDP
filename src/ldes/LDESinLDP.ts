@@ -186,8 +186,8 @@ export class LDESinLDP implements ILDES {
         let sparqlUpdateQuery = ""
         if (inboxDateTime < date) {
             // update the inbox if necessary
-            sparqlUpdateQuery = `DELETE DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};`
-            sparqlUpdateQuery += `INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .};`
+            sparqlUpdateQuery = `DELETE DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};\n`
+            sparqlUpdateQuery += `INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .};\n`
             this.metadata.inbox = relationIdentifier
         }
         sparqlUpdateQuery += `INSERT DATA { ${storeToString(newRelationStore)} }`

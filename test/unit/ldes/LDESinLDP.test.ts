@@ -457,6 +457,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
 
     describe('when creating a new fragment', () => {
+        // TODO: test conditional
         const dateNewFragment = new Date('2022-10-04')
         const fragmentIdentifier = `${lilBase + dateNewFragment.getTime()}/`
 
@@ -478,17 +479,33 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             await expect(async () => ldesinldp.newFragment(dateNewFragment)).rejects.toThrow(Error)
         });
 
-        it('sends the correct PATCH request.', async () => {
+        it('sends the correct PATCH request when inbox MUST be created.', async () => {
             // patch metadata
             mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 205}))
 
             await ldesinldp.newFragment(dateNewFragment)
             expect(mockCommunication.put).lastCalledWith(fragmentIdentifier)
             expect(mockCommunication.patch).lastCalledWith(lilBase + '.meta', `DELETE DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <${inboxContainerURL}> .};
-INSERT DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/1664841600000/> .
- _:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
+INSERT DATA { <${lilBase}> <http://www.w3.org/ns/ldp#inbox> <http://example.org/ldesinldp/1664841600000/> .};
+INSERT DATA { _:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
 _:b0 <https://w3id.org/tree#path> <http://purl.org/dc/terms/created> .
 _:b0 <https://w3id.org/tree#value> "${dateNewFragment.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+_:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
+<http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:b0 .
+ }`)
+        });
+
+        it('sends the correct PATCH request when inbox MUST NOT be created.', async () => {
+            // patch metadata
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 205}))
+            let oldDate = new Date(0)
+            const fragmentIdentifier = getRelationIdentifier(lilBase, oldDate)
+
+            await ldesinldp.newFragment(oldDate)
+            expect(mockCommunication.put).lastCalledWith(fragmentIdentifier)
+            expect(mockCommunication.patch).lastCalledWith(lilBase + '.meta', `INSERT DATA { _:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
+_:b0 <https://w3id.org/tree#path> <http://purl.org/dc/terms/created> .
+_:b0 <https://w3id.org/tree#value> "${oldDate.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
 _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
 <http://example.org/ldesinldp/> <https://w3id.org/tree#relation> _:b0 .
  }`)
