@@ -1,6 +1,11 @@
 import {baseUrl} from "../util/solidHelper";
 import {DCT, LDP} from "../../src/util/Vocabularies";
-import {createContainer, retrieveWriteLocation} from "../../src/ldes/Util";
+import {
+    createContainer,
+    getRelationIdentifier,
+    retrieveDateTimeFromInbox,
+    retrieveWriteLocation
+} from "../../src/ldes/Util";
 import {LDPCommunication} from "../../src/ldp/LDPCommunication";
 import {LDESinLDP} from "../../src/ldes/LDESinLDP";
 import {LILConfig} from "../../src/metadata/LILConfig";
@@ -102,7 +107,52 @@ describe('An LDESinLDP', () => {
         })
     })
 
-    describe('when reading all members of an LDES in LDP.', () => {
+    describe('when creating a new fragment', () => {
+        const lilDate = new Date("2022-01-01")
+        const changeInboxDate = new Date("2022-04-01")
+        const dontChangeInboxDate = new Date(0)
+
+
+        it('the inbox MUST be changed when newFragmentDate > inbox node tree:value.', async () => {
+            lilIdentifier = baseUrl + 'lil_fragment_change/'
+            lil = new LDESinLDP(lilIdentifier, communication)
+
+            await lil.initialise({
+                date: lilDate,
+                treePath
+            })
+            const oldInbox = await retrieveWriteLocation(lilIdentifier, communication)
+            await lil.newFragment(changeInboxDate)
+            const metadata = MetadataParser.extractLDESinLDPMetadata(await lil.readMetadata())
+            const newFragmentNodeURL = getRelationIdentifier(lilIdentifier, changeInboxDate)
+
+            expect(metadata.inbox).not.toEqual(oldInbox)
+            expect(metadata.inbox).toEqual(newFragmentNodeURL)
+            expect(metadata.view.relations.length).toEqual(2)
+            expect(retrieveDateTimeFromInbox(metadata)).toEqual(changeInboxDate)
+        });
+
+        it('the inbox MUST NOT be changed when newFragmentDate < inbox node tree:value.', async () => {
+            lilIdentifier = baseUrl + 'lil_fragment_no_change/'
+            lil = new LDESinLDP(lilIdentifier, communication)
+
+            await lil.initialise({
+                date: lilDate,
+                treePath
+            })
+            const oldInbox = await retrieveWriteLocation(lilIdentifier, communication)
+            await lil.newFragment(dontChangeInboxDate)
+            const metadata = MetadataParser.extractLDESinLDPMetadata(await lil.readMetadata())
+            const newFragmentNodeURL = getRelationIdentifier(lilIdentifier, dontChangeInboxDate)
+
+            expect(metadata.inbox).toEqual(oldInbox)
+            expect(metadata.inbox).not.toEqual(newFragmentNodeURL)
+            expect(metadata.view.relations.length).toEqual(2)
+            expect(retrieveDateTimeFromInbox(metadata)).toEqual(lilDate)
+        });
+    });
+
+    describe('when reading all members of an LDES in LDP', () => {
         const t1 = new Date("2022-01-01")
         const t2 = new Date("2022-04-01")
         const t3 = new Date("2022-06-01")

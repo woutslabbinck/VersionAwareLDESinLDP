@@ -10,6 +10,7 @@ import {DataFactory, Store} from "n3";
 import {LDESConfig} from "./LDESConfig";
 import {dateToLiteral} from "../util/TimestampUtil";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
+import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
 import namedNode = DataFactory.namedNode;
 
 const parse = require('parse-link-header');
@@ -184,6 +185,16 @@ export function extractMembers(store: Store, ldesIdentifier: string): Store[] {
             );
         }
     }
-
     return members.map(member => new Store(member))
+}
+
+export function retrieveDateTimeFromInbox(ldesMetadata: ILDESinLDPMetadata): Date {
+    const inboxURL = ldesMetadata.inbox
+
+    for (const relation of ldesMetadata.view.relations) {
+        if (relation.node === inboxURL) {
+            return new Date(relation.value)
+        }
+    }
+    throw new Error(`The inbox of the LDES in LDP (${inboxURL}) can not be found in any of the relations of the LDES Metadata.`)
 }

@@ -12,7 +12,7 @@ import {INode, N3Support} from "./util/Interfaces";
 /**
  * Holds the properties of an LDES in LDP (LDES in LDP Protocol §2).
  */
-export interface ILDESinLDPMetadata extends N3Support{
+export interface ILDESinLDPMetadata extends N3Support {
     eventStreamIdentifier: string
     view: INode
     inbox: string
@@ -47,6 +47,10 @@ export class LDESinLDPMetadata implements ILDESinLDPMetadata {
         return this._inbox;
     }
 
+    set inbox(value: string) {
+        this._inbox = value;
+    }
+
     get shape(): string | undefined {
         return this._shape;
     }
@@ -58,7 +62,7 @@ export class LDESinLDPMetadata implements ILDESinLDPMetadata {
         return this.view.viewDescription.managedBy.bucketizeStrategy.pageSize ?? Infinity;
     }
 
-    getStore(): Store {
+    public getStore(): Store {
         const store = new Store()
         store.addQuad(namedNode(this.eventStreamIdentifier), namedNode(RDF.type), namedNode(LDES.EventStream))
         store.addQuad(namedNode(this.eventStreamIdentifier), namedNode(TREE.view), namedNode(this.view.id))

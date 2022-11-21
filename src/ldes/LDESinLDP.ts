@@ -8,7 +8,13 @@ import {Readable} from "stream";
 import {MetadataParser} from "../metadata/MetadataParser";
 import {MetadataInitializer} from "../metadata/MetadataInitializer";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
-import {createContainer, extractMembers, getRelationIdentifier, retrieveWriteLocation} from "./Util";
+import {
+    createContainer,
+    extractMembers,
+    getRelationIdentifier,
+    retrieveDateTimeFromInbox,
+    retrieveWriteLocation
+} from "./Util";
 import {storeToString, turtleStringToStore} from "../util/Conversion";
 import {LILConfig} from "../metadata/LILConfig";
 import {LDP, TREE} from "../util/Vocabularies";
@@ -88,8 +94,7 @@ export class LDESinLDP implements ILDES {
             const relationResponse = await this.read(nodeURL)
             status.empty = relationResponse.getQuads(nodeURL, LDP.contains, null, null).length === 0
         }
-        // TODO: testing full of status requires RetentionPolicy in LIL Metadata
-        //  according to Pieter C: must be part of viewDescription -> backwards compatability -> just in tree:Node
+        // currently, full will always be false: https://github.com/woutslabbinck/VersionAwareLDESinLDP/issues/16#issuecomment-1321817921
         return status;
     }
 
@@ -154,12 +159,10 @@ export class LDESinLDP implements ILDES {
 
     public async newFragment(date?: Date): Promise<void> {
         date = date ?? new Date()
-        const relationIdentifier = getRelationIdentifier(this.LDESinLDPIdentifier, date)
-
-        // create new container
-        await createContainer(relationIdentifier, this.communication)
-
+        await this.updateMetadata()
+        const currentInbox = this.metadata.inbox
         let treePath: string
+
         if (this.metadata.view.viewDescription) {
             treePath = this.metadata.view.viewDescription.managedBy.bucketizeStrategy.path
         } else {
@@ -167,18 +170,28 @@ export class LDESinLDP implements ILDES {
             treePath = this.metadata.view.relations[0].path
         }
 
+        // create new container
+        const relationIdentifier = getRelationIdentifier(this.LDESinLDPIdentifier, date)
+        await createContainer(relationIdentifier, this.communication)
+
         const newRelation = new GreaterThanOrEqualToRelation(relationIdentifier, treePath, date.toISOString())
         const newRelationStore = newRelation.getStore()
         const relationNode = newRelationStore.getSubjects(null, null, null)[0]
         newRelationStore.addQuad(namedNode(this.metadata.rootNodeIdentifier), TREE.terms.relation, relationNode)
 
-        const currentInbox = await retrieveWriteLocation(this._LDESinLDPIdentifier, this.communication)
-        await this.updateMetadata(currentInbox)
-        // TODO search in relations and find the value in the relation (matching with the node)
-        //  only if  (current inboxTime > date) change inbox triples
-        const sparqlUpdateQuery = `DELETE DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};
-INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .
- ${storeToString(newRelationStore)} }`
+
+        // update metadata for the new relation (both local and remote)
+        this.metadata.view.relations.push(newRelation)
+        const inboxDateTime = retrieveDateTimeFromInbox(this.metadata)
+        let sparqlUpdateQuery = ""
+        if (inboxDateTime < date) {
+            // update the inbox if necessary
+            sparqlUpdateQuery = `DELETE DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};\n`
+            sparqlUpdateQuery += `INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .};\n`
+            this.metadata.inbox = relationIdentifier
+        }
+        sparqlUpdateQuery += `INSERT DATA { ${storeToString(newRelationStore)} }`
+
         const response = await this.communication.patch(this._LDESinLDPIdentifier + '.meta', sparqlUpdateQuery)
         if (response.status > 299 || response.status < 200) {
             const deleteContainerResponse = await this.communication.delete(relationIdentifier)
@@ -186,7 +199,6 @@ INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier
             this.logger.info(await response.text())
             throw Error(`The LDES metadata ${this.metadata.eventStreamIdentifier} was not updated for the new relation ${relationIdentifier} | status code: ${response.status}`)
         }
-        // todo: update metadata -> need methods in ILILMetadata to add relation and to change inbox
     }
 
     public async read(resourceIdentifier: string): Promise<Store> {
@@ -292,11 +304,18 @@ INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier
     }
 
     /**
-     * Update the metadata based on the inbox? TODO check if makes sense
+     * Updates the metadata of the LDES.
+     *
+     * If an inbox argument is given, and it is different from the current metadata, the metadata must also be updated.
+     * Otherwise, it is still up-to-date.
      * @param inboxURL
      * @returns {Promise<void>}
      */
-    private async updateMetadata(inboxURL: string): Promise<void> {
+    private async updateMetadata(inboxURL?: string): Promise<void> {
+        if (!inboxURL) {
+            this.metadata = await this.extractLdesMetadata()
+            return
+        }
         if (this.metadata.inbox !== inboxURL) {
             this.metadata = await this.extractLdesMetadata()
         }
