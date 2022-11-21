@@ -121,6 +121,7 @@ export class ViewDescription implements IViewDescription {
         store.addQuads(this.managedBy.getStore().getQuads(null, null, null, null))
 
         this.retentionPolicies.forEach(policy => {
+            store.addQuad(namedNode(this.id), LDES.terms.retentionPolicy, namedNode(policy.id))
             store.addQuads(policy.getStore().getQuads(null, null, null, null))
         })
         return store
