@@ -6,17 +6,27 @@
  *****************************************/
 import {Literal, Store} from "n3";
 import {ILDESinLDPMetadata, LDESinLDPMetadata} from "./LDESinLDPMetadata";
-import {DCAT, LDES, LDP, RDF, TREE} from "../util/Vocabularies";
-import {IRelation, IViewDescription} from "./util/Interfaces";
+import {DCAT, LDES, LDP, RDF, TREE, XSD} from "../util/Vocabularies";
+import {
+    IBucketizeStrategy,
+    IDurationAgoPolicy,
+    ILatestVersionSubset,
+    IRelation,
+    IRetentionPolicy,
+    IViewDescription
+} from "./util/Interfaces";
 import {
     BucketizeStrategy,
+    DurationAgoPolicy,
     GreaterThanOrEqualToRelation,
+    LatestVersionSubset,
     LDESinLDPClient,
     Node,
     ViewDescription
 } from "./util/Components";
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 import * as Rdf from "@rdfjs/types";
+import {Logger} from "../logging/Logger";
 
 /**
  * The {@link MetadataParser} contains static methods to parse (versioned) LDES in LDP metadata (or parts from it).
@@ -25,6 +35,8 @@ export class MetadataParser {
     /**
      * Parses an N3 Store to {@link ILDESinLDPMetadata}.
      * Parsing will throw an Error when the metadata graph can not be parsed as an LDES in LDP.
+     *
+     * Only Retention Policies that are in the View Description are parsed here.
      *
      * @param store the N3 store containing the LIL metadata
      * @returns {ILDESinLDPMetadata}
@@ -80,22 +92,28 @@ export class MetadataParser {
      */
     public static extractVersionedLDESinLDPMetadata(store: Store): IVersionedLDESinLDPMetadata {
         const lilMetadata = this.extractLDESinLDPMetadata(store)
+        const eventStreamIdentifier = lilMetadata.eventStreamIdentifier
+        const versionOfPath = this.parseVersionOfPath(store, eventStreamIdentifier);
+        const timestampPath = this.parseTimestampPath(store, eventStreamIdentifier);
 
-
-        if (store.getObjects(lilMetadata.eventStreamIdentifier, LDES.versionOfPath, null).length !== 1) {
-            throw Error(`Expected only one versionOfPath. ${store.getObjects(lilMetadata.eventStreamIdentifier, LDES.versionOfPath, null).length} are present.`)
-        }
-
-        if (store.getObjects(lilMetadata.eventStreamIdentifier, LDES.timestampPath, null).length !== 1) {
-            throw Error(`Expected only one timestampPath. ${store.getObjects(lilMetadata.eventStreamIdentifier, LDES.timestampPath, null).length} are present.`)
-        }
-
-        const versionOfPath = store.getObjects(lilMetadata.eventStreamIdentifier, LDES.versionOfPath, null)[0].value
-        const timestampPath = store.getObjects(lilMetadata.eventStreamIdentifier, LDES.timestampPath, null)[0].value
-        return new VersionedLDESinLDPMetadata(lilMetadata.eventStreamIdentifier, lilMetadata.view, lilMetadata.inbox, {
+        return new VersionedLDESinLDPMetadata(eventStreamIdentifier, lilMetadata.view, lilMetadata.inbox, {
             timestampPath,
             versionOfPath
         }, lilMetadata.shape)
+    }
+
+    private static parseTimestampPath(store: Store, identifier: string) {
+        if (store.getObjects(identifier, LDES.timestampPath, null).length !== 1) {
+            throw Error(`Expected only one timestampPath. ${store.getObjects(identifier, LDES.timestampPath, null).length} are present.`)
+        }
+        return store.getObjects(identifier, LDES.timestampPath, null)[0].value;
+    }
+
+    private static parseVersionOfPath(store: Store, identifier: string) {
+        if (store.getObjects(identifier, LDES.versionOfPath, null).length !== 1) {
+            throw Error(`Expected only one versionOfPath. ${store.getObjects(identifier, LDES.versionOfPath, null).length} are present.`)
+        }
+        return store.getObjects(identifier, LDES.versionOfPath, null)[0].value;
     }
 
     /**
@@ -165,8 +183,17 @@ export class MetadataParser {
             throw new Error(`Could not parse view description as the expected amount of bucketizers is 1 | received: ${bucketizers.length}`)
         }
 
-        const bucketizeStrategyNode = bucketizers[0]
+        const retentionPolicyNodes = store.getObjects(viewDescriptionNode, LDES.retentionPolicy, null)
+        const retentionPolicies = this.parseRetentionPolicies(store, retentionPolicyNodes)
 
+        const bucketizeStrategy = this.parseBucketizeStrategy(store, bucketizers[0])
+
+        const lilClient = new LDESinLDPClient(managedByNode.value, bucketizeStrategy)
+
+        return new ViewDescription(viewDescriptionNode.value, lilClient, eventStreamIdentifier, rootNodeIdentifier, retentionPolicies)
+    }
+
+    protected static parseBucketizeStrategy(store: Store, bucketizeStrategyNode: Rdf.Term): IBucketizeStrategy {
         const bucketTypes = store.getObjects(bucketizeStrategyNode, LDES.bucketType, null)
         const treePaths = store.getObjects(bucketizeStrategyNode, TREE.path, null)
 
@@ -174,7 +201,7 @@ export class MetadataParser {
             throw new Error(`Could not parse bucketizer in view description as the expected amount of bucket types is 1 | received: ${bucketTypes.length}`)
         }
         if (treePaths.length !== 1) {
-            throw new Error(`Could not parse bucketizer in view description as the expected amount of pathss is 1 | received: ${treePaths.length}`)
+            throw new Error(`Could not parse bucketizer in view description as the expected amount of paths is 1 | received: ${treePaths.length}`)
         }
         const bucketType = bucketTypes[0].value
         const path = treePaths[0].value // NOTE: must be same as all tree paths in each Relation!!
@@ -188,10 +215,61 @@ export class MetadataParser {
             }
         }
 
-        const bucketizeStrategy = new BucketizeStrategy(bucketizeStrategyNode.value, bucketType, path, pageSize)
+        return new BucketizeStrategy(bucketizeStrategyNode.value, bucketType, path, pageSize)
+    }
 
-        const lilClient = new LDESinLDPClient(managedByNode.value, bucketizeStrategy)
+    public static parseRetentionPolicies(store: Store, retentionPolicyNodes: Rdf.Term[]): IRetentionPolicy[] {
+        const retentionPolicies: IRetentionPolicy[] = []
 
-        return new ViewDescription(viewDescriptionNode.value, lilClient, eventStreamIdentifier, rootNodeIdentifier)
+        retentionPolicyNodes.forEach(retentionPolicyNode => {
+            let types = store.getObjects(retentionPolicyNode, RDF.type, null)
+            const retentionPolicyType = types.length > 1 ? undefined : types[0]?.value
+
+            switch (retentionPolicyType) {
+                case LDES.DurationAgoPolicy:
+                    retentionPolicies.push(this.parseDurationAgoPolicy(store, retentionPolicyNode))
+                    break
+                case LDES.LatestVersionSubset:
+                    retentionPolicies.push(this.parseLatestVersionSubset(store, retentionPolicyNode))
+                    break
+                default:
+                    let logger = new Logger(this)
+                    logger.info(`Could not parse the retention policy for identifier ${retentionPolicyNode.value}.`)
+            }
+        })
+
+        return retentionPolicies
+    }
+
+    private static parseDurationAgoPolicy(store: Store, durationAgoPolicyNode: Rdf.Term): IDurationAgoPolicy {
+        const durations = store.getObjects(durationAgoPolicyNode, TREE.value, null)
+        if (durations.length !== 1) {
+            throw new Error(`Could not parse the value for Duration Ago Policy (${durationAgoPolicyNode.value}) as the expected amount of values is 1 | received: ${durations.length}`)
+        }
+        const duration = durations[0] as Literal
+        if (duration.datatype.value !== XSD.duration) {
+            throw new Error(`Could not parse the value for Duration Ago Policy (${durationAgoPolicyNode.value}) as the expected data type is ${XSD.duration}`)
+        }
+        return new DurationAgoPolicy(durationAgoPolicyNode.value, duration.value)
+    }
+
+    private static parseLatestVersionSubset(store: Store, latestVersionSubsetNode: Rdf.Term): ILatestVersionSubset {
+        const amountValues = store.getObjects(latestVersionSubsetNode, LDES.amount, null)
+        if (amountValues.length !== 1) {
+            throw new Error(`Could not parse the amount for Latest Version Subset (${latestVersionSubsetNode.value}) as the expected amount of amount is 1 | received: ${amountValues.length}`)
+        }
+        const amount = parseInt(amountValues[0].value, 10)
+        if (isNaN(amount)) {
+            throw Error("Could not parse amount in Latest Version Subset as it is not a number.")
+        }
+        let timestampPath
+        let versionOfPath
+        try {
+            timestampPath = this.parseTimestampPath(store, latestVersionSubsetNode.value)
+            versionOfPath = this.parseVersionOfPath(store, latestVersionSubsetNode.value)
+        } catch (e) {
+
+        }
+        return new LatestVersionSubset(latestVersionSubsetNode.value, amount, {timestampPath, versionOfPath})
     }
 }

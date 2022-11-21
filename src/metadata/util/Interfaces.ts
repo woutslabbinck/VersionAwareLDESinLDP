@@ -32,6 +32,7 @@ export interface IViewDescription extends N3Support {
     managedBy: ILDESinLDPClient
     servesDataset: string // LDESinLDPMetadata.eventStreamIdentifier
     endpointURL: string // Node.id
+    retentionPolicies: IRetentionPolicy[]
 }
 
 /**
@@ -62,4 +63,29 @@ export interface IRelation extends N3Support {
     value: string
     node: string
     path: string // should be SHACLPath
+}
+
+/**
+ * An interface that holds the properties for a `ldes:RetentionPolicy` (LDES specification §3).
+ */
+export interface IRetentionPolicy extends N3Support {
+    id: string
+    type: string
+}
+
+/**
+ * An interface that holds the properties for a `ldes:DurationAgoPolicy` (LDES specification §3.1).
+ */
+export interface IDurationAgoPolicy extends IRetentionPolicy {
+    value: string
+}
+
+/**
+ * An interface that holds the properties for a `ldes:LatestVersionSubset` (LDES specification §3.2).
+ * versionKey is not implemented yet
+ */
+export interface ILatestVersionSubset extends IRetentionPolicy {
+    amount: number
+    timestampPath?: string // not really a fan of this here
+    versionOfPath?: string // not really a fan of this here
 }
