@@ -23,6 +23,8 @@ import {Status} from "./Status";
 // @ts-ignore
 import * as WacAllow from 'wac-allow';
 import {extractDateFromLiteral} from "../util/TimestampUtil";
+import {patchSparqlUpdateDelete, patchSparqlUpdateInsert} from "../util/PatchUtil";
+import {quad} from "@rdfjs/data-model";
 import namedNode = DataFactory.namedNode;
 
 /***************************************
@@ -121,8 +123,7 @@ export class LDESinLDP implements ILDES {
         // send request to server to create base of the LDES in LDP
         await createContainer(this.LDESinLDPIdentifier, this.communication)
         const response = await this.communication.patch(this.LDESinLDPIdentifier + '.meta', // Note: currently meta hardcoded
-            `INSERT DATA {${storeToString(store)}}`)
-
+            patchSparqlUpdateInsert(store))
 
         if (response.status > 299 || response.status < 200) {
             throw Error(`The container ${this.LDESinLDPIdentifier} its metadata was not updated | status code: ${response.status}`)
@@ -183,14 +184,19 @@ export class LDESinLDP implements ILDES {
         // update metadata for the new relation (both local and remote)
         this.metadata.view.relations.push(newRelation)
         const inboxDateTime = retrieveDateTimeFromInbox(this.metadata)
+        const queries = []
         let sparqlUpdateQuery = ""
         if (inboxDateTime < date) {
             // update the inbox if necessary
-            sparqlUpdateQuery = `DELETE DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${currentInbox}> .};\n`
-            sparqlUpdateQuery += `INSERT DATA { <${this.LDESinLDPIdentifier}> <${LDP.inbox}> <${relationIdentifier}> .};\n`
+            const removeOldInboxStore = new Store([quad(namedNode(this.LDESinLDPIdentifier), LDP.terms.inbox, namedNode(currentInbox))])
+            const addNewInboxStore = new Store([quad(namedNode(this.LDESinLDPIdentifier), LDP.terms.inbox, namedNode(relationIdentifier))])
+
+            queries.push(patchSparqlUpdateDelete(removeOldInboxStore))
+            queries.push(patchSparqlUpdateInsert(addNewInboxStore))
             this.metadata.inbox = relationIdentifier
         }
-        sparqlUpdateQuery += `INSERT DATA { ${storeToString(newRelationStore)} }`
+        queries.push(patchSparqlUpdateInsert(newRelationStore))
+        sparqlUpdateQuery += queries.join("\n")
 
         const response = await this.communication.patch(this._LDESinLDPIdentifier + '.meta', sparqlUpdateQuery)
         if (response.status > 299 || response.status < 200) {
