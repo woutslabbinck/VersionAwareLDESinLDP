@@ -18,10 +18,11 @@ import {VLILConfig} from "../metadata/VLILConfig";
 import {MetadataParser} from "../metadata/MetadataParser";
 import {IVersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
 import {IRelation} from "../metadata/util/Interfaces";
-import namedNode = DataFactory.namedNode;
 import {Status} from "../ldes/Status";
 import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
 import {Logger} from "../logging/Logger";
+import {patchSparqlUpdateInsert} from "../util/PatchUtil";
+import namedNode = DataFactory.namedNode;
 
 export class VersionAwareLDESinLDP {
     private readonly LDESinLDP: ILDES;
@@ -79,10 +80,13 @@ export class VersionAwareLDESinLDP {
         const lilMetadata = MetadataParser.extractLDESinLDPMetadata(await this.LDESinLDP.readMetadata())
         const ldesIdentifier = lilMetadata.eventStreamIdentifier
 
+        const versionStore = new Store()
+
+        versionStore.addQuad(namedNode(ldesIdentifier), LDES.terms.timestampPath, namedNode(config.treePath))
+        versionStore.addQuad(namedNode(ldesIdentifier), LDES.terms.versionOfPath, namedNode(config.versionOfPath))
         // maybe in lil? It uses the communication already
         const response = await this.LDESinLDP.communication.patch(this.LDESinLDP.LDESinLDPIdentifier + ".meta", // Note: currently meta hardcoded
-            `INSERT DATA { <${ldesIdentifier}> <${LDES.timestampPath}> <${config.treePath}> .
-<${ldesIdentifier}> <${LDES.versionOfPath}> <${config.versionOfPath}> .}`)
+            patchSparqlUpdateInsert(versionStore))
         if (response.status > 299 || response.status < 200) {
             throw Error(`Failed to add version specific triples to ${this.LDESinLDP.LDESinLDPIdentifier} | status code: ${response.status}`)
         }
