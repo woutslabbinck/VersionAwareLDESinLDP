@@ -22,14 +22,16 @@ export * from "./metadata/util/Interfaces";
 export * from './util/Conversion'
 export * from './util/IdentifierUtil'
 export * from './util/LdesUtil'
+export * from './util/Login'
+export * from './util/PatchUtil'
 export * from './util/TimestampUtil'
 export * from './util/Vocabularies'
-export * from './util/Login'
 
 // solid
 export * from './solid/SolidCommunication'
 
 // version aware
+export * from './versionawarelil/Util'
 export * from './versionawarelil/VersionAwareLDESinLDP'
 
 
