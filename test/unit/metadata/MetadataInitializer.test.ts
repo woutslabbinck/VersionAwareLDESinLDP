@@ -71,6 +71,13 @@ describe('A MetadataInitializer', () => {
             store.addQuad(namedNode(eventStreamIdentifier), namedNode(TREE.shape), namedNode(shapeURL))
             expect(metadata.getStore()).toBeRdfIsomorphic(store)
         });
+
+        it('generates metadata for a specific eventStream identifier.', () => {
+            const eventStreamIdentifier = "http://example.org/" + "#LDES"
+            args = { eventStreamIdentifier}
+            let metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, args)
+            expect(metadata.eventStreamIdentifier).toBe(eventStreamIdentifier)
+        });
     })
 
     describe('for a Versioned LDES in LDP', () => {

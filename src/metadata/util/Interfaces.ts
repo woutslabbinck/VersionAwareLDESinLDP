@@ -5,14 +5,8 @@
  * Created on 08/11/2022
  *****************************************/
 
-import {Store} from "n3";
+import {N3Support} from "@treecg/ldes-snapshot";
 
-/**
- * Provides methods to work with an N3 Store.
- */
-export interface N3Support {
-    getStore: () => Store
-}
 
 /**
  * An interface that holds the properties for a `tree:Node` (TREE hypermedia specification §6.1.2).

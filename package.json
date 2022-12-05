@@ -1,6 +1,6 @@
 {
     "name": "@treecg/versionawareldesinldp",
-    "version": "0.1.5",
+    "version": "0.2.0-alpha.0",
     "description": "Library for interacting with a (versioned) LDES in LDP",
     "main": "./dist/Index.js",
     "types": "./dist/Index.d.ts",
@@ -37,7 +37,7 @@
         "@inrupt/solid-client-authn-node": "1.12.1",
         "@rdfjs/data-model": "^1.3.4",
         "@rubensworks/solid-client-authn-isomorphic": "^2.0.0",
-        "@treecg/ldes-snapshot": "^0.0.5",
+        "@treecg/ldes-snapshot": "^0.1.0-alpha.1",
         "@treecg/types": "^0.2.2",
         "componentsjs": "^4.5.0",
         "componentsjs-generator": "^2.6.1",

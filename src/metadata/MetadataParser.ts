@@ -27,11 +27,12 @@ import {
 import {IVersionedLDESinLDPMetadata, VersionedLDESinLDPMetadata} from "./VersionedLDESinLDPMetadata";
 import * as Rdf from "@rdfjs/types";
 import {Logger} from "../logging/Logger";
+import {AbstractMetadataParser} from "@treecg/ldes-snapshot";
 
 /**
  * The {@link MetadataParser} contains static methods to parse (versioned) LDES in LDP metadata (or parts from it).
  */
-export class MetadataParser {
+export class MetadataParser extends AbstractMetadataParser{
     /**
      * Parses an N3 Store to {@link ILDESinLDPMetadata}.
      * Parsing will throw an Error when the metadata graph can not be parsed as an LDES in LDP.
@@ -39,13 +40,11 @@ export class MetadataParser {
      * Only Retention Policies that are in the View Description are parsed here.
      *
      * @param store the N3 store containing the LIL metadata.
+     * @param eventStreamIdentifier (optional) URI of the Linked Data Event Stream Identifier.
      * @returns {ILDESinLDPMetadata}
      */
-    public static extractLDESinLDPMetadata(store: Store): ILDESinLDPMetadata {
-        if (store.getSubjects(RDF.type, LDES.EventStream, null).length !== 1) {
-            throw Error(`Expected only one Event Stream. ${store.getSubjects(RDF.type, LDES.EventStream, null).length} are present.`)
-        }
-        const eventStreamIdentifier = store.getSubjects(RDF.type, LDES.EventStream, null)[0].value
+    public static extractLDESinLDPMetadata(store: Store, eventStreamIdentifier?: string): ILDESinLDPMetadata {
+        eventStreamIdentifier = eventStreamIdentifier ?? this.parseLDESIdentifier(store)
 
         if (store.getObjects(eventStreamIdentifier, TREE.view, null).length !== 1) {
             throw Error(`Expected only one view. ${store.getObjects(eventStreamIdentifier, TREE.view, null).length} are present.`)
@@ -72,8 +71,8 @@ export class MetadataParser {
             }
 
         }
-        // remove hash
-        const containerURL = eventStreamIdentifier.split('#')[0]
+        // assume view is the container URL
+        const containerURL = rootNodeIdentifier
         if (store.getObjects(containerURL, LDP.inbox, null).length !== 1) {
             throw Error(`Expected only one inbox. ${store.getObjects(eventStreamIdentifier, LDP.inbox, null).length} are present.`)
         }
@@ -88,11 +87,12 @@ export class MetadataParser {
      * Parsing will throw an Error when the metadata graph can not be parsed as an LDES in LDP.
      *
      * @param store the N3 store containing the versioned LIL metadata.
+     * @param eventStreamIdentifier (optional) URI of the Linked Data Event Stream Identifier.
      * @returns {IVersionedLDESinLDPMetadata}
      */
-    public static extractVersionedLDESinLDPMetadata(store: Store): IVersionedLDESinLDPMetadata {
-        const lilMetadata = this.extractLDESinLDPMetadata(store)
-        const eventStreamIdentifier = lilMetadata.eventStreamIdentifier
+    public static extractVersionedLDESinLDPMetadata(store: Store, eventStreamIdentifier?: string): IVersionedLDESinLDPMetadata {
+        const lilMetadata = this.extractLDESinLDPMetadata(store, eventStreamIdentifier)
+        eventStreamIdentifier = lilMetadata.eventStreamIdentifier
         const versionOfPath = this.parseVersionOfPath(store, eventStreamIdentifier);
         const timestampPath = this.parseTimestampPath(store, eventStreamIdentifier);
 
@@ -100,20 +100,6 @@ export class MetadataParser {
             timestampPath,
             versionOfPath
         }, lilMetadata.shape)
-    }
-
-    private static parseTimestampPath(store: Store, identifier: string) {
-        if (store.getObjects(identifier, LDES.timestampPath, null).length !== 1) {
-            throw Error(`Expected only one timestampPath. ${store.getObjects(identifier, LDES.timestampPath, null).length} are present.`)
-        }
-        return store.getObjects(identifier, LDES.timestampPath, null)[0].value;
-    }
-
-    private static parseVersionOfPath(store: Store, identifier: string) {
-        if (store.getObjects(identifier, LDES.versionOfPath, null).length !== 1) {
-            throw Error(`Expected only one versionOfPath. ${store.getObjects(identifier, LDES.versionOfPath, null).length} are present.`)
-        }
-        return store.getObjects(identifier, LDES.versionOfPath, null)[0].value;
     }
 
     /**

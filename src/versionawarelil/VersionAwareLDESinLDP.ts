@@ -6,14 +6,14 @@
  *****************************************/
 import {ILDES} from "../ldes/ILDES";
 import {DataFactory, Store} from "n3";
-import {SnapshotTransform} from "@treecg/ldes-snapshot";
+import {extractDate, extractObjectIdentifier, SnapshotTransform} from "@treecg/ldes-snapshot";
 import {DCT, LDES, LDP, RDF} from "../util/Vocabularies";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ISnapshotOptions} from "@treecg/ldes-snapshot/dist/src/SnapshotTransform";
 import {Member} from '@treecg/types'
 import {filterRelation} from "../util/LdesUtil";
 import {addDeletedTriple, addVersionObjectTriples, isDeleted, removeVersionSpecificTriples} from "./Util";
-import {extractDate, extractMaterializedId, extractVersionId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
+import {extractMaterializedId} from "@treecg/ldes-snapshot/dist/src/util/SnapshotUtil";
 import {VLILConfig} from "../metadata/VLILConfig";
 import {MetadataParser} from "../metadata/MetadataParser";
 import {IVersionedLDESinLDPMetadata} from "../metadata/VersionedLDESinLDPMetadata";
@@ -36,6 +36,10 @@ export class VersionAwareLDESinLDP {
         return this.LDESinLDP.LDESinLDPIdentifier
     }
 
+    private get eventStreamIdentifier(): string {
+        return this.LDESinLDP.eventStreamIdentifier
+    }
+
     /**
      * Checks the {@link Status} of the versioned LDES in LDP.
      * Calls the {@link ILDES} status and when it is a valid {@link ILDESinLDPMetadata},
@@ -47,7 +51,7 @@ export class VersionAwareLDESinLDP {
         const status = await this.LDESinLDP.status()
         if (status.valid) {
             try {
-                metadata = MetadataParser.extractVersionedLDESinLDPMetadata(await this.LDESinLDP.readMetadata())
+                metadata = MetadataParser.extractVersionedLDESinLDPMetadata(await this.LDESinLDP.readMetadata(), this.eventStreamIdentifier)
             } catch (e) {
 
             }
@@ -291,7 +295,7 @@ export class VersionAwareLDESinLDP {
     private async extractLdesMetadata(): Promise<IVersionedLDESinLDPMetadata> {
         const metadataStore = await this.LDESinLDP.readMetadata() // can fail (what if configuration is wrong)
 
-        return MetadataParser.extractVersionedLDESinLDPMetadata(metadataStore)
+        return MetadataParser.extractVersionedLDESinLDPMetadata(metadataStore, this.eventStreamIdentifier)
     }
 
     public async extractVersions(versionIdentifier: string, extractOptions: ExtractOptions = {
@@ -316,7 +320,7 @@ export class VersionAwareLDESinLDP {
             const resources = this.LDESinLDP.readPage(relation.node)
 
             for await (const resource of resources) {
-                const resourceVersionID = extractVersionId(resource, metadata.versionOfPath)
+                const resourceVersionID = extractObjectIdentifier(resource, metadata.versionOfPath)
                 const resourceDate = extractDate(resource, metadata.timestampPath)
                 if (resourceVersionID === versionIdentifier && resourceDate >= startDate && resourceDate <= endDate) {
                     const memberTerm = resource.getSubjects(metadata.versionOfPath, null, null)[0]

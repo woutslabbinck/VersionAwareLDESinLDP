@@ -17,6 +17,7 @@ import {ILDESinLDPMetadata} from "../../src/metadata/LDESinLDPMetadata";
 import {dateToLiteral} from "../../src/util/TimestampUtil";
 import {memberStreamtoStore} from "../../src/util/Conversion";
 import {MetadataParser} from "../../src/metadata/MetadataParser";
+import {LDES, RDF} from "@treecg/ldes-snapshot";
 import namedNode = DataFactory.namedNode;
 
 describe('An LDESinLDP', () => {
@@ -105,6 +106,15 @@ describe('An LDESinLDP', () => {
 
             await expect(lil.initialise(config)).resolves.toBeUndefined()
         })
+
+        it('succeeds when using specifically an evenStream identifier.', async () => {
+            const lilIdentifier = baseUrl + 'ldesinldp_init_v3/'
+            const eventStreamIdentifier = baseUrl + "#test"
+            const lil = new LDESinLDP(lilIdentifier, communication, {eventStreamIdentifier})
+            await lil.initialise(config)
+            const store = await lil.read(lilIdentifier)
+            expect(store.getQuads(eventStreamIdentifier, RDF.terms.type, LDES.terms.EventStream, null).length).toBe(1)
+        });
     })
 
     describe('when creating a new fragment', () => {

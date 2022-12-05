@@ -267,6 +267,7 @@ describe('A MetadataParser', () => {
 
 
     });
+
     describe('parsing an LDES in LDP', () => {
         it('parses to metadata correctly.', async () => {
             const parsedMetadata = MetadataParser.extractLDESinLDPMetadata(store)
@@ -326,6 +327,13 @@ _:b0 <https://w3id.org/tree#node> <${lilURL}${date.valueOf()}/> .
         it('fails when multiple LDES are present.', async () => {
             store.addQuad(namedNode('a'), namedNode(RDF.type), namedNode(LDES.EventStream))
             expect(() => MetadataParser.extractLDESinLDPMetadata(store)).toThrow(Error)
+        });
+
+        it('parses an LDES in LDP correctly when multiple LDES are present, given its LDES identifier.', async () => {
+            store.addQuad(namedNode('a'), namedNode(RDF.type), namedNode(LDES.EventStream))
+            const parsedMetadata = MetadataParser.extractLDESinLDPMetadata(store, eventStreamIdentifier)
+            const metadata = MetadataInitializer.generateLDESinLDPMetadata(lilURL, {date})
+            expect(parsedMetadata).toEqual(metadata)
         });
 
         it('fails when there is no view.', async () => {

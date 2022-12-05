@@ -1,3 +1,5 @@
 [
-    "SolidCommunication"
+    "SolidCommunication",
+    "N3Support",
+    "AbstractMetadataParser"
 ]

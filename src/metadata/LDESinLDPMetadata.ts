@@ -7,7 +7,8 @@
 import {Store} from "n3";
 import {LDES, LDP, RDF, TREE} from "../util/Vocabularies";
 import {namedNode} from "@rdfjs/data-model";
-import {INode, N3Support} from "./util/Interfaces";
+import {INode} from "./util/Interfaces";
+import {N3Support} from "@treecg/ldes-snapshot";
 
 /**
  * Holds the properties of an LDES in LDP (LDES in LDP Protocol §2).
