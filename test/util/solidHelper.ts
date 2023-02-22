@@ -47,6 +47,7 @@ export async function runSolid(): Promise<void> {
         {
             mainModulePath: `${__dirname}/`,
             logLevel: 'info',
+            typeChecking: false,
         },
         Path.join(__dirname, 'memory-no-setup.json'),
         {
