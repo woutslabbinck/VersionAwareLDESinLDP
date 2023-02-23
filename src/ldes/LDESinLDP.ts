@@ -35,16 +35,17 @@ import namedNode = DataFactory.namedNode;
  *****************************************/
 export class LDESinLDP implements ILDES {
     private readonly _LDESinLDPIdentifier: string;
+    private readonly _eventStreamIdentifier: string;
+
     private readonly _communication: Communication;
     private readonly logger: Logger = new Logger(this);
     private metadata: ILDESinLDPMetadata;
 
-
-    constructor(LDESinLDPIdentifier: string, communication: Communication) {
+    constructor(LDESinLDPIdentifier: string, communication: Communication, args?: { eventStreamIdentifier?: string }) {
         this._LDESinLDPIdentifier = LDESinLDPIdentifier;
         this._communication = communication;
-        this.metadata = MetadataInitializer.generateLDESinLDPMetadata(LDESinLDPIdentifier)
-
+        this.metadata = MetadataInitializer.generateLDESinLDPMetadata(LDESinLDPIdentifier, args)
+        this._eventStreamIdentifier = this.metadata.eventStreamIdentifier
         if (!isContainerIdentifier(LDESinLDPIdentifier)) {
             throw Error(`${LDESinLDPIdentifier} is not a container identifier as it does not end with "/".`)
         }
@@ -62,6 +63,10 @@ export class LDESinLDP implements ILDES {
         return this.metadata.fragmentSize
     }
 
+    get eventStreamIdentifier(): string {
+        return this._eventStreamIdentifier;
+    }
+
     async status(): Promise<Status> {
         const status: Status = {
             empty: false, found: false, full: false, valid: false, writable: false
@@ -75,7 +80,7 @@ export class LDESinLDP implements ILDES {
                 return status
             }
             const store = await this.read(this.LDESinLDPIdentifier)
-            metadata = MetadataParser.extractLDESinLDPMetadata(store)
+            metadata = MetadataParser.extractLDESinLDPMetadata(store, this.eventStreamIdentifier)
         } catch (e) {
 
         }
@@ -116,7 +121,8 @@ export class LDESinLDP implements ILDES {
 
         const metadata = MetadataInitializer.generateLDESinLDPMetadata(this.LDESinLDPIdentifier, {
             lilConfig: config,
-            date: date
+            date: date,
+            eventStreamIdentifier: this.eventStreamIdentifier
         })
         const store = metadata.getStore()
 
@@ -132,7 +138,7 @@ export class LDESinLDP implements ILDES {
         await createContainer(metadata.view.relations[0].node, this.communication)
 
         // update ldes metadata
-        this.metadata = MetadataParser.extractLDESinLDPMetadata(store)
+        this.metadata = MetadataParser.extractLDESinLDPMetadata(store, this.eventStreamIdentifier)
     }
 
     public async append(store: Store): Promise<string> {
@@ -269,7 +275,7 @@ export class LDESinLDP implements ILDES {
 
         // test whether it is indeed an LIL EventStream
         try {
-            MetadataParser.extractLDESinLDPMetadata(rootStore)
+            MetadataParser.extractLDESinLDPMetadata(rootStore, this.eventStreamIdentifier)
         } catch (e) {
             throw Error(`${this.LDESinLDPIdentifier} is not an actual base of an LDES in LDP.`);
         }
@@ -306,7 +312,7 @@ export class LDESinLDP implements ILDES {
      */
     private async extractLdesMetadata(): Promise<ILDESinLDPMetadata> {
         const metadataStore = await this.readMetadata()
-        return MetadataParser.extractLDESinLDPMetadata(metadataStore)
+        return MetadataParser.extractLDESinLDPMetadata(metadataStore, this.eventStreamIdentifier)
     }
 
     /**

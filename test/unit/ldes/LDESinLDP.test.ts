@@ -85,6 +85,11 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         expect(ldesinldp.LDESinLDPIdentifier).toBe(lilBase)
     });
 
+    it('returns the event stream identifier when calling its get function.', () => {
+        // which default is `lilBase + #EventStream`
+        expect(ldesinldp.eventStreamIdentifier).toBe(lilBase+"#EventStream")
+    });
+
     describe('when checking the states of an LDES in LDP', () => {
         let status: Status
 
@@ -183,10 +188,16 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(new LDESinLDP('http://example.org/ldesinldp/', mockCommunication)).toBeDefined()
         });
 
+        it('succeeds when a correct eventStream Identifier is given.', () => {
+            let eventStreamIdentifier = "http://example.org/#test"
+            expect(new LDESinLDP('http://example.org/ldesinldp/', mockCommunication, {eventStreamIdentifier})).toBeDefined()
+        });
+
         it('throws an error when the LDESinLDPIdentifier is not a container Identifier according to slash semantics.', () => {
             // Does LDP require the slash semantics? Or is this Solid only?
             expect(() => new LDESinLDP('http://example.org/ldesinldp', mockCommunication)).toThrow(Error)
         });
+
     });
 
     describe('when initialising an LDES in LDP', () => {

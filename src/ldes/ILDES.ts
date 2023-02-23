@@ -13,6 +13,7 @@ import {Status} from "./Status";
 export interface ILDES {
 
     LDESinLDPIdentifier: string;
+    eventStreamIdentifier: string;
     communication: Communication;
 
     /**

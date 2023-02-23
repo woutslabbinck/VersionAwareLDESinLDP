@@ -1,7 +1,7 @@
 import {Communication} from "../../../src/ldp/Communication";
 import {SolidCommunication} from "../../../src/solid/SolidCommunication";
-import {getSession} from "../../../src/util/Login";
-import {authBaseUrl} from "../../util/solidHelper";
+import {getAuthenticatedSession} from "../../../src/util/Login";
+import {account, authBaseUrl, webId} from "../../util/solidHelper";
 import {LDPCommunication} from "../../../dist/ldp/LDPCommunication";
 
 describe('An SolidCommunication', () => {
@@ -18,7 +18,11 @@ describe('An SolidCommunication', () => {
 
 
     beforeAll(async () => {
-        const session = await getSession()
+        const session = await getAuthenticatedSession({
+            webId:webId,
+            email: account.email,
+            password: account.password
+        })
         // create acl file for solid authenticated
         const response = await session.fetch(authBaseUrl +'.acl',{
             method: 'PUT',
@@ -27,7 +31,7 @@ describe('An SolidCommunication', () => {
 
 <#authorization>
     a               acl:Authorization;
-    acl:agent  <${session.info.webId}>;
+    acl:agent  <http://localhost:3002/profile/card#me>;
     acl:mode        acl:Read, acl:Write, acl:Append, acl:Control;
     acl:accessTo    <./>;
     acl:default     <./>.

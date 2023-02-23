@@ -10,11 +10,11 @@ import {baseUrl} from "../../util/solidHelper";
 import {Readable} from "stream";
 import {createVersionedEventStream, getRelationIdentifier} from "../../../src/ldes/Util";
 import {Communication} from "../../../src/ldp/Communication";
+import {Status} from "../../../src/ldes/Status";
+import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 import quad = DataFactory.quad;
-import {Status} from "../../../src/ldes/Status";
-import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 
 describe('A VersionAwareLDESinLDP', () => {
     let mockLDESinLDP: jest.Mocked<ILDES>
@@ -65,6 +65,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             newFragment: jest.fn(),
             readPage: jest.fn(),
             LDESinLDPIdentifier: ldesinLDPIdentifier,
+            eventStreamIdentifier: ldesinLDPIdentifier+ "#EventStream",
             append: jest.fn(),
             initialise: jest.fn(),
             read: jest.fn(),

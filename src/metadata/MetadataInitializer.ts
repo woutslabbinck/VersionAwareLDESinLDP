@@ -36,7 +36,8 @@ export class MetadataInitializer {
      */
     public static generateLDESinLDPMetadata(lilURL: string, args?: {
         lilConfig?: { treePath?: string, shape?: string, pageSize?: number },
-        date?: Date
+        date?: Date,
+        eventStreamIdentifier?: string
     }): ILDESinLDPMetadata {
         args = args ?? {}
 
@@ -46,7 +47,7 @@ export class MetadataInitializer {
         const treePath = args.lilConfig ? args.lilConfig.treePath : undefined;
         const shape = args.lilConfig ? args.lilConfig.shape : undefined;
 
-        const eventStreamIdentifier = `${lilURL}#EventStream`
+        const eventStreamIdentifier =  args?.eventStreamIdentifier ?? `${lilURL}#EventStream`
 
         const relationIdentifier = getRelationIdentifier(lilURL, date)
         const relation = this.createRelation(relationIdentifier, treePath, date)
@@ -68,7 +69,8 @@ export class MetadataInitializer {
      */
     public static generateVersionedLDESinLDPMetadata(lilURL: string, args?: {
         vlilConfig?: { treePath?: string, shape?: string, pageSize?: number, versionOfPath?: string },
-        date?: Date
+        date?: Date,
+        eventStreamIdentifier?: string
     }): IVersionedLDESinLDPMetadata {
         args = args ?? {}
         const lilMetadata = this.generateLDESinLDPMetadata(lilURL, args)

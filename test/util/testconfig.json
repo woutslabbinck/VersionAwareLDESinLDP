@@ -1,4 +1,6 @@
 {
     "port": 3001,
-    "authport": 3002
+    "authport": 3002,
+    "email": "test@mail.com",
+    "password":"test"
 }
