@@ -1,13 +1,13 @@
-import {ILDES} from "./ILDES";
-import {Communication} from "../ldp/Communication";
-import {Logger} from "../logging/Logger";
-import {filterRelation} from "../util/LdesUtil";
-import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
-import {DataFactory, Literal, Store} from "n3";
-import {Readable} from "stream";
-import {MetadataParser} from "../metadata/MetadataParser";
-import {MetadataInitializer} from "../metadata/MetadataInitializer";
-import {isContainerIdentifier} from "../util/IdentifierUtil";
+import { ILDES } from "./ILDES";
+import { Communication } from "../ldp/Communication";
+import { Logger } from "../logging/Logger";
+import { filterRelation } from "../util/LdesUtil";
+import { ILDESinLDPMetadata } from "../metadata/LDESinLDPMetadata";
+import { DataFactory, Literal, Quad, Store } from "n3";
+import { Readable } from "stream";
+import { MetadataParser } from "../metadata/MetadataParser";
+import { MetadataInitializer } from "../metadata/MetadataInitializer";
+import { isContainerIdentifier } from "../util/IdentifierUtil";
 import {
     createContainer,
     extractMembers,
@@ -15,16 +15,16 @@ import {
     retrieveDateTimeFromInbox,
     retrieveWriteLocation
 } from "./Util";
-import {storeToString, turtleStringToStore} from "../util/Conversion";
-import {LILConfig} from "../metadata/LILConfig";
-import {LDP, TREE} from "../util/Vocabularies";
-import {GreaterThanOrEqualToRelation} from "../metadata/util/Components";
-import {Status} from "./Status";
+import { storeToString, turtleStringToStore } from "../util/Conversion";
+import { LILConfig } from "../metadata/LILConfig";
+import { LDP, TREE } from "../util/Vocabularies";
+import { GreaterThanOrEqualToRelation } from "../metadata/util/Components";
+import { Status } from "./Status";
 // @ts-ignore
 import * as WacAllow from 'wac-allow';
-import {extractDateFromLiteral} from "../util/TimestampUtil";
-import {patchSparqlUpdateDelete, patchSparqlUpdateInsert} from "../util/PatchUtil";
-import {quad} from "@rdfjs/data-model";
+import { extractDateFromLiteral } from "../util/TimestampUtil";
+import { patchSparqlUpdateDelete, patchSparqlUpdateInsert } from "../util/PatchUtil";
+import { quad } from "@rdfjs/data-model";
 import namedNode = DataFactory.namedNode;
 
 /***************************************
@@ -88,7 +88,7 @@ export class LDESinLDP implements ILDES {
         }
         status.valid = true
 
-        const {user} = WacAllow.parse(foundResponse)
+        const { user } = WacAllow.parse(foundResponse)
         status.writable = user.has('write')
 
         if (metadata.view.relations.length === 1) {
@@ -341,4 +341,36 @@ export class LDESinLDP implements ILDES {
             }
         }
     }
+
+
+    /**
+     * Returns the last members added to the container based on the timestamp.
+     * @returns {Promise<Quad[]>}
+     */
+    public async getLastMembers(): Promise<Quad[]> {
+        const metadata = await this.extractLdesMetadata();
+        const relations = filterRelation(metadata, new Date(0), new Date())
+        const comm = this
+        let timestampList = [];
+        let lastQuadList = [];
+        for (const relation of relations) {
+            const members = comm.readPage(relation.node);
+            for await (const member of members) {
+                let timestamp = member.getQuads(null, relation.path, null, null)[0].object.id;
+                timestampList.push(timestamp);
+            }
+            timestampList.sort();
+            const lastTimestamp = timestampList[timestampList.length - 1];
+            const membersOfContainer = comm.readPage(relation.node);
+            for await (const member of membersOfContainer) {
+                let lastQuad = member.getQuads(null, relation.path, lastTimestamp, null)[0];
+                if (lastQuad !== undefined) {
+                    lastQuadList.push(lastQuad)
+                }
+            }
+
+        }
+        return lastQuadList;
+    }
+
 }
