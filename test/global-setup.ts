@@ -1,10 +1,12 @@
-import {isRunning, runSolid} from "./util/solidHelper";
+import {registerAccount, runSolidPrivate, runSolidPublic} from "./util/solidHelper";
 
 async function start(): Promise<void> {
-    // start server and wait till it is running + login and wait till that has succeeded
-    await runSolid();
-    // await initAuth();
-    await isRunning();
+    // start server without setup (and public ACL) and wait till it is running
+    await runSolidPublic();
+    // start server with setup
+    await runSolidPrivate();
+    // register dummy account
+    await registerAccount();
 }
 
 

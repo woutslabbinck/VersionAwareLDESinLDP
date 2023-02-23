@@ -9,7 +9,7 @@
         "build:ts": "rm -rf dist/; tsc",
         "build:components": "componentsjs-generator -s src -c dist/components -r awarelil -i ignore_components.json",
         "prepare": "npm run build",
-        "test": "./run_tests.sh",
+        "test": "jest",
         "release": "npm run build && npm publish --access public"
     },
     "lsd:module": "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/versionawareldesinldp",
