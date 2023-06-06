@@ -184,6 +184,10 @@ async function authenticatedFetch(config: { email: string, password: string, idp
     const {access_token: accessToken, expires_in: expires} = await response.json();
     // https://communitysolidserver.github.io/CommunitySolidServer/5.x/usage/client-credentials/#requesting-an-access-token
     // 'The JSON also contains an "expires_in" field in seconds'
+
+    if (accessToken === undefined) {
+        throw Error("Authentication failed: password or email are wrong for idp: "+idp)
+    }
     console.log("token expires in:", expires, "seconds.")
     // it says types don't match, but they should
     // @ts-ignore
@@ -208,8 +212,16 @@ export async function getAuthenticatedSession(config: { webId: string, email: st
     const {email, password} = config
     const idp = await getIdp(config.webId);     // TODO: use getIdentityProvider from https://github.com/SolidLabResearch/SolidLabLib.js
     const session = new Session()
-    session.fetch = await authenticatedFetch({email, password, idp});
-    session.info.isLoggedIn = true
-    session.info.webId = config.webId
+    try {
+        session.fetch = await authenticatedFetch({email, password, idp});
+        session.info.isLoggedIn = true
+        session.info.webId = config.webId
+    } catch (e:unknown) {
+        const error = e as Error
+        console.log("Log in not successful for webID: "+config.webId)
+        console.log(error.message)
+        // fetch is part of session and will have a non-authenticated fetch method
+    }
+
     return session;
 }
