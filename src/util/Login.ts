@@ -185,7 +185,8 @@ async function authenticatedFetch(config: { email: string, password: string, idp
     // https://communitysolidserver.github.io/CommunitySolidServer/5.x/usage/client-credentials/#requesting-an-access-token
     // 'The JSON also contains an "expires_in" field in seconds'
     console.log("token expires in:", expires, "seconds.")
-
+    // it says types don't match, but they should
+    // @ts-ignore
     return await buildAuthenticatedFetch(fetch, accessToken, {dpopKey});
 }
 
@@ -208,7 +209,7 @@ export async function getAuthenticatedSession(config: { webId: string, email: st
     const idp = await getIdp(config.webId);     // TODO: use getIdentityProvider from https://github.com/SolidLabResearch/SolidLabLib.js
     const session = new Session()
     session.fetch = await authenticatedFetch({email, password, idp});
+    session.info.isLoggedIn = true
+    session.info.webId = config.webId
     return session;
-
-
 }
