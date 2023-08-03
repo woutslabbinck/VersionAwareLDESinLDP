@@ -22,8 +22,7 @@ export interface ILDES {
     status: () => Promise<Status>
 
     /**
-     * Initialises an LDES in LDP using from the config the base, possibly a shape and the treePath.
-     * By default, ldes:versionOfPath is dct:isVersionOf, ldes:timestampPath is dc:created and tree:relation is tree:GreaterThanOrEqualToRelation.
+     * Initialises an LDES in LDP using `tree:path`.
      * @param config
      */
     initialise: (config: LILConfig) => Promise<void>
@@ -52,19 +51,29 @@ export interface ILDES {
 
     /**
      * Reads all the metadata of the LDESinLDP and returns that as an N3 Store.
-     * Metadata includes the tree:relations, tree:path, ldes:timestampPath, ldes:versionOfPath, base of the LDESinLDP and optionally the tree:shape.
+     * Metadata includes the tree:relations, tree:path, base of the LDESinLDP and optionally the tree:shape.
      * Throws an error when an obligated property is missing from the base.
      */
     readMetadata: () => Promise<Store>
 
     /**
      * Returns all the resources (members) of the LDESinLDP and returns them as a Member Stream
-     * If a date is given, it stops early based on the relations and the ldes:timestampPath in the resource.
+     * If a date is given, it stops early based on the relations and the tree:path in the resource.
      * Optionally a window [from, until], which results in a memberStream with only members within that window.
+     *
+     * @param from
      * @param until
      */
     readAllMembers: (from?: Date, until?: Date) => Promise<Readable>
 
+    /**
+     * Returns all the resources (members) of the LDESinLDP and returns them as a Member Stream.
+     * It sorts the members based on the `tree:path` in the resource.
+     * If a date is given, it stops early based on the relations and the tree:path in the resource.
+     * Optionally a window [from, until], which results in a memberStream with only members within that window.
+     */
+
+    readMembersSorted: (opts: {from?: Date, until?: Date, chronological?: boolean}) => Promise<Readable>
     /**
      * Return all the members (resources) of a fragment (container) as an Iterable.
      * @param pageUrl

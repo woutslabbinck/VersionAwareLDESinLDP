@@ -25,6 +25,8 @@ import * as WacAllow from 'wac-allow';
 import {extractDateFromLiteral} from "../util/TimestampUtil";
 import {patchSparqlUpdateDelete, patchSparqlUpdateInsert} from "../util/PatchUtil";
 import {quad} from "@rdfjs/data-model";
+import {Member} from "@treecg/types";
+import {extractDateFromMember} from "../util/MemberUtil";
 import namedNode = DataFactory.namedNode;
 
 /***************************************
@@ -267,6 +269,65 @@ export class LDESinLDP implements ILDES {
         memberStream.push(null)
         return memberStream
     }
+
+    public async readMembersSorted(opts: { from?: Date; until?: Date; chronological?: boolean }): Promise<Readable> {
+        const from = opts.from ?? new Date(0)
+        const until = opts.until ?? new Date()
+        const chronological = opts.chronological ?? true;
+
+        const comm = this
+
+        // Note: currently only implemented for chronological
+        const metadata = await this.extractLdesMetadata()
+        const relations = filterRelation(metadata, from, until)
+
+        const memberStream = new Readable({
+            objectMode: true,
+            read() {
+            }
+        })
+
+        for (const relation of relations) {
+            const resources = comm.readPage(relation.node)
+            const members: Member[] = []
+            for await (const resource of resources) {
+                // member ID is based on tree:path
+                let memberId = resource.getSubjects(relation.path, null, null)[0].value
+
+                // remove containment triple if present (<ldesIdentifer> <tree:member> memberId.)
+                resource.removeQuads(resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null))
+
+                const member: Member = {
+                    id: namedNode(memberId),
+                    quads: resource.getQuads(null, null, null, null)
+
+                }
+
+                // member date
+                const memberDateTime = extractDateFromMember(member, relation.path);
+
+                // add only members within window to stream
+                if (from <= memberDateTime && memberDateTime <= until) {
+                    members.push({
+                        id: namedNode(memberId),
+                        quads: resource.getQuads(null, null, null, null),
+                    })
+                }
+            }
+            // sort member chronologically
+            const sortedMembers = members.sort((a:Member, b:Member) => {
+                const dateA = extractDateFromMember(a, relation.path);
+                const dateB = extractDateFromMember(b, relation.path);
+                return dateA.getTime() - dateB.getTime()
+            })
+
+            // push members o stream
+            sortedMembers.forEach(member => memberStream.push(member))
+        }
+        memberStream.push(null)
+        return memberStream
+    }
+
 
     public async readMetadata(): Promise<Store> {
         // This function only retrieves metadata of one layer deep
