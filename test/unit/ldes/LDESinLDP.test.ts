@@ -10,6 +10,8 @@ import {addSimpleMember} from "../../util/LdesTestUtility";
 import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
 import {Status} from "../../../src/ldes/Status";
 import {ILDESinLDPMetadata} from "../../../src/metadata/LDESinLDPMetadata";
+import {Member} from "@treecg/types";
+import {extractDateFromMember} from "../../../src/util/MemberUtil";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
 
@@ -87,7 +89,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
     it('returns the event stream identifier when calling its get function.', () => {
         // which default is `lilBase + #EventStream`
-        expect(ldesinldp.eventStreamIdentifier).toBe(lilBase+"#EventStream")
+        expect(ldesinldp.eventStreamIdentifier).toBe(lilBase + "#EventStream")
     });
 
     describe('when checking the states of an LDES in LDP', () => {
@@ -181,7 +183,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(mockCommunication.head).toBeCalledTimes(1)
             expect(mockCommunication.get).toBeCalledTimes(2)
         });
-    })
+    });
 
     describe('when instantiating an LDES in LDP', () => {
         it('succeeds when a correct base LDESinLDPIdentifier is given.', () => {
@@ -342,7 +344,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(mockCommunication.post).toBeCalledWith(getRelationIdentifier(lilBase, date), storeToString(resourceStore))
 
         });
-    })
+    });
 
     describe('when reading a resource from an LDES in LDP', () => {
         it('returns store of the resource.', async () => {
@@ -371,7 +373,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             await expect(() => ldesinldp.read(createdURL)).rejects.toThrow(Error)
 
         });
-    })
+    });
 
     describe('when reading the metadata from an LDES in LDP', () => {
 
@@ -402,7 +404,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const ldesMetadata = extractLdesMetadata(metadataStore, 'http://example.org/ldesinldp/#EventStream')
             expect(ldesMetadata.views.length).toBe(1)
         })
-    })
+    });
 
     describe('when reading all the members of an LDES in LDP', () => {
         let getMetadataResponse: Response
@@ -464,8 +466,68 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(members.getObjects(null, DCT.title, null)[0].value).toBe("test")
             expect(members.getObjects(null, treePath, null)[0].value).toBe(date.toISOString())
         })
-    })
+    });
 
+    describe('when reading all the members of an LDES in LDP in order', () => {
+        let getMetadataResponse: Response
+        let getNodeResponse: Response;
+        let getResourceResponse1: Response;
+        let getResourceResponse2: Response;
+        const dateResource1 = new Date("2020")
+        const dateResource2 = new Date("2021")
+
+        beforeEach(() => {
+            getMetadataResponse = new Response(lilString, {
+                status: 200,
+                headers: new Headers({'Content-type': 'text/turtle'})
+            })
+
+            getNodeResponse = new Response(
+                `<http://example.org/ldesinldp/timestamppath/> <${LDP.contains}> <http://example.org/ldesinldp/timestamppath/resource1>.
+<http://example.org/ldesinldp/timestamppath/> <${LDP.contains}> <http://example.org/ldesinldp/timestamppath/resource2>.`,
+                {
+                    status: 200,
+                    headers: new Headers({'Content-type': 'text/turtle'})
+                })
+            // oldest
+            getResourceResponse1 = new Response(
+                `<http://example.org/resource1#resource1> <${DCT.title}> "test".
+<http://example.org/resource1#resource1> <${DCT.created}> "${dateResource1.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime>.
+<http://example.org/resource1#resource1> <${DCT.isVersionOf}>  <http://example.org/resource1>.`,
+                {
+                    status: 200,
+                    headers: new Headers({'Content-type': 'text/turtle'})
+                })
+
+            // newest
+            getResourceResponse2 = new Response(
+                `<http://example.org/resource1#resource2> <${DCT.title}> "test".
+<http://example.org/resource1#resource2> <${DCT.created}> "${dateResource2.toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime>.
+<http://example.org/resource1#resource2> <${DCT.isVersionOf}>  <http://example.org/resource1>.`,
+                {
+                    status: 200,
+                    headers: new Headers({'Content-type': 'text/turtle'})
+                })
+        });
+
+        it('returns the members of the LDES in LDP chronologically.', async () => {
+            mockCommunication.get.mockResolvedValueOnce(getMetadataResponse)
+            mockCommunication.get.mockResolvedValueOnce(getNodeResponse)
+            // newest member is added first
+            mockCommunication.get.mockResolvedValueOnce(getResourceResponse2)
+            mockCommunication.get.mockResolvedValueOnce(getResourceResponse1)
+            const memberStream = await ldesinldp.readMembersSorted()
+            const orderedMembers: Member[] = []
+            for await (const member of memberStream) {
+                orderedMembers.push(member)
+            }
+            expect(mockCommunication.get).toBeCalledTimes(4)
+            expect(orderedMembers.length).toBe(2)
+            // as newest member is fetched first, the ordering will make the oldest member appear as first data element in the stream
+            expect(extractDateFromMember(orderedMembers[0],DCT.created).getTime()).toEqual(dateResource1.getTime())
+            expect(extractDateFromMember(orderedMembers[1],DCT.created).getTime()).toEqual(dateResource2.getTime())
+        });
+    });
 
     describe('when creating a new fragment', () => {
         // TODO: test conditional
@@ -536,6 +598,7 @@ _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
 
         });
     });
+
     describe('when reading a fragment', () => {
         let containerStore: Store
         let containerURL = lilBase + 'container/'
@@ -596,5 +659,5 @@ _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
             expect(members.length).toBe(2)
             expect(mockCommunication.get).toBeCalledTimes(2)
         });
-    })
+    });
 })

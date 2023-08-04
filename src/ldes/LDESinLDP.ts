@@ -270,7 +270,8 @@ export class LDESinLDP implements ILDES {
         return memberStream
     }
 
-    public async readMembersSorted(opts: { from?: Date; until?: Date; chronological?: boolean }): Promise<Readable> {
+    public async readMembersSorted(opts?: { from?: Date; until?: Date; chronological?: boolean }): Promise<Readable> {
+        opts = opts ?? {}
         const from = opts.from ?? new Date(0)
         const until = opts.until ?? new Date()
         const chronological = opts.chronological ?? true;

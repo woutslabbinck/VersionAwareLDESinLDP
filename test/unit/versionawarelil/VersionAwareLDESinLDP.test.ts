@@ -60,6 +60,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             put: jest.fn()
         }
         mockLDESinLDP = {
+            readMembersSorted: jest.fn(),
             status: jest.fn(),
             communication: mockCommunication,
             newFragment: jest.fn(),

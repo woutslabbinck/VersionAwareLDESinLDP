@@ -73,7 +73,7 @@ export interface ILDES {
      * Optionally a window [from, until], which results in a memberStream with only members within that window.
      */
 
-    readMembersSorted: (opts: {from?: Date, until?: Date, chronological?: boolean}) => Promise<Readable>
+    readMembersSorted: (opts?: {from?: Date, until?: Date, chronological?: boolean}) => Promise<Readable>
     /**
      * Return all the members (resources) of a fragment (container) as an Iterable.
      * @param pageUrl
