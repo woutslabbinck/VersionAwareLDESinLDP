@@ -1,13 +1,13 @@
-import {ILDES} from "./ILDES";
-import {Communication} from "../ldp/Communication";
-import {Logger} from "../logging/Logger";
-import {filterRelation} from "../util/LdesUtil";
-import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
-import {DataFactory, Literal, Store} from "n3";
-import {Readable} from "stream";
-import {MetadataParser} from "../metadata/MetadataParser";
-import {MetadataInitializer} from "../metadata/MetadataInitializer";
-import {isContainerIdentifier} from "../util/IdentifierUtil";
+import { ILDES } from "./ILDES";
+import { Communication } from "../ldp/Communication";
+import { Logger } from "../logging/Logger";
+import { filterRelation } from "../util/LdesUtil";
+import { ILDESinLDPMetadata } from "../metadata/LDESinLDPMetadata";
+import { DataFactory, Literal, Store } from "n3";
+import { Readable } from "stream";
+import { MetadataParser } from "../metadata/MetadataParser";
+import { MetadataInitializer } from "../metadata/MetadataInitializer";
+import { isContainerIdentifier } from "../util/IdentifierUtil";
 import {
     createContainer,
     extractMembers,
@@ -15,18 +15,18 @@ import {
     retrieveDateTimeFromInbox,
     retrieveWriteLocation
 } from "./Util";
-import {storeToString, turtleStringToStore} from "../util/Conversion";
-import {LILConfig} from "../metadata/LILConfig";
-import {LDP, TREE} from "../util/Vocabularies";
-import {GreaterThanOrEqualToRelation} from "../metadata/util/Components";
-import {Status} from "./Status";
+import { storeToString, turtleStringToStore } from "../util/Conversion";
+import { LILConfig } from "../metadata/LILConfig";
+import { LDP, TREE } from "../util/Vocabularies";
+import { GreaterThanOrEqualToRelation } from "../metadata/util/Components";
+import { Status } from "./Status";
 // @ts-ignore
 import * as WacAllow from 'wac-allow';
-import {extractDateFromLiteral} from "../util/TimestampUtil";
-import {patchSparqlUpdateDelete, patchSparqlUpdateInsert} from "../util/PatchUtil";
-import {quad} from "@rdfjs/data-model";
-import {Member} from "@treecg/types";
-import {extractDateFromMember} from "../util/MemberUtil";
+import { extractDateFromLiteral } from "../util/TimestampUtil";
+import { patchSparqlUpdateDelete, patchSparqlUpdateInsert } from "../util/PatchUtil";
+import { quad } from "@rdfjs/data-model";
+import { Member } from "@treecg/types";
+import { extractDateFromMember } from "../util/MemberUtil";
 import namedNode = DataFactory.namedNode;
 
 /***************************************
@@ -95,7 +95,7 @@ export class LDESinLDP implements ILDES {
         }
         status.valid = true
 
-        const {user} = WacAllow.parse(foundResponse)
+        const { user } = WacAllow.parse(foundResponse)
         status.writable = user.has('write')
 
         if (metadata.view.relations.length === 1) {
@@ -247,23 +247,30 @@ export class LDESinLDP implements ILDES {
 
         for (const relation of relations) {
             const resources = comm.readPage(relation.node)
+            const members: Member[] = []
             for await (const resource of resources) {
                 // member ID is based on tree:path
-                let memberId = resource.getSubjects(relation.path, null, null)[0].value
+                // let memberId = resource.getSubjects(relation.path, null, null)[0].value
+                let membersId = resource.getSubjects(relation.path, null, null);
 
                 // remove containment triple if present (<ldesIdentifer> <tree:member> memberId.)
                 resource.removeQuads(resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null))
-
-                // member date
-                const dateLiteral = resource.getObjects(memberId, relation.path, null)[0] as Literal
-                const memberDateTime = extractDateFromLiteral(dateLiteral)
-                // add only members within window to stream
-                if (from <= memberDateTime && memberDateTime <= until) {
-                    memberStream.push({
-                        id: namedNode(memberId),
+                for (let memberId of membersId) {
+                    const member: Member = {
+                        id: namedNode(memberId.value),
                         quads: resource.getQuads(null, null, null, null)
-                    })
-                }
+                    }
+                    // member date
+                    const memberDateTime = extractDateFromMember(member, relation.path)
+
+                    // add only members within window to stream
+                    if (from <= memberDateTime && memberDateTime <= until) {
+                        members.push({
+                            id: namedNode(memberId.value),
+                            quads: resource.getQuads(null, null, null, null),
+                        })
+                    }
+                };
             }
         }
         memberStream.push(null)
@@ -293,35 +300,34 @@ export class LDESinLDP implements ILDES {
             const members: Member[] = []
             for await (const resource of resources) {
                 // member ID is based on tree:path
-                let memberId = resource.getSubjects(relation.path, null, null)[0].value
+                // let memberId = resource.getSubjects(relation.path, null, null)[0].value
+                let membersId = resource.getSubjects(relation.path, null, null);
 
                 // remove containment triple if present (<ldesIdentifer> <tree:member> memberId.)
                 resource.removeQuads(resource.getQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null))
+                for (let memberId of membersId) {
+                    const member: Member = {
+                        id: namedNode(memberId.value),
+                        quads: resource.getQuads(null, null, null, null)
+                    }
+                    // member date
+                    const memberDateTime = extractDateFromMember(member, relation.path)
 
-                const member: Member = {
-                    id: namedNode(memberId),
-                    quads: resource.getQuads(null, null, null, null)
-
-                }
-
-                // member date
-                const memberDateTime = extractDateFromMember(member, relation.path);
-
-                // add only members within window to stream
-                if (from <= memberDateTime && memberDateTime <= until) {
-                    members.push({
-                        id: namedNode(memberId),
-                        quads: resource.getQuads(null, null, null, null),
-                    })
-                }
+                    // add only members within window to stream
+                    if (from <= memberDateTime && memberDateTime <= until) {
+                        members.push({
+                            id: namedNode(memberId.value),
+                            quads: resource.getQuads(null, null, null, null),
+                        })
+                    }
+                };
             }
             // sort member chronologically
-            const sortedMembers = members.sort((a:Member, b:Member) => {
+            const sortedMembers = members.sort((a: Member, b: Member) => {
                 const dateA = extractDateFromMember(a, relation.path);
                 const dateB = extractDateFromMember(b, relation.path);
                 return dateA.getTime() - dateB.getTime()
             })
-
             // push members o stream
             sortedMembers.forEach(member => memberStream.push(member))
         }
