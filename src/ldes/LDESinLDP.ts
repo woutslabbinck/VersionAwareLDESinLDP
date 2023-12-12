@@ -316,7 +316,7 @@ export class LDESinLDP implements ILDES {
                 }
             }
             // sort member chronologically
-            const sortedMembers = members.sort((a:Member, b:Member) => {
+            const sortedMembers = members.sort((a: Member, b: Member) => {
                 const dateA = extractDateFromMember(a, relation.path);
                 const dateB = extractDateFromMember(b, relation.path);
                 return dateA.getTime() - dateB.getTime()
@@ -347,11 +347,24 @@ export class LDESinLDP implements ILDES {
     /**
      * Return all the resources (members) of a container as an Iterable.
      * @param containerURL
+     * @param opts : optional argument that can help filter out members within a range (can only be used if there is metadata in the container)
      */
-    public async* readPage(containerURL: string): AsyncIterable<Store> {
+    public async* readPage(containerURL: string, opts?: {
+        from?: Date;
+        until?: Date;
+        chronological?: boolean
+    }): AsyncIterable<Store> {
         if (isContainerIdentifier(containerURL)) {
             const store = await this.read(containerURL)
-            const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
+            const pageMetadata = await this.pageMedata(containerURL, store)
+            let children: string[] = []
+
+            if (opts?.from && opts?.until && pageMetadata) {
+                // https://github.com/woutslabbinck/VersionAwareLDESinLDP/issues/34
+                children = filterRelation(pageMetadata, opts.from, opts.until).map(relation => relation.node)
+            } else {
+                children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
+            }
             for (const childURL of children) {
                 const resourceStore = await this.read(childURL)
                 if (resourceStore.countQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null) === 0) {
@@ -408,5 +421,15 @@ export class LDESinLDP implements ILDES {
                 await this.newFragment()
             }
         }
+    }
+
+    private async pageMedata(containerURL: string, store: Store): Promise<ILDESinLDPMetadata | undefined> {
+        let pageMetadata = undefined
+        store.addQuad(namedNode(this._LDESinLDPIdentifier), LDP.terms.inbox, namedNode(containerURL))
+        try {
+            pageMetadata = MetadataParser.extractLDESinLDPMetadata(store)
+        } catch (e) {
+        }
+        return pageMetadata
     }
 }
