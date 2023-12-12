@@ -246,7 +246,7 @@ export class LDESinLDP implements ILDES {
         })
 
         for (const relation of relations) {
-            const resources = comm.readPage(relation.node)
+            const resources = comm.readPage(relation.node,{from, until})
             for await (const resource of resources) {
                 // member ID is based on tree:path
                 let memberId = resource.getSubjects(relation.path, null, null)[0].value
@@ -289,7 +289,7 @@ export class LDESinLDP implements ILDES {
         })
 
         for (const relation of relations) {
-            const resources = comm.readPage(relation.node)
+            const resources = comm.readPage(relation.node,{from, until})
             const members: Member[] = []
             for await (const resource of resources) {
                 // member ID is based on tree:path
@@ -352,7 +352,6 @@ export class LDESinLDP implements ILDES {
     public async* readPage(containerURL: string, opts?: {
         from?: Date;
         until?: Date;
-        chronological?: boolean
     }): AsyncIterable<Store> {
         if (isContainerIdentifier(containerURL)) {
             const store = await this.read(containerURL)
