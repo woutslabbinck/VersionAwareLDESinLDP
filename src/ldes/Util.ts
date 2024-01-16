@@ -11,6 +11,8 @@ import {LDESConfig} from "./LDESConfig";
 import {dateToLiteral} from "../util/TimestampUtil";
 import {isContainerIdentifier} from "../util/IdentifierUtil";
 import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
+import {GreaterThanOrEqualToRelation} from "../metadata/util/Components";
+import {patchSparqlUpdateInsert} from "../util/PatchUtil";
 import namedNode = DataFactory.namedNode;
 
 const parse = require('parse-link-header');
@@ -197,4 +199,29 @@ export function retrieveDateTimeFromInbox(ldesMetadata: ILDESinLDPMetadata): Dat
         }
     }
     throw new Error(`The inbox of the LDES in LDP (${inboxURL}) can not be found in any of the relations of the LDES Metadata.`)
+}
+
+/**
+ * appends Relation metadata to an LDP container (`containerURL`).
+ * The relation node comes from a newly created resource (`resourceURL`),
+ * its date from the oldest member within that resource (`date`)
+ * and the treePath from the metadata (`metadata`).
+ *
+ * @param args
+ * @return {Promise<void>}
+ */
+export async function appendRelationToPage(args: {
+    communication: Communication
+    containerURL: string,
+    date: Date,
+    metadata: ILDESinLDPMetadata,
+    resourceURL: string,
+}): Promise<void> {
+    const {communication, containerURL, date, metadata, resourceURL} = args
+    metadata.view.relations = [] // should be a deep copy to be done properly
+    const newRelation = new GreaterThanOrEqualToRelation(resourceURL, metadata.view.viewDescription!.managedBy.bucketizeStrategy.path, date.toISOString())
+    metadata.view.relations.push(newRelation)
+    const relationMetadata = metadata.getStore()
+    relationMetadata.removeQuads(relationMetadata.getQuads(null, LDP.terms.inbox, null, null))
+    await communication.patch(containerURL + '.meta', patchSparqlUpdateInsert(relationMetadata))
 }

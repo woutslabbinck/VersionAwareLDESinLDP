@@ -1,19 +1,21 @@
-import {LDESinLDP} from "../../../src/ldes/LDESinLDP";
-import {DCT, LDP} from "../../../src/util/Vocabularies";
-import {DataFactory, Store} from "n3";
-import {Communication} from "../../../src/ldp/Communication";
-import {extractLdesMetadata} from "../../../src/util/LdesUtil";
-import {memberStreamtoStore, storeToString,} from "../../../src/util/Conversion";
-import {LDESConfig} from "../../../src/ldes/LDESConfig";
-import {getRelationIdentifier} from "../../../src/ldes/Util";
-import {addSimpleMember} from "../../util/LdesTestUtility";
-import {MetadataInitializer} from "../../../src/metadata/MetadataInitializer";
-import {Status} from "../../../src/ldes/Status";
-import {ILDESinLDPMetadata} from "../../../src/metadata/LDESinLDPMetadata";
-import {Member} from "@treecg/types";
-import {extractDateFromMember} from "../../../src/util/MemberUtil";
+import { LDESinLDP } from "../../../src/ldes/LDESinLDP";
+import { DCT, LDP } from "../../../src/util/Vocabularies";
+import { DataFactory, Store } from "n3";
+import { Communication } from "../../../src/ldp/Communication";
+import { extractLdesMetadata } from "../../../src/util/LdesUtil";
+import { memberStreamtoStore, storeToString, } from "../../../src/util/Conversion";
+import { LDESConfig } from "../../../src/ldes/LDESConfig";
+import { getRelationIdentifier } from "../../../src/ldes/Util";
+import { addSimpleMember } from "../../util/LdesTestUtility";
+import { MetadataInitializer } from "../../../src/metadata/MetadataInitializer";
+import { Status } from "../../../src/ldes/Status";
+import { ILDESinLDPMetadata } from "../../../src/metadata/LDESinLDPMetadata";
+import { Member } from "@treecg/types";
+import { extractDateFromMember } from "../../../src/util/MemberUtil";
 import namedNode = DataFactory.namedNode;
 import literal = DataFactory.literal;
+import { GreaterThanOrEqualToRelation } from "../../../src/metadata/util/Components";
+import { MetadataParser } from "../../../src/metadata/MetadataParser";
 
 describe('An LDESinLDP', () => {
     const resourceStore = new Store()
@@ -53,8 +55,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
     function turtleStringResponse(text?: string): Response {
         text = text ?? ""
-        textTurtleHeader = new Headers(new Headers({'content-type': 'text/turtle'}))
-        return new Response(text, {status: 200, headers: textTurtleHeader})
+        textTurtleHeader = new Headers(new Headers({ 'content-type': 'text/turtle' }))
+        return new Response(text, { status: 200, headers: textTurtleHeader })
     }
 
     function turtleStringResponseFromMetadata(metadata: ILDESinLDPMetadata): Response {
@@ -72,15 +74,15 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         }
 
         // communication.head mock: always give proper location for current writable location
-        const inboxHeader = new Headers({'Link': `<${inboxContainerURL}>; rel="http://www.w3.org/ns/ldp#inbox"`})
-        const headResponse = new Response(null, {status: 200, headers: inboxHeader})
+        const inboxHeader = new Headers({ 'Link': `<${inboxContainerURL}>; rel="http://www.w3.org/ns/ldp#inbox"` })
+        const headResponse = new Response(null, { status: 200, headers: inboxHeader })
         mockCommunication.head.mockResolvedValue(headResponse)
 
-        textTurtleHeader = new Headers(new Headers({'content-type': 'text/turtle'}))
-        readMetadataResponse = new Response(lilString, {status: 200, headers: textTurtleHeader})
+        textTurtleHeader = new Headers(new Headers({ 'content-type': 'text/turtle' }))
+        readMetadataResponse = new Response(lilString, { status: 200, headers: textTurtleHeader })
         ldesinldp = new LDESinLDP(lilBase, mockCommunication)
 
-        lilMetadata = MetadataInitializer.generateLDESinLDPMetadata(lilBase, {lilConfig: config, date})
+        lilMetadata = MetadataInitializer.generateLDESinLDPMetadata(lilBase, { lilConfig: config, date })
     });
 
     it('returns the LDESinLDPIdentifier when calling its get function.', () => {
@@ -96,10 +98,10 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         let status: Status
 
         function createWacResponse(args?: { status: number, permissions: string[] }): Response {
-            args = args ?? {status: 200, permissions: ['read']}
+            args = args ?? { status: 200, permissions: ['read'] }
             const permissions = args.permissions.join(' ')
-            const wacHeader = new Headers({'WAC-Allow': `user="${permissions}", public="read"`})
-            return new Response(null, {status: args.status, headers: wacHeader})
+            const wacHeader = new Headers({ 'WAC-Allow': `user="${permissions}", public="read"` })
+            return new Response(null, { status: args.status, headers: wacHeader })
         }
 
         beforeEach(() => {
@@ -119,7 +121,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('returns all false when status code is not 200.', async () => {
-            mockCommunication.head.mockResolvedValue(createWacResponse({status: 401, permissions: []}))
+            mockCommunication.head.mockResolvedValue(createWacResponse({ status: 401, permissions: [] }))
             expect(await ldesinldp.status()).toEqual(status)
             expect(mockCommunication.head).toBeCalledTimes(1)
             expect(mockCommunication.get).toBeCalledTimes(0)
@@ -177,7 +179,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             status.writable = true
             status.empty = true // only 1 relation with no members
             mockCommunication.get.mockResolvedValueOnce(turtleStringResponseFromMetadata(lilMetadata))
-            mockCommunication.head.mockResolvedValue(createWacResponse({status: 200, permissions: ['read', 'write']}))
+            mockCommunication.head.mockResolvedValue(createWacResponse({ status: 200, permissions: ['read', 'write'] }))
 
             expect(await ldesinldp.status()).toEqual(status)
             expect(mockCommunication.head).toBeCalledTimes(1)
@@ -192,7 +194,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
         it('succeeds when a correct eventStream Identifier is given.', () => {
             let eventStreamIdentifier = "http://example.org/#test"
-            expect(new LDESinLDP('http://example.org/ldesinldp/', mockCommunication, {eventStreamIdentifier})).toBeDefined()
+            expect(new LDESinLDP('http://example.org/ldesinldp/', mockCommunication, { eventStreamIdentifier })).toBeDefined()
         });
 
         it('throws an error when the LDESinLDPIdentifier is not a container Identifier according to slash semantics.', () => {
@@ -216,12 +218,12 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('succeeds when it was not initialised yet.', async () => {
-            mockCommunication.put.mockResolvedValue(new Response(null, {status: 201}))
-            mockCommunication.patch.mockResolvedValue(new Response(null, {status: 205}))
-            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 500}))
+            mockCommunication.put.mockResolvedValue(new Response(null, { status: 201 }))
+            mockCommunication.patch.mockResolvedValue(new Response(null, { status: 205 }))
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, { status: 500 }))
 
             const patchQuery = `INSERT DATA {${storeToString(store)}};`
-            const lilConfig = {...config, date}
+            const lilConfig = { ...config, date }
             await ldesinldp.initialise(lilConfig)
             expect(mockCommunication.patch).toBeCalledWith(lilBase + '.meta', patchQuery)
             expect(mockCommunication.patch).toBeCalledTimes(1)
@@ -231,12 +233,12 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         })
 
         it('persists the maximum page size.', async () => {
-            mockCommunication.put.mockResolvedValue(new Response(null, {status: 201}))
-            mockCommunication.patch.mockResolvedValue(new Response(null, {status: 205}))
-            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 500}))
+            mockCommunication.put.mockResolvedValue(new Response(null, { status: 201 }))
+            mockCommunication.patch.mockResolvedValue(new Response(null, { status: 205 }))
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, { status: 500 }))
 
             const pageSize = 10
-            const lilConfig = {...config, date, pageSize}
+            const lilConfig = { ...config, date, pageSize }
 
             store = MetadataInitializer.generateLDESinLDPMetadata(lilBase, {
                 lilConfig: lilConfig,
@@ -249,7 +251,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         })
 
         it('succeeds when it was already initialised.', async () => {
-            mockCommunication.head.mockResolvedValueOnce(new Response(null, {status: 200}))
+            mockCommunication.head.mockResolvedValueOnce(new Response(null, { status: 200 }))
 
             await ldesinldp.initialise(config)
             expect(mockCommunication.head).toBeCalledWith(lilBase)
@@ -270,10 +272,10 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
             // metadata with pageSize store
             config.pageSize = pageSize
-            store = MetadataInitializer.generateLDESinLDPMetadata(lilBase, {lilConfig: config, date}).getStore()
+            store = MetadataInitializer.generateLDESinLDPMetadata(lilBase, { lilConfig: config, date }).getStore()
 
-            const locationHeader = new Headers({'Location': createdURL})
-            postResponse = new Response(null, {status: 201, headers: locationHeader})
+            const locationHeader = new Headers({ 'Location': createdURL })
+            postResponse = new Response(null, { status: 201, headers: locationHeader })
 
         });
 
@@ -287,7 +289,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('throws error when posting the resource failed.', async () => {
-            postResponse = new Response(null, {status: 500})
+            postResponse = new Response(null, { status: 500 })
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
             await expect(ldesinldp.append(resourceStore)).rejects.toThrow(Error)
@@ -296,7 +298,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('throws error when no location is returned.', async () => {
-            postResponse = new Response(null, {status: 201})
+            postResponse = new Response(null, { status: 201 })
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
             await expect(ldesinldp.append(resourceStore)).rejects.toThrow(Error)
@@ -304,7 +306,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('creates a new fragment when the # of members in the current fragment >= pageSize.', async () => {
-            const metadataResponse = new Response(storeToString(store), {status: 200, headers: textTurtleHeader})
+            const metadataResponse = new Response(storeToString(store), { status: 200, headers: textTurtleHeader })
             mockCommunication.get.mockResolvedValueOnce(metadataResponse)
 
             const fragmentStore = new Store()
@@ -315,8 +317,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             })
             mockCommunication.get.mockResolvedValueOnce(fragmentResponse)
             // mock container created -> for new fragment
-            mockCommunication.put.mockResolvedValue(new Response(null, {status: 201}))
-            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 205}))
+            mockCommunication.put.mockResolvedValue(new Response(null, { status: 201 }))
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, { status: 205 }))
             // mock new resource created -> new member (append method)
             mockCommunication.post.mockResolvedValueOnce(postResponse)
 
@@ -329,10 +331,10 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('creates no new fragment when the # of members in the current fragment < pageSize.', async () => {
-            const metadataResponse = new Response(storeToString(store), {status: 200, headers: textTurtleHeader})
+            const metadataResponse = new Response(storeToString(store), { status: 200, headers: textTurtleHeader })
             mockCommunication.get.mockResolvedValueOnce(metadataResponse)
 
-            const fragmentResponse = new Response(storeToString(new Store()), {status: 200, headers: textTurtleHeader})
+            const fragmentResponse = new Response(storeToString(new Store()), { status: 200, headers: textTurtleHeader })
             mockCommunication.get.mockResolvedValueOnce(fragmentResponse)
 
             mockCommunication.post.mockResolvedValueOnce(postResponse)
@@ -351,7 +353,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             const turtleString = "<a> <b> <c>."
             const getResponse = new Response(turtleString, {
                 status: 200,
-                headers: new Headers({'Content-type': 'text/turtle'})
+                headers: new Headers({ 'Content-type': 'text/turtle' })
             })
             mockCommunication.get.mockResolvedValueOnce(getResponse)
 
@@ -360,14 +362,14 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         });
 
         it('throws an error when the resource was not found.', async () => {
-            const getResponse = new Response(null, {status: 404})
+            const getResponse = new Response(null, { status: 404 })
             mockCommunication.get.mockResolvedValueOnce(getResponse)
 
             await expect(() => ldesinldp.read(createdURL)).rejects.toThrow(Error)
         });
 
         it('throws an error when the content-type is not text/turtle', async () => {
-            const getResponse = new Response(null, {status: 200})
+            const getResponse = new Response(null, { status: 200 })
             mockCommunication.get.mockResolvedValueOnce(getResponse)
 
             await expect(() => ldesinldp.read(createdURL)).rejects.toThrow(Error)
@@ -380,7 +382,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         beforeEach(() => {
             const getResponse = new Response(lilString, {
                 status: 200,
-                headers: new Headers({'Content-type': 'text/turtle'})
+                headers: new Headers({ 'Content-type': 'text/turtle' })
             })
             mockCommunication.get.mockResolvedValueOnce(getResponse)
         });
@@ -388,7 +390,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         it('throws an error when the base (LDESinLDPIdentifier) is not an actual LDES in LDP.', async () => {
             const getResponse = new Response("", {
                 status: 200,
-                headers: new Headers({'Content-type': 'text/turtle'})
+                headers: new Headers({ 'Content-type': 'text/turtle' })
             })
             mockCommunication.get = jest.fn()
             mockCommunication.get.mockResolvedValueOnce(getResponse)
@@ -413,14 +415,14 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         beforeEach(() => {
             getMetadataResponse = new Response(lilString, {
                 status: 200,
-                headers: new Headers({'Content-type': 'text/turtle'})
+                headers: new Headers({ 'Content-type': 'text/turtle' })
             })
 
             getNodeResponse = new Response(
                 `<http://example.org/ldesinldp/timestamppath/> <${LDP.contains}> <http://example.org/ldesinldp/timestamppath/resource1>.`,
                 {
                     status: 200,
-                    headers: new Headers({'Content-type': 'text/turtle'})
+                    headers: new Headers({ 'Content-type': 'text/turtle' })
                 })
             getResourceResponse = new Response(
                 `<#resource> <${DCT.title}> "test".
@@ -428,7 +430,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 <#resource> <${DCT.isVersionOf}>  <http://example.org/resource1>.`,
                 {
                     status: 200,
-                    headers: new Headers({'Content-type': 'text/turtle'})
+                    headers: new Headers({ 'Content-type': 'text/turtle' })
                 })
         });
 
@@ -447,7 +449,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         it('also works when tree:path is not the default.', async () => {
             const treePath = "http://purl.org/dc/terms/test"
             const lilMetadata = MetadataInitializer.generateLDESinLDPMetadata(lilBase,
-                {lilConfig: {treePath}, date})
+                { lilConfig: { treePath }, date })
 
             const metadataResponse = turtleStringResponseFromMetadata(lilMetadata)
             const getResourceResponse = turtleStringResponse(`<#resource> <${DCT.title}> "test".
@@ -479,7 +481,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
         beforeEach(() => {
             getMetadataResponse = new Response(lilString, {
                 status: 200,
-                headers: new Headers({'Content-type': 'text/turtle'})
+                headers: new Headers({ 'Content-type': 'text/turtle' })
             })
 
             getNodeResponse = new Response(
@@ -487,7 +489,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 <http://example.org/ldesinldp/timestamppath/> <${LDP.contains}> <http://example.org/ldesinldp/timestamppath/resource2>.`,
                 {
                     status: 200,
-                    headers: new Headers({'Content-type': 'text/turtle'})
+                    headers: new Headers({ 'Content-type': 'text/turtle' })
                 })
             // oldest
             getResourceResponse1 = new Response(
@@ -496,7 +498,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 <http://example.org/resource1#resource1> <${DCT.isVersionOf}>  <http://example.org/resource1>.`,
                 {
                     status: 200,
-                    headers: new Headers({'Content-type': 'text/turtle'})
+                    headers: new Headers({ 'Content-type': 'text/turtle' })
                 })
 
             // newest
@@ -506,7 +508,7 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 <http://example.org/resource1#resource2> <${DCT.isVersionOf}>  <http://example.org/resource1>.`,
                 {
                     status: 200,
-                    headers: new Headers({'Content-type': 'text/turtle'})
+                    headers: new Headers({ 'Content-type': 'text/turtle' })
                 })
         });
 
@@ -524,8 +526,8 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
             expect(mockCommunication.get).toBeCalledTimes(4)
             expect(orderedMembers.length).toBe(2)
             // as newest member is fetched first, the ordering will make the oldest member appear as first data element in the stream
-            expect(extractDateFromMember(orderedMembers[0],DCT.created).getTime()).toEqual(dateResource1.getTime())
-            expect(extractDateFromMember(orderedMembers[1],DCT.created).getTime()).toEqual(dateResource2.getTime())
+            expect(extractDateFromMember(orderedMembers[0], DCT.created).getTime()).toEqual(dateResource1.getTime())
+            expect(extractDateFromMember(orderedMembers[1], DCT.created).getTime()).toEqual(dateResource2.getTime())
         });
     });
 
@@ -536,25 +538,25 @@ _:genid1 <https://w3id.org/tree#value> "2022-03-28T14:53:28.841Z"^^<http://www.w
 
         beforeEach(() => {
             // new container created
-            mockCommunication.put.mockResolvedValueOnce(new Response(null, {status: 201}))
+            mockCommunication.put.mockResolvedValueOnce(new Response(null, { status: 201 }))
             // read metadata
             mockCommunication.get.mockResolvedValue(new Response(lilString,
                 {
                     status: 200,
-                    headers: new Headers({'content-type': 'text/turtle'})
+                    headers: new Headers({ 'content-type': 'text/turtle' })
                 }
             ))
         });
 
         it('fails when a container cannot be created.', async () => {
-            mockCommunication.put.mockResolvedValueOnce(new Response(null, {status: 404}))
+            mockCommunication.put.mockResolvedValueOnce(new Response(null, { status: 404 }))
             // error due to `createContainer` function
             await expect(async () => ldesinldp.newFragment(dateNewFragment)).rejects.toThrow(Error)
         });
 
         it('sends the correct PATCH request when inbox MUST be created.', async () => {
             // patch metadata
-            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 205}))
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, { status: 205 }))
 
             await ldesinldp.newFragment(dateNewFragment)
             expect(mockCommunication.put).lastCalledWith(fragmentIdentifier)
@@ -572,7 +574,7 @@ _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
 
         it('sends the correct PATCH request when inbox MUST NOT be created.', async () => {
             // patch metadata
-            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 205}))
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, { status: 205 }))
             let oldDate = new Date(0)
             const fragmentIdentifier = getRelationIdentifier(lilBase, oldDate)
 
@@ -588,9 +590,9 @@ _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
 
         it('rejects when the PATCH request failed.', async () => {
             // patch metadata fails
-            mockCommunication.patch.mockResolvedValueOnce(new Response(null, {status: 409}))
+            mockCommunication.patch.mockResolvedValueOnce(new Response(null, { status: 409 }))
             // deletion of container is successful
-            mockCommunication.delete.mockResolvedValue(new Response(null, {status: 205}))
+            mockCommunication.delete.mockResolvedValue(new Response(null, { status: 205 }))
 
             await expect(async () => ldesinldp.newFragment(dateNewFragment)).rejects.toThrow(Error)
             expect(mockCommunication.put).lastCalledWith(fragmentIdentifier)
@@ -613,7 +615,7 @@ _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
             containerStore.addQuad(namedNode(containerURL), namedNode(LDP.contains), namedNode(resourceURL))
             resourceStore.addQuad(namedNode(resourceURL), namedNode(DCT.title), literal("title"))
 
-            containerResponse = new Response(storeToString(containerStore), {status: 200, headers: textTurtleHeader})
+            containerResponse = new Response(storeToString(containerStore), { status: 200, headers: textTurtleHeader })
         });
 
         it('returns nothing when uri is not a containerURI', async () => {
@@ -652,12 +654,76 @@ _:b0 <https://w3id.org/tree#node> <${fragmentIdentifier}> .
             mockCommunication.get.mockResolvedValueOnce(containerResponse)
 
             const resources = ldesinldp.readPage(containerURL)
-            let members = []
+            let members: Store[] = []
             for await (const resource of resources) {
                 members.push(resource)
             }
             expect(members.length).toBe(2)
             expect(mockCommunication.get).toBeCalledTimes(2)
+        });
+
+        it('does not fetch ldp:resources based on filtering using TREE metadata at container description resource.', async () => {
+            const t1 = new Date("2024-01-15")
+            const t2 = new Date("2024-01-16")
+            const t3 = new Date(t2.valueOf()+1)
+
+            // mock response of container with metadata see `appendRelationToPage` function
+            // remove all general relations
+            lilMetadata.view.relations = []
+            // add new relations
+            const newRelation = new GreaterThanOrEqualToRelation(resourceURL, lilMetadata.view.viewDescription!.managedBy.bucketizeStrategy.path, t3.toISOString())
+            lilMetadata.view.relations.push(newRelation)
+            const newMetadata = lilMetadata.getStore()
+            newMetadata.removeQuads(newMetadata.getQuads(null, LDP.terms.inbox, null, null))
+            containerStore.addQuads(newMetadata.getQuads(null, null, null, null))
+            containerResponse = new Response(storeToString(containerStore), { status: 200, headers: textTurtleHeader })
+            mockCommunication.get.mockResolvedValueOnce(containerResponse)
+ 
+            
+            
+            const resources = ldesinldp.readPage(containerURL, { from: t1, until: t2 })
+
+            let members: Store[] = []
+            for await (const resource of resources) {
+                members.push(resource)
+            }
+            expect(members.length).toBe(0)
+            expect(mockCommunication.get).toBeCalledTimes(1)
+
+        });
+        it('does fetch ldp:resources based on filtering using TREE metadata at container description resource.', async () => {
+            mockCommunication.get.mockResolvedValue(new Response(storeToString(resourceStore), {
+                status: 200,
+                headers: textTurtleHeader
+            }))
+
+            const t1 = new Date("2024-01-15")
+            const t2 = new Date("2024-01-16")
+            const t3 = new Date(t2.valueOf()+1)
+
+            // mock response of container with metadata see `appendRelationToPage` function
+            // remove all general relations
+            lilMetadata.view.relations = []
+            // add new relations
+            const newRelation = new GreaterThanOrEqualToRelation(resourceURL, lilMetadata.view.viewDescription!.managedBy.bucketizeStrategy.path, t2.toISOString())
+            lilMetadata.view.relations.push(newRelation)
+            const newMetadata = lilMetadata.getStore()
+            newMetadata.removeQuads(newMetadata.getQuads(null, LDP.terms.inbox, null, null))
+            containerStore.addQuads(newMetadata.getQuads(null, null, null, null))
+            containerResponse = new Response(storeToString(containerStore), { status: 200, headers: textTurtleHeader })
+            mockCommunication.get.mockResolvedValueOnce(containerResponse)
+ 
+            
+            
+            const resources = ldesinldp.readPage(containerURL, { from: t1, until: t3 }) // t2 would also be okay
+
+            let members: Store[] = []
+            for await (const resource of resources) {
+                members.push(resource)
+            }
+            expect(members.length).toBe(1)
+            expect(mockCommunication.get).toBeCalledTimes(2)
+
         });
     });
 })

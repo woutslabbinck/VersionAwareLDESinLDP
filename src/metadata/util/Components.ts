@@ -39,6 +39,10 @@ export class Node implements INode {
         return this._id;
     }
 
+    set relations(relations: IRelation[]) {
+        this._relations = relations
+    }
+
     get relations(): IRelation[] {
         return this._relations;
     }

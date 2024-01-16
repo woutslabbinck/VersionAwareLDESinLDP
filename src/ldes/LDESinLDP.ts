@@ -1,13 +1,13 @@
-import {ILDES} from "./ILDES";
-import {Communication} from "../ldp/Communication";
-import {Logger} from "../logging/Logger";
-import {filterRelation} from "../util/LdesUtil";
-import {ILDESinLDPMetadata} from "../metadata/LDESinLDPMetadata";
-import {DataFactory, Literal, Store} from "n3";
-import {Readable} from "stream";
-import {MetadataParser} from "../metadata/MetadataParser";
-import {MetadataInitializer} from "../metadata/MetadataInitializer";
-import {isContainerIdentifier} from "../util/IdentifierUtil";
+import { ILDES } from "./ILDES";
+import { Communication } from "../ldp/Communication";
+import { Logger } from "../logging/Logger";
+import { filterRelation } from "../util/LdesUtil";
+import { ILDESinLDPMetadata } from "../metadata/LDESinLDPMetadata";
+import { DataFactory, Literal, Store } from "n3";
+import { Readable } from "stream";
+import { MetadataParser } from "../metadata/MetadataParser";
+import { MetadataInitializer } from "../metadata/MetadataInitializer";
+import { isContainerIdentifier } from "../util/IdentifierUtil";
 import {
     createContainer,
     extractMembers,
@@ -15,18 +15,18 @@ import {
     retrieveDateTimeFromInbox,
     retrieveWriteLocation
 } from "./Util";
-import {storeToString, turtleStringToStore} from "../util/Conversion";
-import {LILConfig} from "../metadata/LILConfig";
-import {LDP, TREE} from "../util/Vocabularies";
-import {GreaterThanOrEqualToRelation} from "../metadata/util/Components";
-import {Status} from "./Status";
+import { storeToString, turtleStringToStore } from "../util/Conversion";
+import { LILConfig } from "../metadata/LILConfig";
+import { LDP, TREE } from "../util/Vocabularies";
+import { GreaterThanOrEqualToRelation } from "../metadata/util/Components";
+import { Status } from "./Status";
 // @ts-ignore
 import * as WacAllow from 'wac-allow';
-import {extractDateFromLiteral} from "../util/TimestampUtil";
-import {patchSparqlUpdateDelete, patchSparqlUpdateInsert} from "../util/PatchUtil";
-import {quad} from "@rdfjs/data-model";
-import {Member} from "@treecg/types";
-import {extractDateFromMember} from "../util/MemberUtil";
+import { extractDateFromLiteral } from "../util/TimestampUtil";
+import { patchSparqlUpdateDelete, patchSparqlUpdateInsert } from "../util/PatchUtil";
+import { quad } from "@rdfjs/data-model";
+import { Member } from "@treecg/types";
+import { extractDateFromMember } from "../util/MemberUtil";
 import namedNode = DataFactory.namedNode;
 
 /***************************************
@@ -95,7 +95,7 @@ export class LDESinLDP implements ILDES {
         }
         status.valid = true
 
-        const {user} = WacAllow.parse(foundResponse)
+        const { user } = WacAllow.parse(foundResponse)
         status.writable = user.has('write')
 
         if (metadata.view.relations.length === 1) {
@@ -246,7 +246,7 @@ export class LDESinLDP implements ILDES {
         })
 
         for (const relation of relations) {
-            const resources = comm.readPage(relation.node)
+            const resources = comm.readPage(relation.node, { from, until })
             for await (const resource of resources) {
                 // member ID is based on tree:path
                 let memberId = resource.getSubjects(relation.path, null, null)[0].value
@@ -289,7 +289,7 @@ export class LDESinLDP implements ILDES {
         })
 
         for (const relation of relations) {
-            const resources = comm.readPage(relation.node)
+            const resources = comm.readPage(relation.node, { from, until })
             const members: Member[] = []
             for await (const resource of resources) {
                 // member ID is based on tree:path
@@ -316,7 +316,7 @@ export class LDESinLDP implements ILDES {
                 }
             }
             // sort member chronologically
-            const sortedMembers = members.sort((a:Member, b:Member) => {
+            const sortedMembers = members.sort((a: Member, b: Member) => {
                 const dateA = extractDateFromMember(a, relation.path);
                 const dateB = extractDateFromMember(b, relation.path);
                 return dateA.getTime() - dateB.getTime()
@@ -347,11 +347,23 @@ export class LDESinLDP implements ILDES {
     /**
      * Return all the resources (members) of a container as an Iterable.
      * @param containerURL
+     * @param opts : optional argument that can help filter out members within a range (can only be used if there is metadata in the container)
      */
-    public async* readPage(containerURL: string): AsyncIterable<Store> {
+    public async* readPage(containerURL: string, opts?: {
+        from?: Date;
+        until?: Date;
+    }): AsyncIterable<Store> {
         if (isContainerIdentifier(containerURL)) {
             const store = await this.read(containerURL)
-            const children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
+            const pageMetadata = await this.pageMedata(containerURL, store)
+            let children: string[] = []
+            
+            if (opts?.from && opts?.until && pageMetadata) {
+                // https://github.com/woutslabbinck/VersionAwareLDESinLDP/issues/34
+                children = filterRelation(pageMetadata, opts.from, opts.until).map(relation => relation.node)
+            } else {
+                children = store.getObjects(containerURL, LDP.contains, null).map(value => value.value)
+            }
             for (const childURL of children) {
                 const resourceStore = await this.read(childURL)
                 if (resourceStore.countQuads(this.metadata.eventStreamIdentifier, TREE.member, null, null) === 0) {
@@ -408,5 +420,15 @@ export class LDESinLDP implements ILDES {
                 await this.newFragment()
             }
         }
+    }
+
+    private async pageMedata(containerURL: string, store: Store): Promise<ILDESinLDPMetadata | undefined> {
+        let pageMetadata = undefined
+        store.addQuad(namedNode(this._LDESinLDPIdentifier), LDP.terms.inbox, namedNode(containerURL))
+        try {
+            pageMetadata = MetadataParser.extractLDESinLDPMetadata(store)
+        } catch (e) {
+        }
+        return pageMetadata
     }
 }
